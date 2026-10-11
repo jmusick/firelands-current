@@ -16,8 +16,8 @@ export type Quota = { max: number; windowMs: number };
  */
 export const QUOTAS = {
   // Contact, Submit news, and Advertise share one allowance: they all send mail to staff.
-  inbox: { max: 5, windowMs: HOUR },
-  // Higher than the inbox: a reader may reasonably flag several errors in one sitting.
+  inbox: { max: 10, windowMs: HOUR },
+  // A reader may reasonably flag several errors in one sitting.
   corrections: { max: 10, windowMs: HOUR },
   // Voting is one click, and switching or taking back a vote counts too.
   vote: { max: 60, windowMs: MINUTE },

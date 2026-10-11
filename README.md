@@ -108,7 +108,7 @@ Public writes carry per-client application quotas on top of Turnstile and the ho
 
 | Write | Limit | Over the limit |
 | --- | --- | --- |
-| Contact, Submit news, and Advertise (shared) | 5 per hour | Plain-text `429` with `Retry-After`; nothing is stored or emailed |
+| Contact, Submit news, and Advertise (shared) | 10 per hour | Plain-text `429` with `Retry-After`; nothing is stored or emailed |
 | Report an inaccuracy | 10 per hour | Same |
 | Talk votes (including changing or taking back a vote) | 60 per minute | Same |
 | New Talk discussions | 5 per hour | Back to the form with the existing "rate" message |

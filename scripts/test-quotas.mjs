@@ -250,10 +250,10 @@ test('inbox allowances are per client: other addresses, signed-in readers, and I
 
 test('contact, news tip, and advertising forms share one inbox allowance', async () => {
   const ip = freshIp();
-  const kinds = ['contact', 'ads', 'news', 'contact', 'ads'];
+  const kinds = Array.from({ length: QUOTAS.inbox.max }, (_, index) => ['contact', 'ads', 'news', 'contact', 'ads'][index % 5]);
   for (const kind of kinds) assert.equal((await post(inbox, '/api/inbox', { ...inboxFields, kind }, { ip })).status, 303);
   assert.equal((await post(inbox, '/api/inbox', { ...inboxFields, kind: 'news' }, { ip })).status, 429);
-  assert.equal(count('SELECT COUNT(*) AS count FROM news_submissions'), 1, 'a limited tip is not stored');
+  assert.equal(count('SELECT COUNT(*) AS count FROM news_submissions'), kinds.filter((kind) => kind === 'news').length, 'a limited tip is not stored');
 });
 
 test('submissions that would not be sent never use the allowance', async () => {

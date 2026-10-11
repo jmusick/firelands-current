@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.23] - 2026-10-11
+
+### Security
+
+- Public writes now have per-client quotas: the Contact, Submit news, and Advertise forms share 10 submissions an hour, inaccuracy reports allow 10 an hour, and votes 60 a minute. Signed-in readers count by account and signed-out visitors by a keyed hash of their address (IPv6 by /64), stored briefly in `auth_rate_limits`; a limited request gets a plain `429` with `Retry-After`. Talk discussion, comment, and report limits are now checked inside the insert itself, so concurrent requests can no longer slip past them. Migration `0024_report_rate_index.sql` adds an index for the report check. The Privacy Policy describes the posting limits, and `npm run test:quotas` covers them, including concurrent requests (#11)
+
 ## [1.22.22] - 2026-10-11
 
 ### Security
