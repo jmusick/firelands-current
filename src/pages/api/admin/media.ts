@@ -3,7 +3,7 @@ import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { ADMIN, canAccess } from '../../../lib/admin';
 import { cleanText, sameOrigin } from '../../../lib/forum';
-import { MAX_UPLOAD_BYTES, MEDIA_PAGE_SIZE, checkUpload, detailsFrom, getMedia, listMedia, mediaAudit, mediaUsage, parseMediaPage, storeMedia, toItem, validateDetails } from '../../../lib/media';
+import { MAX_UPLOAD_BYTES, MEDIA_PAGE_SIZE, batchWithUploads, checkUpload, detailsFrom, getMedia, listMedia, mediaAudit, mediaUsage, parseMediaPage, storeMedia, toItem, validateDetails } from '../../../lib/media';
 
 // The editor's picker lists and uploads through here with fetch, so those answers are JSON.
 // Deleting is a plain form post from the item's page. Editing details happens on that page.
@@ -36,7 +36,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (typeof checked === 'string') errors.unshift(checked);
     if (errors.length || typeof checked === 'string') return json({ error: errors.join(' ') }, 400);
     const { record, statement } = await storeMedia(checked, file.name, details, actor.id);
-    await env.DB.batch([statement, mediaAudit(actor, record, 'media-upload', `${record.width}×${record.height}`)]);
+    await batchWithUploads([record], [statement, mediaAudit(actor, record, 'media-upload', `${record.width}×${record.height}`)]);
     return json({ item: toItem(record) }, 201);
   }
 
