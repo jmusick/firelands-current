@@ -2,7 +2,7 @@
 
 export type MediaItem = {
   id: string; url: string; width: number; height: number; filename: string;
-  alt: string; caption: string; credit: string;
+  alt: string; decorative: boolean; caption: string; credit: string;
 };
 
 const MAX_EDGE = 2000;
@@ -37,11 +37,13 @@ export async function prepareImage(file: File): Promise<File> {
   return new File([blob], name, { type });
 }
 
-export async function uploadImage(file: File, details: { alt: string; caption: string; credit: string; source: string }): Promise<MediaItem> {
+export async function uploadImage(file: File, details: { alt: string; decorative: boolean; caption: string; credit: string; source: string }): Promise<MediaItem> {
   const body = new FormData();
   body.set('action', 'upload');
   body.set('file', await prepareImage(file));
-  for (const [key, value] of Object.entries(details)) body.set(key, value);
+  const { decorative, ...text } = details;
+  for (const [key, value] of Object.entries(text)) body.set(key, value);
+  if (decorative) body.set('decorative', 'on');
   const response = await fetch('/api/admin/media', { method: 'POST', body, headers: { Accept: 'application/json' } });
   const data = (await response.json().catch(() => ({}))) as { item?: MediaItem; error?: string };
   if (!response.ok || !data.item) throw new Error(data.error || 'The upload failed. Try again.');

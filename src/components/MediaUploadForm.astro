@@ -17,7 +17,8 @@ const { submitLabel = 'Upload' } = Astro.props;
     </label>
   </div>
   <label>Credit <span class="hint">Required. Shown with the image, e.g. “Photo by Jane Doe” or “Courtesy of Huron County Dog Warden”.</span><input name="credit" required minlength="2" maxlength="120" /></label>
-  <label>Alt text <span class="hint">Describe what’s in the image for readers who can’t see it.</span><input name="alt" maxlength="300" /></label>
+  <label>Alt text <span class="hint">Required unless the image is decorative. Describe what’s in the image for readers who can’t see it.</span><input name="alt" maxlength="300" /></label>
+  <label class="check"><input type="checkbox" name="decorative" /><span>This image is decorative <span class="hint">It adds nothing a reader would miss, so screen readers skip it. Don’t tick this for a photo that illustrates a story.</span></span></label>
   <label>Caption <span class="hint">Optional. Shown under the image in stories.</span><textarea name="caption" maxlength="500" style="min-height:70px"></textarea></label>
   <label>Source &amp; permission <span class="hint">Staff only. Where it came from and who said we could use it.</span><textarea name="source" maxlength="1000" style="min-height:70px"></textarea></label>
   <p class="message upload-error" role="alert" hidden></p>
@@ -32,7 +33,11 @@ const { submitLabel = 'Upload' } = Astro.props;
     const preview = form.querySelector<HTMLImageElement>('.upload-preview')!;
     const error = form.querySelector<HTMLElement>('.upload-error')!;
     const button = form.querySelector<HTMLButtonElement>('button[type=submit]')!;
+    const alt = form.elements.namedItem('alt') as HTMLInputElement;
+    const decorative = form.elements.namedItem('decorative') as HTMLInputElement;
     const showError = (text: string) => { error.textContent = text; error.hidden = !text; };
+    // A decorative image has no alt text, so the field is switched off while the box is ticked.
+    decorative.addEventListener('change', () => { alt.disabled = decorative.checked; if (decorative.checked) alt.value = ''; });
 
     input.addEventListener('change', () => {
       if (preview.src) URL.revokeObjectURL(preview.src);
@@ -48,12 +53,14 @@ const { submitLabel = 'Upload' } = Astro.props;
       const field = (name: string) => (form.elements.namedItem(name) as HTMLInputElement).value.trim();
       if (!file) return showError('Choose an image to upload.');
       if (field('credit').length < 2) return showError('Add a credit: who made the image, or who supplied it.');
+      if (!decorative.checked && !field('alt')) { alt.focus(); return showError('Describe the image in the alt text, or tick “This image is decorative” if it adds nothing a reader would miss.'); }
       showError('');
       button.disabled = true;
       button.lastChild!.textContent = 'Uploading…';
       try {
-        const item = await uploadImage(file, { alt: field('alt'), caption: field('caption'), credit: field('credit'), source: field('source') });
+        const item = await uploadImage(file, { alt: decorative.checked ? '' : field('alt'), decorative: decorative.checked, caption: field('caption'), credit: field('credit'), source: field('source') });
         form.reset();
+        alt.disabled = false;
         input.dispatchEvent(new Event('change'));
         form.dispatchEvent(new CustomEvent('media-uploaded', { detail: item, bubbles: true }));
       } catch (e) {
@@ -71,6 +78,8 @@ const { submitLabel = 'Upload' } = Astro.props;
   .media-upload { gap: .9rem; }
   .drop { display: grid; gap: .6rem; }
   .upload-preview { max-width: 100%; max-height: 220px; object-fit: contain; object-position: left; border: 1px solid var(--line-soft); background: #fff; }
+  .check { display: flex; gap: .6rem; align-items: start; }
+  .check input { margin-top: .3rem; }
   .hint { font-weight: 400; color: var(--slate); font-size: .8rem; }
   .media-upload input[type='file'] { padding: .5rem; }
 </style>

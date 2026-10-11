@@ -57,7 +57,11 @@ async function load(dialog: HTMLDialogElement, reset: boolean) {
     img.loading = 'lazy';
     const name = Object.assign(document.createElement('span'), { className: 'name', textContent: item.filename });
     const dims = Object.assign(document.createElement('span'), { className: 'dims', textContent: `${item.width}×${item.height} · ${item.credit}` });
-    button.replaceChildren(img, name, dims);
+    // An image with no alt text and no decorative decision goes into the story with an empty alternative.
+    const undecided = !item.alt && !item.decorative
+      ? [Object.assign(document.createElement('span'), { className: 'dims needs-alt', textContent: 'Needs alt text — set it in the media library' })]
+      : [];
+    button.replaceChildren(img, name, dims, ...undecided);
     button.title = item.caption || item.alt || item.filename;
     button.addEventListener('click', () => finish(dialog, item));
     grid.appendChild(button);
