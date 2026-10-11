@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.35] - 2026-10-11
+
+### Security
+
+- The admin activity log now records newsroom actions: story creation, edits (changed field names only), publishing, featuring and deletion; event changes, cancellations and deletions; discussion moderation; correction decisions; and news tips converted to stories. Entries hold ids and titles, never story, tip or submitter text, and link to the record while it exists. A signed-in account refused by an admin endpoint leaves a throttled "denied" entry. Sign-in, sign-up, password, email, linking and session events are written to Workers Logs as structured lines with keyed hashes in place of email and IP addresses. Migration `0027_audit_resources.sql` adds the resource and outcome columns. The README covers access and retention, and the Privacy Policy describes both records (#51)
+
 ## [1.22.34] - 2026-10-11
 
 ### Security
