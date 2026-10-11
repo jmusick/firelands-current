@@ -62,3 +62,19 @@ export function sendPasswordResetMail(user: { email: string; name: string }, url
     outro: "If you didn't ask for this, you can ignore this message; your password has not changed.",
   });
 }
+
+/**
+ * A plain message to the site owner, for the security alerts in auth-alerts.ts. The text is built from counts
+ * and truncated hashes only; it is escaped here anyway so nothing in it can become markup.
+ */
+export async function sendSecurityAlertMail(mail: { to: string; subject: string; text: string }): Promise<void> {
+  if (import.meta.env.DEV) console.log(`[mail] ${mail.subject} for ${mail.to}
+${mail.text}`);
+  await env.EMAIL.send({
+    to: mail.to,
+    from: { email: 'noreply@firelandscurrent.com', name: 'Firelands Current' },
+    subject: mail.subject,
+    text: mail.text,
+    html: `<div style="font-family:Georgia,serif;max-width:36rem;color:#172f36"><pre style="font-family:inherit;white-space:pre-wrap">${escapeHtml(mail.text)}</pre></div>`,
+  });
+}

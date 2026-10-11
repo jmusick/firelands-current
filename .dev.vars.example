@@ -8,3 +8,6 @@ TURNSTILE_EXPECTED_HOSTNAMES=
 # Facebook Page publishing is disabled locally, even with a real Page credential.
 FACEBOOK_AUTO_POST_ENABLED=false
 FACEBOOK_PAGE_ACCESS_TOKEN=
+# Authentication security alerts are emailed here (a secret in production: npx wrangler secret put SECURITY_ALERT_EMAIL).
+# Empty on purpose: with no address the scheduled Worker logs a security_alert line instead of mailing.
+SECURITY_ALERT_EMAIL=

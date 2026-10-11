@@ -58,7 +58,7 @@ const { createAuth } = await import(sourceModule('src/lib/auth.ts', {
   './reauth': sourceModule('src/lib/reauth.ts'),
   './oauth-tokens': tokensModule,
   './password-hash': sourceModule('src/lib/password-hash.ts'),
-  './auth-events': sourceModule('src/lib/auth-events.ts'),
+  './auth-events': sourceModule('src/lib/auth-events.ts', { './auth-alerts': sourceModule('src/lib/auth-alerts.ts') }),
 }));
 const auth = createAuth();
 

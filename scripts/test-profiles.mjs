@@ -41,7 +41,8 @@ const { getProfile, profileItems } = await loadSource('src/lib/profiles.ts');
 const { listArticles } = await loadSource('src/lib/news.ts');
 await loadSource('src/lib/forum.ts');
 await loadSource('src/lib/audit.ts');
-await loadSource('src/lib/auth-events.ts');
+await loadSource('src/lib/auth-alerts.ts');
+await loadSource('src/lib/auth-events.ts', { './auth-alerts': modules.get('src/lib/auth-alerts.ts') });
 const actor = { id: 'jd', name: 'jd' };
 const { saveArticleFromForm } = await loadSource('src/lib/news-admin.ts', {
   './news': modules.get('src/lib/news.ts'), './forum': modules.get('src/lib/forum.ts'), './audit': modules.get('src/lib/audit.ts'),
