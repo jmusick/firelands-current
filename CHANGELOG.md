@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.25] - 2026-10-11
+
+### Fixed
+
+- Every media library image now needs an editorial decision about its text alternative: meaningful alt text, or an explicit "This image is decorative" choice (rendered with an empty alt). Placeholder alt text such as "photo" or a file name is refused. Existing images with empty alt text are not treated as decorative; the library flags them with a "Needs alt text" badge and a filter (`/admin/media?alt=missing`), and editing one requires the decision first. Decorative changes are recorded in the media audit log. Uploaded ad banners are stored in the library as "Advertisement from <business>". Migration `0023_media_decorative.sql` adds the `decorative` column; `npm run test:media-alt` covers the rules (#24)
+
 ## [1.22.24] - 2026-10-11
 
 ### Fixed
