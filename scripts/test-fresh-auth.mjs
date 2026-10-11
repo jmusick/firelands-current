@@ -320,7 +320,9 @@ test('staff roles that gain access end the person’s sessions', async (t) => {
     assert.equal(roleOf('reader'), 'editor');
     assert.equal(sessions('reader'), 0);
     for (const cookie of [first, second]) {
-      assert.deepEqual((await render(reauthPage, '/reauth', cookie)).locals, { user: null, session: null, staffRole: null });
+      // The middleware also hands every page a CSP nonce; only the signed-out state matters here.
+      const { cspNonce, ...signedOut } = (await render(reauthPage, '/reauth', cookie)).locals;
+      assert.deepEqual(signedOut, { user: null, session: null, staffRole: null });
     }
     assert.equal(lastAudit('reader', 'set-role').detail, 'None → Editor; signed out 2 sessions');
     assert.equal(lastAudit('reader', 'set-role').actor_id, 'chief');

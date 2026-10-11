@@ -227,7 +227,7 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
   </div>
 </AdminLayout>
 
-<script is:inline>
+<script is:inline nonce={Astro.locals.cspNonce}>
   document.querySelectorAll('form[data-confirm]').forEach(function (form) {
     form.addEventListener('submit', function (event) { if (!confirm(form.dataset.confirm)) event.preventDefault(); });
   });

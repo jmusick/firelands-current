@@ -34,6 +34,8 @@ function loadApi(): Promise<TurnstileApi> {
     const script = document.createElement('script');
     script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
     script.async = true;
+    // 'strict-dynamic' already trusts a script added from here; the nonce lets Turnstile pass it on to what it loads.
+    script.nonce = document.querySelector<HTMLScriptElement>('script[nonce]')?.nonce ?? '';
     script.onload = () => (window.turnstile ? resolve(window.turnstile) : reject(new Error('missing')));
     script.onerror = () => reject(new Error('load'));
     document.head.appendChild(script);

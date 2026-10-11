@@ -67,7 +67,7 @@ For the publisher's proof of concept, `scripts/seed-talk-starter.sql` adds five 
 
 Form and beacon endpoints read their bodies with a streaming byte limit before parsing (256 KB for ordinary forms, 1 MB for story forms, file size plus 256 KB for uploads), answering 413 for oversized bodies, 415 for non-form content types, and 400 for malformed data. `npm run test:body` covers the reader with isolated fixtures.
 
-Run `npm run test:headers` for the response-header policy (security headers and the private caching rules below).
+Run `npm run test:headers` for the response-header policy (security headers, the Content Security Policy, and the private caching rules below), and `npm run test:csp-report` for the violation-report endpoint (redaction, log limits, and refused bodies).
 
 Run `npm run test:corrections` for isolated regressions of the inaccuracy report endpoint (origin, bot checks including outages, validation, storage, and notification failures); it simulates Turnstile, email, and the database.
 
@@ -276,6 +276,22 @@ The middleware (`src/lib/response-headers.ts`) sends `Cache-Control: private, no
 - every HTML page, and any response without its own caching header, rendered for a signed-in reader
 
 A route's own `no-store` is kept. Media images, feeds, sitemaps, `robots.txt`, and calendar files keep their public caching when they set no cookie, because they are the same for every reader. Anonymous public pages get no caching header: Cloudflare does not cache HTML by default, and the site adds no public HTML caching. Do not add a Cloudflare Cache Rule that caches HTML or ignores origin `Cache-Control` ("Cache Everything" with an overriding Edge TTL); it could serve a signed-out page to signed-in readers or bypass these headers. To check production, compare `curl -sI https://firelandscurrent.com/` with the same request sending a signed-in session cookie.
+
+### Content Security Policy
+
+Every HTML response carries a Content Security Policy, built in `contentSecurityPolicy` in `src/lib/response-headers.ts`. It is on trial: it goes out as `Content-Security-Policy-Report-Only`, so browsers report what the policy would block but block nothing.
+
+- **Scripts** run only with a nonce that the middleware generates for each response (`Astro.locals.cspNonce`), plus `'strict-dynamic'`, so scripts those load (Turnstile's `api.js`, gtag's own scripts) are trusted without a host allowlist. Every `<script is:inline>` must carry `nonce={Astro.locals.cspNonce}`; inline event handlers (`onclick=`) and `javascript:` links will not run. Astro's bundled scripts get the nonce from the middleware, which adds it only to `<script src="/_astro/….js">`. The build never inlines scripts or stylesheets (`astro.config.mjs`), because the middleware cannot tell an inline script Astro wrote from one injected into a page.
+- **Styles** load from this site and Google Fonts. `style` attributes are allowed (`style-src-attr 'unsafe-inline'`), because templates and ads use them for layout and colors; `<style>` elements are not.
+- **Images** come from this site (including the media library), `blob:` for upload previews, and Google Analytics. **Fonts** come from this site and Google Fonts. **Connections** go to this site, Google Analytics, and Cloudflare Web Analytics. The only **frame** is Turnstile's (`challenges.cloudflare.com`).
+- `object-src 'none'`, `base-uri 'none'`, `form-action 'self'` (social sign-in leaves the site by script, not by form), and `frame-ancestors 'none'` (with `X-Frame-Options: DENY` kept for older browsers). `upgrade-insecure-requests` is left out: everything already loads over HTTPS, and browsers ignore it in a report-only policy.
+- In `npm run dev`, Vite needs inline `<style>` elements and its HMR socket, so the development policy adds `'unsafe-inline'` to `style-src` and `ws:` to `connect-src`, and gives the nonce to any same-origin script. Check the policy against a production build (`npm run build`, then `npx wrangler dev -c dist/server/wrangler.json --local-upstream localhost:4341 --port 4341` with `.dev.vars` copied into `dist/server/`).
+
+**Reading reports.** Browsers send violations to `POST /api/csp-report` (`report-to` for Chromium, `report-uri` for Firefox and Safari). The endpoint reads at most 32 KB, stores nothing, and writes one Worker log line per distinct violation, at most once every ten minutes per Worker instance and 60 lines a minute: `{"event":"csp_violation","directive":"script-src-elem","blocked":"https://static.cloudflareinsights.com","page":"/news/some-story","disposition":"report"}`. `blocked` is a keyword (`inline`, `eval`), an origin, or a scheme (`data:`, `chrome-extension:`), never a full URL; `page` is the path on this site without its query; script samples, referrers, and browser details are dropped. Read them in the Cloudflare dashboard under Workers & Pages → firelands-current → Logs, filtered on `csp_violation`, or live with `npx wrangler tail firelands-current --search csp_violation`. In a browser, the console lists each violation as it happens. Reports from extensions (`chrome-extension:`, `moz-extension:`) and from copies of the site on other origins are noise.
+
+Cloudflare Web Analytics is injected by Cloudflare's edge (`static.cloudflareinsights.com/beacon.min.js`) after the Worker responds. If that script tag does not carry the page's nonce, it shows up as a `script-src-elem` report for `https://static.cloudflareinsights.com` on every page, and an enforced policy would block it. In that case, before enforcing, switch the Web Analytics site to manual setup (turn off automatic injection) and add the beacon to `BaseLayout.astro` as an `is:inline` script with the nonce, or accept losing Web Analytics.
+
+**Enforcing.** When a week or more of reports shows only extension noise, change `CSP_ENFORCE` in `src/lib/response-headers.ts` to `true`. The same policy is then sent as `Content-Security-Policy`, and violation reports keep arriving at the same endpoint. To roll back, set it to `false`. Adding a third-party service means adding its origins to the matching directives (and to the Privacy Policy) first.
 
 ### Email sending
 

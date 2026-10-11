@@ -1,6 +1,6 @@
 import { defineMiddleware } from 'astro:middleware';
 import { createAuth } from './lib/auth';
-import { applyCachePolicy, applySecurityHeaders } from './lib/response-headers';
+import { applyCachePolicy, applyContentSecurityPolicy, applySecurityHeaders, createNonce, CSP_REPORT_PATH, isBundledScript, isHtml } from './lib/response-headers';
 import { getMemberStatus } from './lib/staff';
 
 export const onRequest = defineMiddleware(async (context, next) => {
@@ -13,11 +13,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
   context.locals.user = null;
   context.locals.session = null;
   context.locals.staffRole = null;
+  const nonce = createNonce();
+  context.locals.cspNonce = nonce;
 
   // Set-Cookie headers from a sliding session refresh; without them the browser
   // cookie expires on its original date even though the session was extended.
   let refreshedCookies: string[] = [];
-  if (!context.url.pathname.startsWith('/api/auth/')) {
+  // Violation reports need no account, so they cost no session lookup.
+  if (!context.url.pathname.startsWith('/api/auth/') && context.url.pathname !== CSP_REPORT_PATH) {
     const { headers, response: current } = await createAuth().api.getSession({ headers: context.request.headers, returnHeaders: true });
     refreshedCookies = headers.getSetCookie();
     // Suspending an account deletes its sessions; this also covers a session created in the gap.
@@ -36,5 +39,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
   applySecurityHeaders(response.headers);
   // After the cookies, so a refreshed session also marks the response private.
   applyCachePolicy(response.headers, { pathname: context.url.pathname, signedIn: context.locals.user !== null });
-  return response;
+  if (!isHtml(response.headers) || !response.body) return response;
+
+  const dev = import.meta.env.DEV;
+  applyContentSecurityPolicy(response.headers, nonce, { origin: context.url.origin, dev });
+  // Astro gives no way to put attributes on the scripts it bundles, so the nonce is added here, only to
+  // script elements that load our own bundles; inline scripts get it in their templates.
+  return new HTMLRewriter().on('script[src]', {
+    element(script) {
+      if (!script.hasAttribute('nonce') && isBundledScript(script.getAttribute('src'), { dev })) script.setAttribute('nonce', nonce);
+    },
+  }).transform(response);
 });

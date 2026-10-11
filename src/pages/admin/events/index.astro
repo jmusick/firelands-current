@@ -42,7 +42,7 @@ const events = [...upcoming, ...all.filter(isPast)];
   <p id="no-match" class="muted" hidden>No events match those filters.</p>
 </AdminLayout>
 
-<script is:inline>
+<script is:inline nonce={Astro.locals.cspNonce}>
   (function () {
     var rows = Array.from(document.querySelectorAll('#rows tr'));
     var search = document.getElementById('f-search');

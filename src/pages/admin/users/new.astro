@@ -40,7 +40,7 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
   </form>
 </AdminLayout>
 
-<script is:inline>
+<script is:inline nonce={Astro.locals.cspNonce}>
   document.getElementById('generate').addEventListener('click', function () {
     var chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     var bytes = crypto.getRandomValues(new Uint8Array(16));
