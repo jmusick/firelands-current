@@ -40,9 +40,11 @@ globalThis.fetch = async (url, options) => {
 const stubEnv = 'data:text/javascript,export const env = globalThis.__inboxEnv;';
 const forumModule = sourceModule('src/lib/forum.ts', { 'cloudflare:workers': stubEnv });
 const bodyModule = sourceModule('src/lib/request-body.ts');
+const formErrorsModule = sourceModule('src/lib/form-errors.ts');
 const inboxModule = sourceModule('src/lib/inbox.ts', { 'cloudflare:workers': stubEnv });
 const { POST } = await import(sourceModule('src/pages/api/inbox.ts', {
   'cloudflare:workers': stubEnv, '../../lib/forum': forumModule, '../../lib/request-body': bodyModule, '../../lib/inbox': inboxModule,
+  '../../lib/form-errors': formErrorsModule,
 }));
 const newsModule = sourceModule('src/lib/news.ts', { 'cloudflare:workers': stubEnv });
 const mediaModule = sourceModule('src/lib/media.ts', { 'cloudflare:workers': stubEnv, './forum': forumModule });
@@ -92,10 +94,13 @@ test('honeypots, failed human checks, and invalid fields cannot send', async () 
   captchaValid = false;
   assert.match((await call()).headers.get('Location'), /error=captcha$/);
   captchaValid = true;
-  for (const invalid of [{ name: '' }, { email: 'bad' }, { email: 'a@example.com\r\nBcc: other@example.com' },
-    { subject: 'Hi' }, { body: 'Short' }, { body: 'a'.repeat(10001) }]) {
-    assert.match((await call(invalid)).headers.get('Location'), /error=invalid$/);
+  // The redirect names the invalid fields but never repeats what was typed.
+  for (const [invalid, field] of [[{ name: '' }, 'name'], [{ email: 'bad' }, 'email'], [{ email: 'a@example.com\r\nBcc: other@example.com' }, 'email'],
+    [{ subject: 'Hi' }, 'subject'], [{ body: 'Short' }, 'body'], [{ body: 'a'.repeat(10001) }, 'body']]) {
+    assert.equal((await call(invalid)).headers.get('Location'), `https://firelandscurrent.com/advertise?error=invalid&fields=${field}`);
   }
+  assert.equal((await call({ name: '', email: 'bad', subject: 'Hi', body: 'Short' })).headers.get('Location'),
+    'https://firelandscurrent.com/advertise?error=invalid&fields=name,email,subject,body');
   assert.equal(emails.length, 0);
   assert.equal(stored.length, 0);
 });
@@ -267,4 +272,11 @@ test('converted tips cannot be changed', () => withTip('converted', async (state
 test('the tip detail page does not write on GET', () => {
   const page = readFileSync(new URL('../src/pages/admin/submissions/[id].astro', import.meta.url), 'utf8');
   assert.ok(!/UPDATE news_submissions/.test(page));
+});
+
+test('invalid field names from a redirect are limited to the form\'s own fields', async () => {
+  const { INBOX_FIELD_ERRORS, parseInvalidFields } = await import(formErrorsModule);
+  assert.deepEqual(parseInvalidFields('email,name', INBOX_FIELD_ERRORS), ['name', 'email']);
+  assert.deepEqual(parseInvalidFields('body,<script>,__proto__,constructor', INBOX_FIELD_ERRORS), ['body']);
+  assert.deepEqual(parseInvalidFields(null, INBOX_FIELD_ERRORS), []);
 });

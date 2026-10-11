@@ -1,25 +1,53 @@
 ---
 interface Props { kind: import('../lib/inbox').InboxKind; subjectLabel: string; bodyLabel: string; submitLabel: string; }
-import { env } from 'cloudflare:workers';
+import Turnstile from './Turnstile.astro';
+import ErrorSummary from './ErrorSummary.astro';
+import FieldError from './FieldError.astro';
+import { INBOX_FIELD_ERRORS, parseInvalidFields, summaryText } from '../lib/form-errors';
 const { kind, subjectLabel, bodyLabel, submitLabel } = Astro.props;
 const sent = Astro.url.searchParams.get('sent');
 const error = Astro.url.searchParams.get('error');
 const user = Astro.locals.user;
+
+const labels = { name: 'Your name', email: 'Your email', subject: subjectLabel, body: bodyLabel };
+const invalid = error === 'invalid' ? parseInvalidFields(Astro.url.searchParams.get('fields'), INBOX_FIELD_ERRORS) : [];
+const fieldError = (field: keyof typeof INBOX_FIELD_ERRORS) => invalid.includes(field) ? INBOX_FIELD_ERRORS[field] : undefined;
+const problem = (field: keyof typeof INBOX_FIELD_ERRORS) => invalid.includes(field) ? { 'aria-invalid': 'true' as const, 'aria-describedby': `inbox-${field}-error` } : {};
+const summaryItems = error === 'captcha' ? [{ href: '#inbox-captcha', text: 'Complete the human check and try again.' }]
+  : error === 'captcha_unavailable' ? [{ text: 'We could not run the human check right now. Please try again in a moment.' }]
+  : error === 'send' ? [{ text: 'We could not send your message right now. Please try again in a few minutes.' }]
+  : error === 'invalid' && invalid.length ? invalid.map((field) => ({ href: `#inbox-${field}`, text: summaryText(labels[field], INBOX_FIELD_ERRORS[field]) }))
+  : error ? [{ text: 'Please fill in every field: a valid email, a subject of 3–120 characters, and a message of 20–10,000 characters.' }]
+  : [];
 ---
 {sent && <p class="message" role="status">Thanks, your message was sent. We'll follow up by email if we need more.</p>}
-{error && <p class="message" role="alert">{error === 'captcha' ? 'Please complete the human check and try again.' : error === 'captcha_unavailable' ? 'We could not run the human check right now. Please try again in a moment.' : error === 'send' ? 'We could not send your message right now. Please try again in a few minutes.' : 'Please fill in every field: a valid email, a subject of 3–120 characters, and a message of 20–10,000 characters.'}</p>}
-<form class="form" method="post" action="/api/inbox">
+<form class="form" method="post" action="/api/inbox" data-form-errors data-draft-key={`inbox:${kind}`}>
+  <ErrorSummary id={`inbox-${kind}-errors`} items={summaryItems} />
   <input type="hidden" name="kind" value={kind} />
   <label class="hp" aria-hidden="true">Leave this empty <input name="website" tabindex="-1" autocomplete="off" /></label>
-  <label>Your name <input name="name" required maxlength="100" autocomplete="name" value={user?.name} /></label>
-  <label>Your email <input name="email" type="email" required maxlength="200" autocomplete="email" value={user?.email} /></label>
-  <label>{subjectLabel} <input name="subject" required minlength="3" maxlength="120" /></label>
-  <label>{bodyLabel} <textarea name="body" required minlength="20" maxlength="10000"></textarea></label>
-  {kind === 'news' && <label class="credit-choice"><input type="checkbox" name="credit_requested" value="1" /><span>Please credit me if this tip is used in a story.</span></label>}
-  <div class="cf-turnstile" data-sitekey={env.TURNSTILE_SITE_KEY} data-action="inbox"></div>
+  <div class="field">
+    <label>Your name <input id="inbox-name" name="name" required maxlength="100" autocomplete="name" value={user?.name} data-draft data-error-message={INBOX_FIELD_ERRORS.name} {...problem('name')} /></label>
+    <FieldError field="inbox-name" message={fieldError('name')} />
+  </div>
+  <div class="field">
+    <label>Your email <input id="inbox-email" name="email" type="email" required maxlength="200" autocomplete="email" value={user?.email} data-draft data-error-message={INBOX_FIELD_ERRORS.email} {...problem('email')} /></label>
+    <FieldError field="inbox-email" message={fieldError('email')} />
+  </div>
+  <div class="field">
+    <label>{subjectLabel} <input id="inbox-subject" name="subject" required minlength="3" maxlength="120" data-draft data-error-message={INBOX_FIELD_ERRORS.subject} {...problem('subject')} /></label>
+    <FieldError field="inbox-subject" message={fieldError('subject')} />
+  </div>
+  <div class="field">
+    <label>{bodyLabel} <textarea id="inbox-body" name="body" required minlength="20" maxlength="10000" data-draft data-error-message={INBOX_FIELD_ERRORS.body} {...problem('body')}></textarea></label>
+    <FieldError field="inbox-body" message={fieldError('body')} />
+  </div>
+  {kind === 'news' && <label class="credit-choice"><input type="checkbox" name="credit_requested" value="1" data-draft /><span>Please credit me if this tip is used in a story.</span></label>}
+  <Turnstile action="inbox" id="inbox-captcha" />
   <button class="button" type="submit">{submitLabel}</button>
 </form>
-<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<script>
+  import '../scripts/form-errors';
+</script>
 <style>
   .hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
   .credit-choice { display: flex !important; grid-template-columns: auto 1fr; align-items: start; gap: .6rem !important; }

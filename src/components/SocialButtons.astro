@@ -31,10 +31,15 @@ const ICONS: Record<SocialProvider, string> = {
 </style>
 <script>
   import { authClient } from '../lib/auth-client';
+  import { NETWORK_ERROR } from '../lib/auth-errors';
   const message = document.querySelector<HTMLElement>('.social-message');
   document.querySelectorAll<HTMLButtonElement>('.social-button').forEach((button) => button.addEventListener('click', async () => {
     const provider = button.dataset.provider as 'google' | 'facebook' | 'apple' | 'microsoft';
-    const result = await authClient.signIn.social({ provider, callbackURL: '/account' });
-    if (result.error && message) { message.textContent = result.error.message || 'Sign in with this provider failed.'; message.hidden = false; }
+    try {
+      const result = await authClient.signIn.social({ provider, callbackURL: '/account' });
+      if (result.error && message) { message.textContent = result.error.message || 'Sign in with this provider failed.'; message.hidden = false; }
+    } catch {
+      if (message) { message.textContent = NETWORK_ERROR; message.hidden = false; }
+    }
   }));
 </script>

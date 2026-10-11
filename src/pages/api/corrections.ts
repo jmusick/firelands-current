@@ -1,6 +1,7 @@
 import { readForm } from '../../lib/request-body';
 import type { APIRoute } from 'astro';
 import { correctionKind, correctionTarget, createCorrection } from '../../lib/corrections';
+import { invalidFieldsQuery } from '../../lib/form-errors';
 import { cleanText, sameOrigin } from '../../lib/forum';
 import { sendToInbox, verifyTurnstile } from '../../lib/inbox';
 
@@ -30,10 +31,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const suggestedFix = cleanText(form.get('suggested_fix'));
   const sourceUrl = cleanText(form.get('source_url'));
   const sourceOk = sourceUrl === '' || (sourceUrl.length <= 500 && /^https?:\/\/[^\s]+$/i.test(sourceUrl));
-  if (!name || name.length > 100 || email.length > 200 || !EMAIL.test(email) ||
-      details.length < 10 || details.length > 5000 || suggestedFix.length > 2000 || !sourceOk) {
-    return back('error=invalid');
-  }
+  const invalid = [
+    ...(!name || name.length > 100 ? ['name'] : []),
+    ...(email.length > 200 || !EMAIL.test(email) ? ['email'] : []),
+    ...(details.length < 10 || details.length > 5000 ? ['details'] : []),
+    ...(suggestedFix.length > 2000 ? ['suggested_fix'] : []),
+    ...(!sourceOk ? ['source_url'] : []),
+  ];
+  if (invalid.length) return back(invalidFieldsQuery(invalid));
 
   const target = await correctionTarget(kind, slug);
   if (!target) return new Response('Story or event not found', { status: 404 });

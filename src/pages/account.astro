@@ -49,6 +49,7 @@ const errorMessage = authErrorMessage(Astro.url.searchParams.get('error'));
   <script>
     import { authClient } from '../lib/auth-client';
     import { captchaHeaders, resetCaptcha } from '../lib/turnstile-client';
+    import { NETWORK_ERROR } from '../lib/auth-errors';
     import type { SocialProvider } from '../lib/auth';
     const message = document.querySelector<HTMLElement>('#account-message')!;
     document.querySelector<HTMLFormElement>('#name-form')?.addEventListener('submit', async (event) => {
@@ -63,7 +64,7 @@ const errorMessage = authErrorMessage(Astro.url.searchParams.get('error'));
         const result = await authClient.updateUser({ name });
         if (result.error) { notice.textContent = result.error.message || 'Could not update your display name.'; notice.hidden = false; }
         else window.location.assign('/account?nameUpdated=1');
-      } catch { notice.textContent = 'Could not update your display name. Please try again.'; notice.hidden = false; }
+      } catch { notice.textContent = `Could not update your display name. ${NETWORK_ERROR}`; notice.hidden = false; }
       finally { button.disabled = false; }
     });
     if (new URLSearchParams(window.location.search).has('nameUpdated')) {
@@ -82,31 +83,40 @@ const errorMessage = authErrorMessage(Astro.url.searchParams.get('error'));
         }, { headers: captchaHeaders(form) });
         notice.textContent = result.error?.message || 'If that address is available, a confirmation link is on its way. Your current email stays in use until you confirm it.';
         if (!result.error) form.reset();
-      } catch { notice.textContent = 'Could not send the confirmation link. Please try again.'; }
+      } catch { notice.textContent = `Could not send the confirmation link. ${NETWORK_ERROR}`; }
       finally { notice.hidden = false; button.disabled = false; resetCaptcha(); }
     });
     document.querySelector<HTMLButtonElement>('#sign-out')?.addEventListener('click', async () => {
-      const result = await authClient.signOut();
-      if (result.error) { message.textContent = result.error.message || 'Could not sign out.'; message.hidden = false; return; }
+      try {
+        const result = await authClient.signOut();
+        if (result.error) { message.textContent = result.error.message || 'Could not sign out.'; message.hidden = false; return; }
+      } catch { message.textContent = `Could not sign out. ${NETWORK_ERROR}`; message.hidden = false; return; }
       window.location.assign('/');
     });
     document.querySelectorAll<HTMLButtonElement>('.link-button').forEach((button) => button.addEventListener('click', async () => {
       const provider = button.dataset.provider as SocialProvider;
-      const result = await authClient.linkSocial({ provider, callbackURL: '/account' });
-      if (result.error) { message.textContent = result.error.message || 'Could not link this sign-in method.'; message.hidden = false; }
+      try {
+        const result = await authClient.linkSocial({ provider, callbackURL: '/account' });
+        if (result.error) { message.textContent = result.error.message || 'Could not link this sign-in method.'; message.hidden = false; }
+      } catch { message.textContent = `Could not link this sign-in method. ${NETWORK_ERROR}`; message.hidden = false; }
     }));
     document.querySelector<HTMLFormElement>('#password-form')?.addEventListener('submit', async (event) => {
       event.preventDefault();
       const form = event.currentTarget as HTMLFormElement;
       const data = new FormData(form);
-      const result = await authClient.changePassword({
-        currentPassword: String(data.get('currentPassword') ?? ''),
-        newPassword: String(data.get('newPassword') ?? ''),
-        revokeOtherSessions: true,
-      });
-      message.textContent = result.error?.message || 'Password updated.';
+      const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+      button.disabled = true;
+      try {
+        const result = await authClient.changePassword({
+          currentPassword: String(data.get('currentPassword') ?? ''),
+          newPassword: String(data.get('newPassword') ?? ''),
+          revokeOtherSessions: true,
+        });
+        message.textContent = result.error?.message || 'Password updated.';
+        if (!result.error) form.reset();
+      } catch { message.textContent = `Could not update your password. ${NETWORK_ERROR}`; }
       message.hidden = false;
-      if (!result.error) form.reset();
+      button.disabled = false;
     });
   </script>
 </BaseLayout>

@@ -1,7 +1,10 @@
 ---
-import { env } from 'cloudflare:workers';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Turnstile from '../components/Turnstile.astro';
+import ErrorSummary from '../components/ErrorSummary.astro';
+import FieldError from '../components/FieldError.astro';
 import { correctionKind, correctionTarget } from '../lib/corrections';
+import { CORRECTION_FIELD_ERRORS, parseInvalidFields, summaryText } from '../lib/form-errors';
 
 const kind = correctionKind(Astro.url.searchParams.get('type'));
 const slug = Astro.url.searchParams.get('slug') ?? '';
@@ -12,6 +15,17 @@ const sent = Astro.url.searchParams.has('sent');
 const error = Astro.url.searchParams.get('error');
 const user = Astro.locals.user;
 const noun = kind === 'news' ? 'story' : 'event';
+
+const labels = { name: 'Your name', email: 'Your email', details: 'What is inaccurate?', suggested_fix: 'What should it say instead?', source_url: 'Source link' };
+type Field = keyof typeof CORRECTION_FIELD_ERRORS;
+const invalid = error === 'invalid' ? parseInvalidFields(Astro.url.searchParams.get('fields'), CORRECTION_FIELD_ERRORS) : [];
+const fieldError = (field: Field) => invalid.includes(field) ? CORRECTION_FIELD_ERRORS[field] : undefined;
+const problem = (field: Field) => invalid.includes(field) ? { 'aria-invalid': 'true' as const, 'aria-describedby': `correction-${field}-error` } : {};
+const summaryItems = error === 'captcha' ? [{ href: '#correction-captcha', text: 'Complete the human check and try again.' }]
+  : error === 'captcha_unavailable' ? [{ text: 'We could not run the human check right now. Please try again in a moment.' }]
+  : error === 'invalid' && invalid.length ? invalid.map((field) => ({ href: `#correction-${field}`, text: summaryText(labels[field], CORRECTION_FIELD_ERRORS[field]) }))
+  : error ? [{ text: 'Please enter your name, a valid email, and a description of the problem (10–5,000 characters). A source link, if given, must start with http:// or https://.' }]
+  : [];
 ---
 <BaseLayout title="Report an inaccuracy" description="Tell the Firelands Current newsroom about a mistake in a story or event listing." noindex>
   <h1>Report an inaccuracy</h1>
@@ -20,21 +34,38 @@ const noun = kind === 'news' ? 'story' : 'event';
     <p class="message ok" role="status">Thank you. Your report went to our editors. We'll email you if we need anything more.</p>
     <p><a href={target.path}>Back to the {noun}</a></p>
   </> : <>
-    {error && <p class="message" role="alert">{error === 'captcha' ? 'Please complete the human check and try again.' : error === 'captcha_unavailable' ? 'We could not run the human check right now. Please try again in a moment.' : 'Please enter your name, a valid email, and a description of the problem (10–5,000 characters). A source link, if given, must start with http:// or https://.'}</p>}
-    <form class="form" method="post" action="/api/corrections">
+    <form class="form" method="post" action="/api/corrections" data-form-errors data-draft-key={`correction:${kind}:${target.slug}`}>
+      <ErrorSummary id="correction-errors" items={summaryItems} />
       <input type="hidden" name="type" value={kind} />
       <input type="hidden" name="slug" value={target.slug} />
       <label class="hp" aria-hidden="true">Leave this empty <input name="website" tabindex="-1" autocomplete="off" /></label>
-      <label>Your name <input name="name" required maxlength="100" autocomplete="name" value={user?.name} /></label>
-      <label>Your email <input name="email" type="email" required maxlength="200" autocomplete="email" value={user?.email} /></label>
-      <label>What is inaccurate? <span class="hint">Quote the part that is wrong and explain the problem.</span><textarea name="details" required minlength="10" maxlength="5000"></textarea></label>
-      <label>What should it say instead? <span class="hint">Optional.</span><textarea name="suggested_fix" maxlength="2000" style="min-height:90px"></textarea></label>
-      <label>Source link <span class="hint">Optional. A page that confirms the correct information.</span><input name="source_url" type="url" maxlength="500" inputmode="url" placeholder="https://" /></label>
-      <div class="cf-turnstile" data-sitekey={env.TURNSTILE_SITE_KEY} data-action="corrections"></div>
+      <div class="field">
+        <label>Your name <input id="correction-name" name="name" required maxlength="100" autocomplete="name" value={user?.name} data-draft data-error-message={CORRECTION_FIELD_ERRORS.name} {...problem('name')} /></label>
+        <FieldError field="correction-name" message={fieldError('name')} />
+      </div>
+      <div class="field">
+        <label>Your email <input id="correction-email" name="email" type="email" required maxlength="200" autocomplete="email" value={user?.email} data-draft data-error-message={CORRECTION_FIELD_ERRORS.email} {...problem('email')} /></label>
+        <FieldError field="correction-email" message={fieldError('email')} />
+      </div>
+      <div class="field">
+        <label>What is inaccurate? <span class="hint">Quote the part that is wrong and explain the problem.</span><textarea id="correction-details" name="details" required minlength="10" maxlength="5000" data-draft data-error-message={CORRECTION_FIELD_ERRORS.details} {...problem('details')}></textarea></label>
+        <FieldError field="correction-details" message={fieldError('details')} />
+      </div>
+      <div class="field">
+        <label>What should it say instead? <span class="hint">Optional.</span><textarea id="correction-suggested_fix" name="suggested_fix" maxlength="2000" style="min-height:90px" data-draft data-error-message={CORRECTION_FIELD_ERRORS.suggested_fix} {...problem('suggested_fix')}></textarea></label>
+        <FieldError field="correction-suggested_fix" message={fieldError('suggested_fix')} />
+      </div>
+      <div class="field">
+        <label>Source link <span class="hint">Optional. A page that confirms the correct information.</span><input id="correction-source_url" name="source_url" type="url" maxlength="500" inputmode="url" placeholder="https://" pattern="[Hh][Tt][Tt][Pp][Ss]?://\S+" data-draft data-error-message={CORRECTION_FIELD_ERRORS.source_url} {...problem('source_url')} /></label>
+        <FieldError field="correction-source_url" message={fieldError('source_url')} />
+      </div>
+      <Turnstile action="corrections" id="correction-captcha" />
       <button class="button" type="submit">Send report</button>
     </form>
-    <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   </>}
+  <script>
+    import '../scripts/form-errors';
+  </script>
 </BaseLayout>
 <style>
   .hint { font-weight: 400; color: var(--slate); font-size: .82rem; }

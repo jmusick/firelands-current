@@ -1,0 +1,11 @@
+---
+// The list is empty (and the box hidden) until something is wrong; src/scripts/form-errors.ts fills it
+// in the browser, and the server fills it after a redirect. Focus moves here so screen reader and keyboard
+// users land on the problem first, then follow a link to each field.
+interface Props { id: string; items?: Array<{ href?: string; text: string }> }
+const { id, items = [] } = Astro.props;
+---
+<div class="message error-summary" data-error-summary role="alert" tabindex="-1" aria-labelledby={`${id}-title`} hidden={items.length === 0}>
+  <h2 class="error-summary-title" id={`${id}-title`}>There is a problem</h2>
+  <ul>{items.map((item) => <li data-for={item.href?.slice(1)}>{item.href ? <a href={item.href}>{item.text}</a> : item.text}</li>)}</ul>
+</div>
