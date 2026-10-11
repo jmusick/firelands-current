@@ -128,6 +128,25 @@ export async function articlesBySection(perSection = 3, excludeIds: string[] = [
     .filter((group) => group.articles.length > 0);
 }
 
+export type RelatedArticle = Pick<Article, 'id' | 'slug' | 'headline' | 'summary' | 'section' | 'community' | 'published_at'>;
+
+/**
+ * Other published stories worth reading after this one. The only relatedness signals the schema has are
+ * the section and the community, so a story in the same section ranks above one that only shares the
+ * community (2 points against 1), and ties go to the newest. Stories with neither in common never appear.
+ */
+export async function relatedArticles(article: Pick<Article, 'id' | 'section' | 'community'>, limit = 4): Promise<RelatedArticle[]> {
+  const result = await env.DB.prepare(`
+    SELECT a.id, a.slug, a.headline, a.summary, a.section, a.community, a.published_at,
+      (a.section = ?1) * 2 + (a.community = ?2 COLLATE NOCASE) AS score
+    FROM news_articles a
+    WHERE a.status = 'published' AND a.id != ?3 AND (a.section = ?1 OR a.community = ?2 COLLATE NOCASE)
+    ORDER BY score DESC, a.published_at DESC
+    LIMIT ?4
+  `).bind(article.section, article.community, article.id, limit).all<RelatedArticle>();
+  return result.results;
+}
+
 export async function getArticle(slug: string): Promise<Article | null> {
   return env.DB.prepare(`
     SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, COALESCE(u.name, a.byline) AS byline, a.author_id, a.published_at, ${LEAD_COLUMNS}

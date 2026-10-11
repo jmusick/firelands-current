@@ -8,11 +8,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import { adPlanFor, inlineAdBreaks } from '../../lib/ads';
 import { getArticleThread } from '../../lib/forum';
 import { mediaByKeys, mediaKeysIn } from '../../lib/media';
-import { SECTIONS, figureHtml, getArticle, leadMedia, newsArticleJsonLd, renderBodyBlocks } from '../../lib/news';
+import { SECTIONS, figureHtml, getArticle, leadMedia, newsArticleJsonLd, relatedArticles, renderBodyBlocks } from '../../lib/news';
 
 const article = await getArticle(Astro.params.slug ?? '');
 if (!article) return new Response('Story not found', { status: 404 });
 await adPlanFor(Astro.request, Astro.locals, { section: article.section });
+const related = await relatedArticles(article);
 const thread = await getArticleThread(article.id, Astro.locals.user?.id ?? '');
 
 // Split the story into chunks with an ad between each. A break never lands right under a subheading.
@@ -42,6 +43,19 @@ chunks.push(blocks.slice(start).join(''));
       {chunks.map((html, i) => <>{i > 0 && <AdSlot placement="article-inline" class="story-ad" />}<Fragment set:html={html} /></>)}
     </div>
     <ShareButtons url={new URL(`/news/${article.slug}`, Astro.url.origin).href} title={article.headline} />
+    {related.length > 0 && (
+      <section class="related" aria-labelledby="related-heading">
+        <h2 id="related-heading">Related coverage</h2>
+        <ul>
+          {related.map((r) => (
+            <li>
+              <a href={`/news/${r.slug}`}>{r.headline}</a>
+              <span class="meta">{SECTIONS[r.section]} &middot; <time datetime={new Date(r.published_at).toISOString()}>{new Date(r.published_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</time></span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
     <CorrectionLink kind="news" slug={article.slug} />
   </article>
   <div class="story-rail"><AdSlot placement="article-rail" /></div>
@@ -56,6 +70,13 @@ chunks.push(blocks.slice(start).join(''));
   .headline { font-size: clamp(2.4rem, 5.6vw, 3.9rem); font-stretch: 66%; line-height: 1; margin: .35rem 0 1rem; }
   .byline { margin: 1.4rem 0 0; padding-top: .8rem; border-top: 3px solid var(--deep); line-height: 1.45; }
   .byline strong { color: var(--ink); font-weight: 650; }
+  .related { margin: 2.4rem 0 1.5rem; padding-top: .8rem; border-top: 3px solid var(--deep); }
+  .related h2 { margin: 0 0 .6rem; font-size: 1.3rem; }
+  .related ul { list-style: none; margin: 0; padding: 0; }
+  .related li { padding: .65rem 0; border-top: 1px solid var(--line-soft); line-height: 1.35; }
+  .related li:first-child { border-top: 0; }
+  .related li a { display: block; font-weight: 650; }
+  .related .meta { display: block; margin-top: .15rem; font-size: .9rem; }
   .story-rail { padding-top: .5rem; }
   .story-rail :global(.ad-slot) { position: sticky; top: 1.5rem; }
   .story :global(.story-ad) { margin: 2rem auto; padding: 1rem 0; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); width: 100%; max-width: none; line-height: normal; font-family: var(--scan); font-size: 1rem; }
