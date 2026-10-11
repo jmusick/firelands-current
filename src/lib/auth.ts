@@ -5,6 +5,7 @@ import { captcha } from 'better-auth/plugins';
 import { importPKCS8, SignJWT } from 'jose';
 import { d1RateLimitStorage } from './auth-rate-limit';
 import { sendPasswordResetMail, sendVerificationMail } from './mail';
+import { withoutOAuthTokens } from './oauth-tokens';
 import { MAX_PASSWORD, MIN_PASSWORD, PASSWORD_MESSAGES, passwordProblem } from './password-policy';
 import { REAUTH_WINDOW_MINUTES, isFresh, recordReauth } from './reauth';
 
@@ -158,6 +159,9 @@ export function createAuth() {
       }),
     ],
     account: {
+      // Defense in depth: provider tokens are not stored at all (databaseHooks.account below), but should a
+      // value ever reach the table, access and refresh tokens are encrypted with BETTER_AUTH_SECRET.
+      encryptOAuthTokens: true,
       accountLinking: {
         enabled: true,
         // Linking providers from a signed-in account is supported. Avoid merging
@@ -178,6 +182,11 @@ export function createAuth() {
     // Failed social sign-ins land on our own sign-in page (as ?error=code) instead of Better Auth's stock error page.
     onAPIError: { errorURL: '/sign-in' },
     databaseHooks: {
+      // Provider tokens are only needed during the callback; drop them before they reach the account table.
+      account: {
+        create: { before: async (account) => withoutOAuthTokens(account) },
+        update: { before: async (account) => withoutOAuthTokens(account) },
+      },
       session: { create: { before: refuseSuspended } },
       user: { update: { before: async (user) => {
         if (user.name === undefined) return;
