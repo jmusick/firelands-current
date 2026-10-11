@@ -158,6 +158,8 @@ database.prepare(`INSERT INTO corrections (id, kind, article_id, item_title, ite
 database.prepare('INSERT INTO forum_threads (id, author_id, title, body, created_at, updated_at, last_activity_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
   .run(fx.thread, 'victim', 'Fixture discussion', 'Fixture body for the discussion.', now, now, now);
 database.prepare("INSERT INTO forum_reports (id, reporter_id, thread_id, reason, created_at) VALUES (?, 'reader', ?, 'Fixture report reason', ?)").run(fx.report, fx.thread, now);
+// Existing bios, so an unauthorized overwrite or clear changes the snapshot.
+for (const id of ['admin', 'editor']) database.prepare('INSERT INTO staff_bios (user_id, bio, updated_at) VALUES (?, ?, ?)').run(id, `Original bio of ${id}.`, now);
 
 // ---- Requests ----
 
@@ -287,6 +289,14 @@ const ROUTES = [
     ],
     probe: { fields: { action: 'bogus', userId: 'missing' } }, answer: { status: 404 } },
 
+  // /api/bio is two rules in one handler: any staff role sets its own bio, and another user's needs the Users section.
+  { file: 'src/pages/api/bio.ts', path: '/api/bio', kind: 'staff', roles: SECTION_ROLES.dashboard, guard: 'any-staff', audit: null,
+    attacks: [{ fields: { bio: 'Written by someone with no staff role.' } }, { fields: { userId: 'reader', bio: 'Written by someone with no staff role.' } }],
+    probe: { fields: { bio: 'x'.repeat(601) } }, answer: { status: 303, location: /^\/account\?bioError=too-long$/ } },
+  { file: 'src/pages/api/bio.ts', path: '/api/bio', kind: 'staff', roles: SECTION_ROLES.users, guard: 'users', mixed: true, audit: null,
+    attacks: [{ fields: { userId: 'admin', bio: 'Hijacked.' } }, { fields: { userId: 'admin', bio: '' } }, { fields: { userId: 'victim', bio: 'Hijacked.' } }],
+    probe: { fields: { userId: 'victim', bio: 'x' } }, answer: { status: 400 } },
+
   { file: 'src/pages/api/talk/threads.ts', path: '/api/talk/threads', kind: 'member',
     attacks: [{ fields: { title: 'A valid discussion title', body: 'A valid discussion body that is long enough.' } }],
     probe: { fields: { title: 'short', body: 'short' } }, answer: { status: 303, location: /^\/talk\/new\?error=length$/ } },
@@ -354,9 +364,12 @@ test('staff endpoints check the role first, name the right section, refuse cross
     const source = read(route.file);
     const guard = route.guard === 'admin-only'
       ? source.search(/locals\.staffRole !== 'admin'/)
-      : source.search(new RegExp(`canAccess\\(locals\\.staffRole, ADMIN\\.${route.guard}\\)`));
+      : route.guard === 'any-staff'
+        ? source.search(/!locals\.staffRole/)
+        : source.search(new RegExp(`canAccess\\(locals\\.staffRole, ADMIN\\.${route.guard}\\)`));
     assert.ok(guard !== -1, `${route.file} needs a role check for ${route.guard}`);
-    assert.ok(guard < firstBodyRead(source), `${route.file} reads the body before checking the role`);
+    // `mixed` routes let any staff member act on themselves and check the role for another user's record once the form is read.
+    if (!route.mixed) assert.ok(guard < firstBodyRead(source), `${route.file} reads the body before checking the role`);
     if (route.method !== 'GET') {
       const origin = source.search(/sameOrigin\(request\)/);
       assert.ok(origin !== -1 && origin < firstBodyRead(source), `${route.file} must reject cross-origin posts before reading the body`);
@@ -516,6 +529,90 @@ test('refused staff requests are audited for signed-in accounts only, once per a
   }
   assert.equal(rows.filter((row) => row.actor_id === null).length, 0);
   assert.equal(rows.length, logged.size, 'a refusal was logged more than once');
+});
+
+test('author bios: staff set their own, only the Users section sets anyone else’s, everyone else is refused', async (t) => {
+  const bio = ROUTES.find((route) => route.path === '/api/bio');
+  const stored = (id) => database.prepare('SELECT bio FROM staff_bios WHERE user_id = ?').get(id)?.bio ?? null;
+  const audit = (action) => database.prepare('SELECT actor_id, target_id, outcome, detail FROM admin_audit_log WHERE action = ? ORDER BY created_at').all(action);
+  // Refusals are recorded once per account and action every ten minutes, and the matrix has already used that allowance.
+  database.prepare("DELETE FROM admin_audit_log WHERE outcome = 'denied' AND action = 'user-admin'").run();
+  database.prepare("DELETE FROM admin_audit_log WHERE action = 'update-bio'").run();
+
+  await t.test('every staff role sets its own bio, with or without naming itself, and the edit is not audited', async () => {
+    for (const [name, id] of [['moderator', 'moderator'], ['editor', 'editor'], ['admin', 'admin']]) {
+      const response = await call(ACTORS[name], bio, { fields: { bio: `Own bio for ${name}.` } });
+      assert.equal(response.status, 303);
+      assert.equal(location(response), '/account?bio=saved');
+      assert.equal(stored(id), `Own bio for ${name}.`);
+    }
+    const named = await call(ACTORS.moderator, bio, { fields: { userId: 'moderator', bio: 'Named myself.' } });
+    assert.equal(location(named), '/account?bio=saved');
+    assert.equal(stored('moderator'), 'Named myself.');
+    assert.deepEqual(audit('update-bio'), []);
+  });
+
+  await t.test('an administrator sets another staff member’s bio and the change is audited without the text', async () => {
+    const response = await call(ACTORS.admin, bio, { fields: { userId: 'editor', bio: 'Edited by an administrator.' } });
+    assert.equal(response.status, 303);
+    assert.equal(location(response), '/admin/users/editor?bio=saved');
+    assert.equal(stored('editor'), 'Edited by an administrator.');
+    const [entry, ...rest] = audit('update-bio');
+    assert.deepEqual(rest, []);
+    assert.equal(entry.actor_id, 'admin');
+    assert.equal(entry.outcome, 'success');
+    assert.ok(!entry.detail.includes('Edited by an administrator'));
+  });
+
+  await t.test('moderators and editors cannot set someone else’s bio, and the attempt is recorded', async () => {
+    const before = snapshot();
+    for (const [name, target] of [['moderator', 'admin'], ['moderator', 'editor'], ['editor', 'admin'], ['editor', 'moderator']]) {
+      const response = await call(ACTORS[name], bio, { fields: { userId: target, bio: 'Hijacked.' } });
+      assert.equal(response.status, 403, `${name} -> ${target}`);
+    }
+    assert.equal((await call(ACTORS.editor, bio, { fields: { userId: 'admin', bio: '' } })).status, 403, 'clearing is an edit too');
+    assert.equal(snapshot(), before);
+    assert.equal(stored('admin'), 'Own bio for admin.');
+    assert.deepEqual(audit('user-admin').filter((row) => row.outcome === 'denied').map((row) => row.actor_id).sort(), ['editor', 'moderator']);
+  });
+
+  await t.test('readers, business owners, signed-out and suspended accounts are refused outright, for their own bio or anyone’s', async () => {
+    const before = snapshot();
+    const deniedBefore = audit('user-admin').length;
+    for (const name of ['reader', 'businessOwner', 'signedOut', 'suspendedAdmin']) {
+      for (const fields of [{ bio: 'Mine.' }, { userId: ACTORS[name].id ?? 'reader', bio: 'Mine.' }, { userId: 'admin', bio: 'Hijacked.' }]) {
+        const response = await call(ACTORS[name], bio, { fields });
+        assert.equal(response.status, 403, `${name} ${JSON.stringify(fields)}`);
+      }
+    }
+    assert.equal(snapshot(), before);
+    assert.equal(audit('user-admin').length, deniedBefore, 'these refusals are not staff-role denials');
+  });
+
+  await t.test('cross-origin posts are refused, even from an administrator', async () => {
+    const before = snapshot();
+    for (const headers of [{ origin: 'https://attacker.invalid' }, { origin: null }]) {
+      assert.equal((await call(ACTORS.admin, bio, { fields: { userId: 'editor', bio: 'Forged.' } }, headers)).status, 403);
+      assert.equal((await call(ACTORS.moderator, bio, { fields: { bio: 'Forged.' } }, headers)).status, 403);
+    }
+    assert.equal(snapshot(), before);
+  });
+
+  await t.test('only staff have a bio, and unknown accounts are not found', async () => {
+    assert.equal((await call(ACTORS.admin, bio, { fields: { userId: 'victim', bio: 'x' } })).status, 400);
+    assert.equal((await call(ACTORS.admin, bio, { fields: { userId: 'nobody', bio: 'x' } })).status, 404);
+    assert.equal((await call(ACTORS.admin, bio, { fields: { userId: '../etc', bio: 'x' } })).status, 400);
+    assert.equal(stored('victim'), null);
+  });
+
+  await t.test('a role removed under a live session takes the bio endpoint away on the next request', async () => {
+    addUser('bioist', 'editor');
+    const cookie = await signIn('bioist');
+    assert.equal((await call({ cookie }, bio, { fields: { bio: 'Hello.' } })).status, 303);
+    database.prepare("DELETE FROM staff_roles WHERE user_id = 'bioist'").run();
+    assert.equal((await call({ cookie }, bio, { fields: { bio: 'Changed my mind.' } })).status, 403);
+    assert.equal(stored('bioist'), 'Hello.');
+  });
 });
 
 // ---- Suspended accounts, and roles that change under a live session ----
