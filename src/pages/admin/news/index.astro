@@ -22,6 +22,7 @@ const fmt = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateStyle
     <input id="f-search" type="search" placeholder="Search headline, community, byline…" aria-label="Search stories" />
     <select id="f-status" aria-label="Status"><option value="">All statuses</option><option value="published">Published</option><option value="draft">Draft</option></select>
     <select id="f-section" aria-label="Section"><option value="">All sections</option>{Object.entries(SECTIONS).map(([key, label]) => <option value={key}>{label}</option>)}</select>
+    <select id="f-featured" aria-label="Featured"><option value="">All stories</option><option value="1">Featured</option><option value="0">Not featured</option></select>
     <span id="f-count" class="meta"></span>
   </div>
 
@@ -29,7 +30,7 @@ const fmt = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateStyle
   <div class="table-wrap"><table>
     <thead><tr><th>Headline</th><th>Section</th><th>Status</th><th>Date</th></tr></thead>
     <tbody id="rows">
-      {articles.map((a) => <tr data-search={`${a.headline} ${a.community} ${a.byline} ${a.slug}`.toLowerCase()} data-status={a.status} data-section={a.section}>
+      {articles.map((a) => <tr data-search={`${a.headline} ${a.community} ${a.byline} ${a.slug}`.toLowerCase()} data-status={a.status} data-section={a.section} data-featured={a.featured}>
         <td><a class="headline" href={`/admin/news/${a.id}`}>{a.headline}</a><div class="meta">{a.community} · {a.byline}</div></td>
         <td>{SECTIONS[a.section]}</td>
         <td><span class={`pill ${a.status}`}>{a.status === 'published' ? 'Published' : 'Draft'}</span>{a.featured === 1 && <> <span class="pill featured">Featured</span></>}</td>
@@ -46,22 +47,26 @@ const fmt = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateStyle
     var search = document.getElementById('f-search');
     var status = document.getElementById('f-status');
     var section = document.getElementById('f-section');
-    var initial = new URLSearchParams(location.search).get('status');
+    var featured = document.getElementById('f-featured');
+    var params = new URLSearchParams(location.search);
+    var initial = params.get('status');
     if (initial === 'published' || initial === 'draft') status.value = initial;
+    var initialFeatured = params.get('featured');
+    if (initialFeatured === '1' || initialFeatured === '0') featured.value = initialFeatured;
     var count = document.getElementById('f-count');
     var none = document.getElementById('no-match');
     function apply() {
       var q = search.value.trim().toLowerCase();
       var shown = 0;
       rows.forEach(function (r) {
-        var ok = (!q || r.dataset.search.includes(q)) && (!status.value || r.dataset.status === status.value) && (!section.value || r.dataset.section === section.value);
+        var ok = (!q || r.dataset.search.includes(q)) && (!status.value || r.dataset.status === status.value) && (!section.value || r.dataset.section === section.value) && (!featured.value || r.dataset.featured === featured.value);
         r.hidden = !ok;
         if (ok) shown++;
       });
       count.textContent = shown === rows.length ? rows.length + ' stories' : shown + ' of ' + rows.length + ' stories';
       none.hidden = shown !== 0 || rows.length === 0;
     }
-    [search, status, section].forEach(function (el) { el.addEventListener('input', apply); });
+    [search, status, section, featured].forEach(function (el) { el.addEventListener('input', apply); });
     apply();
   })();
 </script>

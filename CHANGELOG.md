@@ -2,6 +2,16 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.30] - 2026-10-11
+
+### Fixed
+
+- The admin story list can filter to Featured or Not featured alongside search, publication status and section. Links with `featured=1` or `featured=0` open the corresponding selection, making it easier to manage the rotating homepage lead.
+
+### Changed
+
+- Updated newsroom source guidance for Norwalk's city calendar, Erie MetroParks programs and The Chef's Garden, with the Maritime Museum of Sandusky and Ottawa National Wildlife Refuge added as prospects. Added today's editorial preparation, local import and production sync utilities; reporting evidence, content snapshots and photo downloads stay in the separate project library.
+
 ## [1.22.29] - 2026-10-11
 
 ### Security
