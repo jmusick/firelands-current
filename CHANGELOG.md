@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.31] - 2026-10-11
+
+### Security
+
+- npm now only resolves package versions published at least seven days ago (`min-release-age=7` in `.npmrc`), and Dependabot waits the same week before proposing an update, so a compromised release has time to be pulled before it reaches the lockfile. Lockfile installs, including the Cloudflare build, are unaffected. The README documents a reviewed emergency-exception process (#50)
+
 ## [1.22.30] - 2026-10-11
 
 ### Fixed
