@@ -1,4 +1,5 @@
 import { env } from 'cloudflare:workers';
+import { type AuditActor, auditRecord, auditResource, changedFields } from './audit';
 import { cleanText, ensureArticleThread } from './forum';
 import { isMediaId } from './media';
 import { type AdminArticle, type ArticleStatus, type Section, isSection, sanitizeSlug } from './news';
@@ -32,7 +33,32 @@ export function valuesFromArticle(article: AdminArticle): ArticleFormValues {
   return { headline, slug, summary, body, section, community, byline, author_id: article.author_id ?? '', lead_media_id: article.lead_media_id ?? '', featured: article.featured === 1, status };
 }
 
-export async function saveArticleFromForm(form: FormData, existing: AdminArticle | null): Promise<ArticleFormResult> {
+// Field names an audit entry lists when a story is edited. Status and featured have their own actions.
+const AUDITED_FIELDS: Record<string, string> = {
+  headline: 'headline', slug: 'URL slug', summary: 'summary', body: 'story text', section: 'section', community: 'community',
+  byline: 'byline', author_id: 'author', lead_media_id: 'lead image',
+};
+
+/** Audit statements for one save: a create, or an update naming only the fields that changed, plus publish and feature changes. */
+function articleAudit(actor: AuditActor, id: string, values: ArticleFormValues, existing: AdminArticle | null) {
+  const before = existing ? valuesFromArticle(existing) : null;
+  const statements = [];
+  if (!before) {
+    statements.push(auditResource(actor, { type: 'story', id, label: values.headline }, 'story-create', `/news/${values.slug}; ${values.status}`));
+  } else {
+    const changed = changedFields(before, values, AUDITED_FIELDS);
+    if (changed.length) statements.push(auditRecord(actor, 'story', id, 'story-update', `Changed: ${changed.join(', ')}`));
+  }
+  if (values.status !== (before?.status ?? 'draft')) {
+    statements.push(auditRecord(actor, 'story', id, values.status === 'published' ? 'story-publish' : 'story-unpublish'));
+  }
+  if (values.featured !== (before?.featured ?? false)) {
+    statements.push(auditRecord(actor, 'story', id, values.featured ? 'story-feature' : 'story-unfeature'));
+  }
+  return statements;
+}
+
+export async function saveArticleFromForm(form: FormData, existing: AdminArticle | null, actor: AuditActor): Promise<ArticleFormResult> {
   const section = cleanText(form.get('section'));
   const headline = cleanText(form.get('headline'));
   const values: ArticleFormValues = {
@@ -92,7 +118,8 @@ export async function saveArticleFromForm(form: FormData, existing: AdminArticle
     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?14, ?12, ?13, ?9, ?10, ?11, ?11)
   `).bind(id, values.slug, values.headline, values.summary, values.body, values.section, values.community,
     values.byline, values.status, publishedAt, now, values.lead_media_id || null, values.featured ? 1 : 0, values.author_id || null);
-  await save.run();
+  // The audit entries share the save's batch, so a story never changes without a record of who changed it.
+  await env.DB.batch([save, ...articleAudit(actor, id, values, existing)]);
   if (publishedAt !== null && values.status === 'published') await ensureArticleThread({ id, headline: values.headline, summary: values.summary, published_at: publishedAt });
   return { ok: true, id };
 }

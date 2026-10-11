@@ -6,20 +6,24 @@ import EventEditor from '../../../components/EventEditor.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
 import { getAdminEvent } from '../../../lib/events';
 import { copyOfEvent, emptyEvent, saveEventFromForm, type EventFormValues } from '../../../lib/events-admin';
+import { denyAdmin, recordDenied } from '../../../lib/audit';
 import { sameOrigin } from '../../../lib/forum';
 
 const denied = requireSection(Astro, ADMIN.events);
-if (denied) return denied;
+if (denied) {
+  if (Astro.request.method === 'POST') await recordDenied(Astro.locals.user, Astro.request, 'event-save', 'role', Astro.locals.staffRole);
+  return denied;
+}
 
 // ?copy=<id> starts from an existing event, for ones that repeat.
 const source = Astro.url.searchParams.has('copy') ? await getAdminEvent(Astro.url.searchParams.get('copy') ?? '') : null;
 let values: EventFormValues = source ? copyOfEvent(source) : { ...emptyEvent };
 let errors: string[] = [];
 if (Astro.request.method === 'POST') {
-  if (!sameOrigin(Astro.request)) return new Response('Invalid request origin', { status: 403 });
+  if (!sameOrigin(Astro.request)) return denyAdmin(Astro.locals, Astro.request, 'event-save', 'origin');
   const form = await readForm(Astro.request);
   if (form instanceof Response) return form;
-  const result = await saveEventFromForm(form, null);
+  const result = await saveEventFromForm(form, null, Astro.locals.user!);
   if (result.ok) return Astro.redirect(`/admin/events/${result.id}?saved=1`, 303);
   ({ values, errors } = result);
 }

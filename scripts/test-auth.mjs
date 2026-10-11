@@ -52,7 +52,9 @@ function sourceModule(path, replacements = {}, page = false) {
 const rateLimitModule = sourceModule('src/lib/auth-rate-limit.ts');
 const passwordPolicyModule = sourceModule('src/lib/password-policy.ts');
 const reauthModule = sourceModule('src/lib/reauth.ts');
+const authEventsModule = sourceModule('src/lib/auth-events.ts');
 const authModule = sourceModule('src/lib/auth.ts', {
+  './auth-events': authEventsModule,
   './mail': 'data:text/javascript,export const sendPasswordResetMail = async (user, url) => globalThis.__authTestMail.push({ user, url }); export const sendVerificationMail = async () => {};',
   './auth-rate-limit': rateLimitModule,
   './password-policy': passwordPolicyModule,
@@ -279,5 +281,88 @@ test('authentication throttling is shared, atomic, and keyed by client IP and pa
     assert.equal(counter('stale|/sign-in/email'), undefined);
     assert.equal(counter('recent|/sign-in/email'), 5);
     assert.equal(counter(`${attacker}|/sign-in/email`), 1);
+  });
+});
+
+test('authentication security events are logged without credentials, emails or addresses', async (t) => {
+  const { handleAuthRequest, fingerprint } = await import(authEventsModule);
+  const email = 'logged@example.test';
+  const password = 'logged-fixture-password';
+  const now = new Date().toISOString();
+  database.prepare("INSERT INTO user (id, name, email, emailVerified, createdAt, updatedAt) VALUES ('logged', 'logged', ?, 1, ?, ?)").run(email, now, now);
+  database.prepare("INSERT INTO account (id, accountId, providerId, userId, password, createdAt, updatedAt) VALUES ('logged', 'logged', 'credential', 'logged', ?, ?, ?)")
+    .run(await hashPassword(password), now, now);
+  const lines = [];
+  const original = { log: console.log, warn: console.warn, error: console.error };
+  const capture = (...args) => { try { lines.push(JSON.parse(args[0])); } catch { /* Better Auth's own diagnostics */ } };
+  console.log = capture; console.warn = capture; console.error = capture;
+  t.after(() => Object.assign(console, original));
+  const events = () => lines.filter((line) => line.event === 'auth_event');
+  const call = (path, body, ip, extra = {}) => handleAuthRequest((request) => auth.handler(request), new Request(`${origin}/api/auth/${path}`, {
+    method: 'POST', headers: { 'content-type': 'application/json', origin, 'cf-connecting-ip': ip, ...extra }, body: JSON.stringify(body),
+  }));
+
+  await t.test('a failed sign-in is a warning with a status, a code, and hashed identifiers', async () => {
+    const response = await call('sign-in/email', { email, password: 'wrong-fixture-password' }, '198.51.100.201');
+    assert.equal(response.status, 401);
+    assert.equal((await response.json()).code, 'INVALID_EMAIL_OR_PASSWORD');
+    const [line] = events();
+    const { account, client, ...rest } = line;
+    assert.deepEqual(rest, { event: 'auth_event', type: 'sign_in', outcome: 'failure', status: 401, code: 'INVALID_EMAIL_OR_PASSWORD' });
+    assert.equal(line.account, await fingerprint('email', email.toUpperCase()));
+    assert.equal(line.client, await fingerprint('ip', '198.51.100.201'));
+    assert.match(line.account, /^[0-9a-f]{16}$/);
+    const text = JSON.stringify(lines);
+    for (const secret of [email, 'logged@', 'wrong-fixture-password', '198.51.100.201']) assert.ok(!text.includes(secret), secret);
+  });
+
+  await t.test('the same address hashes the same way and another address differs', async () => {
+    lines.length = 0;
+    await call('sign-in/email', { email, password: 'wrong-fixture-password' }, '198.51.100.202');
+    await call('sign-in/email', { email: 'someone-else@example.test', password: 'wrong-fixture-password' }, '198.51.100.203');
+    const [first, second] = events();
+    assert.equal(first.account, (await fingerprint('email', email)));
+    assert.notEqual(first.account, second.account);
+    assert.notEqual(first.client, second.client);
+  });
+
+  await t.test('a successful sign-in records the account id and nothing secret', async () => {
+    lines.length = 0;
+    const response = await call('sign-in/email', { email, password }, '198.51.100.204');
+    assert.equal(response.status, 200);
+    const [line] = events();
+    const { account, client, ...rest } = line;
+    assert.deepEqual(rest, { event: 'auth_event', type: 'sign_in', outcome: 'success', user: 'logged' });
+    assert.match(account, /^[0-9a-f]{16}$/);
+    assert.match(client, /^[0-9a-f]{16}$/);
+    const text = JSON.stringify(lines);
+    for (const secret of [email, password, '198.51.100.204', 'session', 'token']) assert.ok(!text.toLowerCase().includes(secret), secret);
+  });
+
+  await t.test('throttled requests are logged as failures with the throttle status', async () => {
+    lines.length = 0;
+    for (let attempt = 0; attempt < 5; attempt++) await call('sign-in/email', { email, password: 'wrong-fixture-password' }, '198.51.100.205');
+    assert.deepEqual(events().map((line) => [line.status, line.code]), [[401, 'INVALID_EMAIL_OR_PASSWORD'], [401, 'INVALID_EMAIL_OR_PASSWORD'], [401, 'INVALID_EMAIL_OR_PASSWORD'], [429, 'RATE_LIMITED'], [429, 'RATE_LIMITED']]);
+  });
+
+  await t.test('a refused CAPTCHA is logged although the endpoint never ran', async () => {
+    lines.length = 0;
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => Response.json({ success: false });
+    try {
+      const response = await call('request-password-reset', { email, redirectTo: '/reset-password' }, '198.51.100.206', { 'x-captcha-response': 'bad-fixture-token' });
+      assert.ok(response.status >= 400);
+    } finally { globalThis.fetch = realFetch; }
+    const [line] = events();
+    assert.equal(line.type, 'password_reset_request');
+    assert.equal(line.outcome, 'failure');
+    assert.ok(!JSON.stringify(lines).includes('bad-fixture-token'));
+  });
+
+  await t.test('requests that are not security endpoints, or do not fail, add no failure line', async () => {
+    lines.length = 0;
+    const response = await handleAuthRequest((request) => auth.handler(request), new Request(`${origin}/api/auth/get-session`, { headers: { origin } }));
+    assert.equal(response.status, 200);
+    assert.equal(events().length, 0);
   });
 });

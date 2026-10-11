@@ -22,6 +22,12 @@ const db = {
     };
     return query;
   },
+  // Statements run in order, as a D1 batch does; the changes() audit guards depend on that.
+  async batch(statements) {
+    const results = [];
+    for (const statement of statements) results.push(await statement.run());
+    return results;
+  },
 };
 globalThis.__newsTestEnv = { DB: db };
 const envModule = `data:text/javascript,${encodeURIComponent('export const env = globalThis.__newsTestEnv;')}`;
@@ -36,11 +42,17 @@ async function loadSource(path, replacements = {}) {
 }
 const news = await loadSource('src/lib/news.ts');
 const forum = await loadSource('src/lib/forum.ts');
+const audit = await loadSource('src/lib/audit.ts');
 const { emptyArticle, saveArticleFromForm, valuesFromArticle } = (await loadSource('src/lib/news-admin.ts', {
-  './news': news.url, './forum': forum.url,
+  './news': news.url, './forum': forum.url, './audit': audit.url,
   './media': 'data:text/javascript,export const isMediaId = () => false;',
 })).module;
 const { frontPageArticles, getAdminArticle } = news.module;
+const actor = { id: 'editor', name: 'Test editor' };
+const save = (data, existing) => saveArticleFromForm(data, existing, actor);
+const userSql = "INSERT INTO user (id, name, email, emailVerified, createdAt, updatedAt) VALUES ('editor', 'Test editor', 'editor@example.test', 1, '2026-10-01', '2026-10-01')";
+database.exec(userSql);
+const auditRows = (where = '1 = 1') => database.prepare(`SELECT actor_id, actor_name, target_type, target_id, target_label, action, detail, outcome FROM admin_audit_log WHERE ${where} ORDER BY rowid`).all().map((row) => ({ ...row }));
 
 const insert = (id, publishedAt, featured = 0, status = 'published') => database.prepare(`
   INSERT INTO news_articles (id, slug, headline, summary, body, section, community, byline, status, published_at, created_at, updated_at, featured)
@@ -75,7 +87,7 @@ test('featured homepage stories', async (t) => {
   await t.test('saving multiple featured stories preserves the others and original publication dates', async () => {
     for (const id of ['old-feature-a', 'old-feature-b', 'recent-7']) {
       const article = await getAdminArticle(id);
-      assert.equal((await saveArticleFromForm(form(article, true), article)).ok, true);
+      assert.equal((await save(form(article, true), article)).ok, true);
       assert.equal((await getAdminArticle(id)).published_at, article.published_at);
     }
     assert.deepEqual(database.prepare("SELECT id FROM news_articles WHERE featured = 1 AND status = 'published' ORDER BY id").all().map((a) => a.id),
@@ -105,11 +117,11 @@ test('featured homepage stories', async (t) => {
 
   await t.test('unticking a story preserves other featured stories; unpublishing excludes it', async () => {
     const first = await getAdminArticle('old-feature-a');
-    assert.equal((await saveArticleFromForm(form(first, false), first)).ok, true);
+    assert.equal((await save(form(first, false), first)).ok, true);
     const second = await getAdminArticle('old-feature-b');
     const data = form(second, true);
     data.set('status', 'draft');
-    assert.equal((await saveArticleFromForm(data, second)).ok, true);
+    assert.equal((await save(data, second)).ok, true);
     database.function('random', () => 0);
     assert.equal((await frontPageArticles()).lead.id, 'recent-7');
     assert.equal((await getAdminArticle('recent-7')).featured, 1);
@@ -120,7 +132,7 @@ test('featured homepage stories', async (t) => {
     for (const [key, value] of Object.entries({ ...emptyArticle, headline: 'A newly featured story', slug: 'new-feature',
       summary: 'A summary long enough to save.', body: 'Story text long enough to save.', section: 'local',
       community: 'Sandusky', byline: 'Test reporter', status: 'published', featured: '1' })) data.set(key, value);
-    const saved = await saveArticleFromForm(data, null);
+    const saved = await save(data, null);
     assert.equal(saved.ok, true);
     assert.equal((await getAdminArticle(saved.id)).featured, 1);
     assert.equal((await getAdminArticle('recent-7')).featured, 1);
@@ -138,18 +150,22 @@ test('featured homepage stories', async (t) => {
         const sql = readFileSync(new URL(`../migrations/${name}`, import.meta.url), 'utf8');
         await runtimeDb.exec(sql.replace(/--[^\r\n]*/g, '').replace(/\r?\n/g, ' '));
       }
+      await runtimeDb.exec(userSql);
       globalThis.__newsTestEnv.DB = runtimeDb;
       for (const id of ['runtime-a', 'runtime-b']) {
         const data = new FormData();
         for (const [key, value] of Object.entries({ ...emptyArticle, headline: `A story about ${id}`, slug: id,
           summary: 'A summary long enough to save.', body: 'Story text long enough to save.', section: 'local',
           community: 'Sandusky', byline: 'Test reporter', status: 'published' })) data.set(key, value);
-        const saved = await saveArticleFromForm(data, null);
+        const saved = await save(data, null);
         assert.equal(saved.ok, true);
         const queue = await runtimeDb.prepare('SELECT * FROM facebook_posts WHERE article_id = ?').bind(saved.id).first();
         const article = await getAdminArticle(saved.id);
-        assert.equal((await saveArticleFromForm(form(article, true), article)).ok, true);
+        assert.equal((await save(form(article, true), article)).ok, true);
         assert.deepEqual(await runtimeDb.prepare('SELECT * FROM facebook_posts WHERE article_id = ?').bind(saved.id).first(), queue);
+        // The create, publish and feature entries committed with their saves in D1's own batch.
+        const actions = (await runtimeDb.prepare('SELECT action FROM admin_audit_log WHERE target_id = ? ORDER BY rowid').bind(saved.id).all()).results.map((row) => row.action);
+        assert.deepEqual(actions, ['story-create', 'story-publish', 'story-feature']);
       }
       assert.equal((await runtimeDb.prepare('SELECT COUNT(*) AS n FROM news_articles WHERE featured = 1').first()).n, 2);
       const page = await frontPageArticles();
@@ -160,5 +176,61 @@ test('featured homepage stories', async (t) => {
       globalThis.__newsTestEnv.DB = db;
       await runtime.dispose();
     }
+  });
+});
+
+test('story saves are audited with changed field names, never story text', async (t) => {
+  database.exec('DELETE FROM admin_audit_log');
+  const base = { ...emptyArticle, headline: 'An audited story headline', slug: 'audited-story', summary: 'A summary long enough to save.',
+    body: 'SECRET body text that must not reach the log.', section: 'local', community: 'Sandusky', byline: 'Test reporter' };
+  const submit = (overrides, existing) => {
+    const data = new FormData();
+    for (const [key, value] of Object.entries({ ...base, ...overrides })) data.set(key, value);
+    return save(data, existing);
+  };
+  let id;
+
+  await t.test('a new draft records who created it and nothing else', async () => {
+    const saved = await submit({}, null);
+    assert.equal(saved.ok, true);
+    id = saved.id;
+    assert.deepEqual(auditRows(), [{ actor_id: 'editor', actor_name: 'Test editor', target_type: 'story', target_id: id,
+      target_label: 'An audited story headline', action: 'story-create', detail: '/news/audited-story; draft', outcome: 'success' }]);
+  });
+
+  await t.test('edits list only the fields that changed', async () => {
+    const draft = await getAdminArticle(id);
+    assert.equal((await submit({ headline: 'A revised audited story headline', body: 'SECRET revised text.' }, draft)).ok, true);
+    const rows = auditRows("action != 'story-create'");
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].action, 'story-update');
+    assert.equal(rows[0].detail, 'Changed: headline, story text');
+    assert.equal(rows[0].target_label, 'A revised audited story headline');
+  });
+
+  await t.test('publishing and featuring are their own entries, and an unchanged save adds none', async () => {
+    database.exec('DELETE FROM admin_audit_log');
+    const draft = await getAdminArticle(id);
+    assert.equal((await submit({ headline: draft.headline, body: draft.body, status: 'published', featured: '1' }, draft)).ok, true);
+    assert.deepEqual(auditRows().map((row) => row.action), ['story-publish', 'story-feature']);
+    const live = await getAdminArticle(id);
+    assert.equal((await submit({ headline: live.headline, body: live.body, status: 'published', featured: '1' }, live)).ok, true);
+    assert.equal(auditRows().length, 2);
+    assert.equal((await submit({ headline: live.headline, body: live.body, status: 'draft' }, live)).ok, true);
+    assert.deepEqual(auditRows().map((row) => row.action), ['story-publish', 'story-feature', 'story-unpublish', 'story-unfeature']);
+  });
+
+  await t.test('a rejected save changes and records nothing', async () => {
+    database.exec('DELETE FROM admin_audit_log');
+    assert.equal((await submit({ headline: 'Short' }, await getAdminArticle(id))).ok, false);
+    assert.equal(auditRows().length, 0);
+  });
+
+  await t.test('no entry holds story text', async () => {
+    database.exec('DELETE FROM admin_audit_log');
+    const article = await getAdminArticle(id);
+    assert.equal((await submit({ headline: article.headline, body: 'SECRET text written in the last edit.', summary: 'SECRET summary that is long enough.' }, article)).ok, true);
+    assert.equal(auditRows().length, 1);
+    assert.doesNotMatch(JSON.stringify(auditRows()), /SECRET/);
   });
 });

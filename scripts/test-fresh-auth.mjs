@@ -54,7 +54,10 @@ const staffModule = sourceModule('src/lib/staff.ts');
 const adminModule = sourceModule('src/lib/admin.ts');
 const forumModule = sourceModule('src/lib/forum.ts');
 const bodyModule = sourceModule('src/lib/request-body.ts');
+const authEventsModule = sourceModule('src/lib/auth-events.ts');
+const auditModule = sourceModule('src/lib/audit.ts');
 const authModule = sourceModule('src/lib/auth.ts', {
+  './auth-events': authEventsModule,
   './mail': 'data:text/javascript,export const sendPasswordResetMail = async (user, url) => globalThis.__freshTestMail.push({ user, url }); export const sendVerificationMail = async () => {};',
   './auth-rate-limit': rateLimit, './password-policy': policyModule, './reauth': reauthModule,
 });
@@ -65,7 +68,7 @@ const { isFresh, recordReauth, safeNext, reauthPath, REAUTH_WINDOW_MS } = await 
 const { isPredictable, passwordProblem, MIN_PASSWORD } = await import(policyModule);
 const { gainsAccess } = await import(adminModule);
 const usersApi = await import(sourceModule('src/pages/api/admin/users.ts', {
-  '../../../lib/request-body': bodyModule, '../../../lib/admin': adminModule, '../../../lib/forum': forumModule,
+  '../../../lib/request-body': bodyModule, '../../../lib/admin': adminModule, '../../../lib/forum': forumModule, '../../../lib/audit': auditModule,
   '../../../lib/password-policy': policyModule, '../../../lib/reauth': reauthModule, '../../../lib/staff': staffModule,
   '../../../lib/users': usersModule,
 }));
@@ -349,6 +352,10 @@ test('staff roles that gain access end the person’s sessions', async (t) => {
     assert.equal((await render(reauthPage, '/reauth', cookie)).locals.staffRole, 'editor');
     // The old session cannot reach the admin-only endpoint with its former role.
     assert.equal((await adminPost(cookie, { action: 'set-role', userId: 'bystander', role: 'admin' })).status, 403);
+    // The refusal is attributed to the signed-in account, and a repeat within the throttle window adds no second row.
+    assert.equal((await adminPost(cookie, { action: 'set-role', userId: 'bystander', role: 'admin' })).status, 403);
+    assert.deepEqual(database.prepare("SELECT actor_id, action, outcome, target_label, detail FROM admin_audit_log WHERE outcome = 'denied'").all().map((row) => ({ ...row })),
+      [{ actor_id: 'reader', action: 'user-admin', outcome: 'denied', target_label: '/api/admin/users', detail: 'Needs a staff role this account lacks (account role: editor)' }]);
     await setRole('');
     assert.equal(roleOf('reader'), null);
     assert.equal(sessions('reader'), 1);

@@ -5,12 +5,16 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
 import NewsEditor from '../../../components/NewsEditor.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
 import { openCorrectionsFor } from '../../../lib/corrections';
+import { denyAdmin, recordDenied } from '../../../lib/audit';
 import { sameOrigin } from '../../../lib/forum';
 import { getAdminArticle } from '../../../lib/news';
 import { saveArticleFromForm, valuesFromArticle } from '../../../lib/news-admin';
 
 const denied = requireSection(Astro, ADMIN.news);
-if (denied) return denied;
+if (denied) {
+  if (Astro.request.method === 'POST') await recordDenied(Astro.locals.user, Astro.request, 'story-save', 'role', Astro.locals.staffRole);
+  return denied;
+}
 
 const article = await getAdminArticle(Astro.params.id ?? '');
 if (!article) return new Response('Story not found', { status: 404 });
@@ -18,10 +22,10 @@ if (!article) return new Response('Story not found', { status: 404 });
 let values = valuesFromArticle(article);
 let errors: string[] = [];
 if (Astro.request.method === 'POST') {
-  if (!sameOrigin(Astro.request)) return new Response('Invalid request origin', { status: 403 });
+  if (!sameOrigin(Astro.request)) return denyAdmin(Astro.locals, Astro.request, 'story-save', 'origin');
   const form = await readForm(Astro.request, STORY_FORM_BYTES);
   if (form instanceof Response) return form;
-  const result = await saveArticleFromForm(form, article);
+  const result = await saveArticleFromForm(form, article, Astro.locals.user!);
   if (result.ok) return Astro.redirect(`/admin/news/${result.id}?saved=1`, 303);
   ({ values, errors } = result);
 }

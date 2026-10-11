@@ -9,11 +9,11 @@ if (denied) return denied;
 
 const entries = await listAudit(200);
 ---
-<AdminLayout title="User activity log">
+<AdminLayout title="Activity log">
   <a class="back" href="/admin/users"><ArrowLeft />All users</a>
   <span class="eyebrow" style="display:block;margin-top:1.5rem">Users</span>
   <h1>Activity log</h1>
-  <p class="muted">The 200 most recent changes staff made to user accounts, businesses, ads, media and Facebook posting records.</p>
+  <p class="muted">The 200 most recent changes staff made to user accounts, businesses, ads, media, stories, events, discussions, corrections, news tips and Facebook posting records, and attempts by signed-in accounts to use admin tools their role doesn't allow. Entries are kept indefinitely and only administrators can see this page.</p>
   {entries.length === 0 ? <div class="card"><p class="muted" style="margin:0">No changes yet.</p></div> :
   <div class="table-wrap"><table>
     <thead><tr><th>When</th><th>Staff</th><th>Action</th><th>About</th></tr></thead>
@@ -21,8 +21,8 @@ const entries = await listAudit(200);
       {entries.map((e) => <tr>
         <td class="meta" style="white-space:nowrap">{fmtDateTime(e.created_at)}</td>
         <td>{e.actor_name}</td>
-        <td><strong>{AUDIT_LABELS[e.action] ?? e.action}</strong>{e.detail && <div class="meta">{e.detail}</div>}</td>
-        <td>{e.user_exists ? <a href={`/admin/users/${e.target_user_id}`}>{e.target_label}</a> : e.media_exists ? <a href={`/admin/media/${e.target_media_id}`}>{e.target_label}</a> : e.business_exists && !e.target_user_id ? <a href={`/admin/businesses/${e.target_business_id}`}>{e.target_label}</a> : e.target_label}</td>
+        <td><strong>{AUDIT_LABELS[e.action] ?? e.action}</strong>{e.outcome === 'denied' && <span class="denied">Denied</span>}{e.detail && <div class="meta">{e.detail}</div>}</td>
+        <td>{e.user_exists ? <a href={`/admin/users/${e.target_user_id}`}>{e.target_label}</a> : e.media_exists ? <a href={`/admin/media/${e.target_media_id}`}>{e.target_label}</a> : e.business_exists && !e.target_user_id ? <a href={`/admin/businesses/${e.target_business_id}`}>{e.target_label}</a> : e.resource_href ? <a href={e.resource_href}>{e.target_label}</a> : e.target_label}</td>
       </tr>)}
     </tbody>
   </table></div>}
@@ -32,5 +32,6 @@ const entries = await listAudit(200);
   .table-wrap { overflow-x: auto; border-top: 3px solid var(--deep); }
   table { width: 100%; border-collapse: collapse; }
   th { text-align: left; font-size: .88rem; color: var(--slate); padding: .8rem .6rem; border-bottom: 1px solid var(--line); }
+  .denied { margin-left: .5rem; padding: .1rem .45rem; border: 1px solid currentColor; border-radius: 3px; font-size: .78rem; font-weight: 600; color: var(--alert); }
   td { padding: .8rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
 </style>

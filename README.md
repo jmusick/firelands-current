@@ -161,7 +161,7 @@ Administrators manage accounts at `/admin/users`: search and filter by role or s
 - **Delete** an account and everything it posted, after typing its email address to confirm.
 - **Change a staff role** (administrator, editor, moderator, or none). Giving someone access to an admin section they didn't have signs them out of every session, so they sign in again with the new role; see below.
 
-Staff accounts and your own account can't be suspended or deleted; remove the role first. Nobody can change their own role, so there's always at least one administrator. Every change is recorded in `admin_audit_log` and shown at `/admin/users/log` and on each user's page.
+Staff accounts and your own account can't be suspended or deleted; remove the role first. Nobody can change their own role, so there's always at least one administrator. Every change is recorded in `admin_audit_log` and shown at `/admin/users/log` and on each user's page; see [Audit log and security events](#audit-log-and-security-events) for everything else it covers.
 
 ### Recent confirmation and role changes
 
@@ -187,6 +187,51 @@ Passwords follow NIST SP 800-63B-4 apart from length: **12 to 128 characters** (
 The blocklist runs locally, identically at Better Auth's `/sign-up/email`, `/change-password`, and `/reset-password` (a before hook) and in the admin Add user and Set password endpoints. It refuses one repeated character or short pattern, runs along the digits, the alphabet, or the keyboard rows, and passwords that are little more than the site's name, "password", the person's name, or their email address once those words are removed (fewer than 8 characters left). Passwords are not checked against an external breach service; the publisher chose not to send password hash prefixes to a third party.
 
 Run `npm run test:fresh-auth` for the freshness window, `/reauth` and `next` validation, stale versus fresh privileged actions, session revocation on role changes, the link and unlink guard, and the password rules, through the real Better Auth handlers, site middleware, and admin endpoints against an isolated in-memory database with the Pwned Passwords service simulated.
+
+## Audit log and security events
+
+### Staff actions: `admin_audit_log`
+
+Every privileged change staff make is one row in `admin_audit_log`: who (`actor_id`, and `actor_name` copied in so the entry survives a deleted account), what (`action`), which record (`target_type` and `target_id`, plus the `target_label` copied in so it survives a deleted record; users, businesses, ads and media keep their dedicated `target_*_id` columns), a short `detail`, the `outcome`, and when. Entries are written in the same D1 batch as the change, so a change and its entry commit together, and an entry exists only if the change found its record. `src/lib/audit.ts` is the helper for newsroom work; `auditStatement` (users, businesses), `adAudit` and `mediaAudit` are the older ones.
+
+Audited today:
+
+- **Users and businesses**: account creation, profile edits, role changes, suspensions, sign-outs, password sets, hidden posts, deletions; business and membership changes.
+- **Ads and media**: ad create, edit, activate, pause, delete; image upload, edit, delete.
+- **Stories** (`story-create`, `-update`, `-publish`, `-unpublish`, `-feature`, `-unfeature`, `-delete`): an edit lists only the names of the fields that changed ("Changed: headline, story text"), never the text.
+- **Events** (`event-create`, `-update`, `-publish`, `-unpublish` for a return to draft, `-cancel`, `-delete`), the same way.
+- **Talk of the Town moderation**: hiding and restoring a discussion (`thread-hide`, `thread-restore`), hiding a reply from a report (`reply-hide`), dismissing a report (`report-dismiss`). Entries name the discussion by title and id, and the report by id; post text, authors and reporters are not recorded.
+- **Corrections**: marked corrected, declined or reopened, with the status change ("news: open → corrected"). The reader's details and the staff note stay in the `corrections` table.
+- **News tips**: reviewed, declined, or converted to a story (`tip-reviewed`, `tip-declined`, `tip-converted`), by tip id only: no tip text, name or email.
+- **Facebook posting**: queue and record actions.
+
+Not audited: reading anything, and the reader-side actions (posting, voting, reporting, submitting a tip), which are stored as their own records with their authors.
+
+**Denied attempts.** A signed-in account that reaches an admin endpoint without the role for it, or posts to it from another origin, leaves an entry with `outcome = 'denied'` (labelled with the endpoint path and the account's role). The admin pages hide controls a role can't use, so a denied entry means a crafted request or a stale page, which is worth a look. To keep this from filling the log, an account gets at most one denied entry per action every ten minutes (`DENIED_THROTTLE_MS`), and people who are not signed in leave none: there is no one to attribute it to, and bots probing `/api/admin` would drown real entries. A failure to write a denied entry never changes the 403. Plain GETs of an admin page by the wrong role are not recorded (a link the role was never shown, or a bookmark, is not an attempt to change anything), nor are validation errors (400) or not-found (404) answers.
+
+**Who can see it.** The full log is at `/admin/users/log`, for administrators only (the 200 most recent entries, with denied attempts marked; links open the story, event, correction or tip while it still exists). Each user, business and ad page (administrators) and each media item's page (editors too) shows that record's own history. Moderators cannot read any of it, and editors see only the history of images. Denied entries have no record of their own, so they appear only in the full log.
+
+**Retention.** Entries are kept indefinitely and are never pruned: they are a small row per decision, and the point is accountability for moderation and publishing decisions. Names and titles are copied into the row, so entries stay readable after the account or record is deleted; `actor_id` becomes empty if the actor's account is deleted. Deleting entries needs direct database access; there is no admin control for it. Backups follow the 30-day schedule in the Privacy Policy.
+
+Migration `0026_audit_resources.sql` adds `target_type`, `target_id`, `outcome` and two indexes to the table. Production needs it applied (`npx wrangler d1 migrations apply DB --remote`) before the matching code is deployed, or story and event saves, deletions, moderation and tip actions will fail on the missing columns.
+
+Run `npm run test:audit` for the delete, moderation and correction endpoints and the denied-attempt throttle against the real migrations, and `npm run test:news` and `npm run test:events` for save audits (including a run against D1 itself in Miniflare). Both also assert that no story, post, tip or reader text reaches an entry.
+
+### Sign-in and account security events
+
+Authentication events are structured log lines in [Workers Logs](https://developers.cloudflare.com/workers/observability/logs/workers-logs/) (`observability` is enabled in `wrangler.jsonc`), not D1 rows. Sign-in noise is high-volume and only useful for a few days, the audit log is for decisions that must be kept, and a log line costs nothing on the sign-in path. `src/lib/auth-events.ts` writes them: failures (and throttled requests, status 429) as `console.warn`, successes as `console.log`, one JSON object each:
+
+```json
+{"event":"auth_event","type":"sign_in","outcome":"failure","status":401,"code":"INVALID_EMAIL_OR_PASSWORD","account":"9f2c41d0a7b3e655","client":"41ab90c2d7e13f08"}
+```
+
+`type` is one of `sign_in`, `sign_up`, `sign_out`, `password_reset_request`, `password_reset`, `password_change`, `email_change_request`, `verification_resend`, `email_verify`, `link_account`, `unlink_account`, `account_delete`, `session_revoke`, `sessions_revoke_all`, `sessions_revoke_others` (plus `social_sign_in` when a provider sign-in finishes). Failures include every refusal on those endpoints: wrong password, unverified email, a suspended account, a refused CAPTCHA, a stale password confirmation (`REAUTH_REQUIRED`), a predictable password, and the throttle. Role changes, suspensions, session revocations by an administrator and account deletions are already in `admin_audit_log`.
+
+A line never contains a password, token, link, cookie, session id, email address or IP address. `account` and `client` are 64-bit keyed hashes (HMAC-SHA-256 with `BETTER_AUTH_SECRET`) of the lowercased email and the connecting IP, so repeated failures against one address or from one network can be counted and matched without the log listing who tried. `user` is the opaque account id, present only when the request already belonged to a signed-in account. Rotating `BETTER_AUTH_SECRET` changes the hashes. Retention is Cloudflare's for Workers Logs on this account's plan (days, not months).
+
+Failures are logged where the response is built (`handleAuthRequest`, used by `/api/auth/*`), because Better Auth's `after` hooks never run when a `before` hook or plugin refuses a request; successes are logged from the `after` hook, which knows the account. Not captured: a failed provider callback (Better Auth redirects it to `/sign-in?error=`), a failed email-verification link (a GET), and requests refused before they reach Better Auth.
+
+**Alerting is not built.** To review or alert on these, filter Workers Logs on `event = auth_event` and `outcome = failure`: many `sign_in` failures sharing one `account` hash is a guessing attempt on one account, one `client` hash across many `account` hashes is credential stuffing, and a `sign_in` success after a run of failures for the same `account` is the case to look at first. Turning that into a notification (a Workers Logs query alert, or Logpush to a destination that can alert) is a follow-up. `npm run test:auth` asserts what a line contains and what it never does.
 
 ## Businesses
 

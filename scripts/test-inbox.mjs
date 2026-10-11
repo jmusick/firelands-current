@@ -211,14 +211,15 @@ test('the advertise form page does not display ads while news pages still can', 
 });
 
 // Tip review state: viewing never changes it; the explicit POST is guarded, audited and repeat-safe.
+const auditModule = sourceModule('src/lib/audit.ts', { 'cloudflare:workers': stubEnv });
 const { POST: reviewPost } = await import(sourceModule('src/pages/api/admin/submissions.ts', {
-  'cloudflare:workers': stubEnv, '../../../lib/forum': forumModule, '../../../lib/request-body': bodyModule,
+  'cloudflare:workers': stubEnv, '../../../lib/audit': auditModule, '../../../lib/forum': forumModule, '../../../lib/request-body': bodyModule,
   '../../../lib/admin': 'data:text/javascript,export const ADMIN={submissions:"s"};export const canAccess=(role)=>role==="editor"||role==="admin";',
 }));
 const tipId = 'tip-12345678';
 function tipDb(initial) {
-  const state = { status: initial, audit: [] };
-  const statement = () => ({ bind: (...v) => ({ v, async first() { return { status: state.status }; } }) });
+  const state = { status: initial, audit: [], denied: [] };
+  const statement = () => ({ bind: (...v) => ({ v, async first() { return { status: state.status }; }, async run() { state.denied.push(v); } }) });
   return { state, DB: {
     prepare: statement,
     // Mirrors the SQL guard: both statements only apply while the tip is in an allowed status.
@@ -245,8 +246,10 @@ test('marking an unread tip reviewed is audited without tip content', () => with
   assert.equal(response.status, 303);
   assert.equal(state.status, 'reviewed');
   assert.equal(state.audit.length, 1);
-  assert.ok(state.audit[0].includes('tip-reviewed'));
-  assert.ok(state.audit[0].includes(`News tip ${tipId}`));
+  // Actor, then the record kind and action: the entry names the tip by id and carries no tip text or contact details.
+  assert.deepEqual(state.audit[0].slice(1, 5), ['u1', 'Editor', 'tip', 'tip-reviewed']);
+  assert.equal(state.audit[0][5], 'unread → reviewed');
+  assert.ok(state.audit[0].includes(tipId));
 }));
 
 test('marking an already reviewed tip again is a no-op without a duplicate audit entry', () => withTip('reviewed', async (state) => {
@@ -260,6 +263,11 @@ test('review actions reject outsiders, cross-origin posts and bad input', () => 
   assert.equal((await reviewCall({}, { role: 'member' })).status, 403);
   assert.equal((await reviewCall({}, { origin: 'https://attacker.invalid' })).status, 403);
   assert.equal((await reviewCall({}, { user: null })).status, 303);
+  // A signed-in account's refused attempts are recorded as denied; the signed-out one has no actor to record.
+  assert.deepEqual(state.denied.map((v) => [v[1], v[4], v[5]]), [
+    ['u1', 'tip-review', 'Needs a staff role this account lacks (account role: member)'],
+    ['u1', 'tip-review', 'Cross-origin request refused'],
+  ]);
   assert.equal((await reviewCall({ status: 'unread' })).status, 400);
   assert.equal((await reviewCall({ id: 'x' })).status, 400);
   assert.equal(state.status, 'unread');

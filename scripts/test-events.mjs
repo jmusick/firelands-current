@@ -18,6 +18,12 @@ const db = {
     };
     return query;
   },
+  // Statements run in order, as a D1 batch does.
+  async batch(statements) {
+    const results = [];
+    for (const statement of statements) results.push(await statement.run());
+    return results;
+  },
 };
 globalThis.__eventTestEnv = { DB: db };
 const envModule = `data:text/javascript,${encodeURIComponent('export const env = globalThis.__eventTestEnv;')}`;
@@ -32,14 +38,17 @@ async function loadSource(path, replacements = {}) {
 }
 const news = await loadSource('src/lib/news.ts');
 const forum = await loadSource('src/lib/forum.ts');
+const audit = await loadSource('src/lib/audit.ts');
 const events = await loadSource('src/lib/events.ts', {
   './news': news.url,
   './ad-tracking': 'data:text/javascript,export const statDay = () => "2026-10-03";',
 });
 const { emptyEvent, saveEventFromForm, valuesFromEvent, copyOfEvent } = (await loadSource('src/lib/events-admin.ts', {
-  './events': events.url, './news': news.url, './forum': forum.url,
+  './events': events.url, './news': news.url, './forum': forum.url, './audit': audit.url,
   './media': 'data:text/javascript,export const isMediaId = () => false;',
 })).module;
+const actor = { id: 'editor', name: 'Test editor' };
+const save = (data, existing) => saveEventFromForm(data, existing, actor);
 const { getAdminEvent, getEvent, listEvents, listEventsBetween, eventJsonLd } = events.module;
 const form = (overrides = {}) => {
   const data = new FormData();
@@ -53,6 +62,7 @@ test('event admission and performers', async (t) => {
   for (const name of readdirSync(new URL('../migrations/', import.meta.url)).sort()) {
     if (!name.startsWith('0019') && !name.startsWith('0020')) database.exec(readFileSync(new URL(`../migrations/${name}`, import.meta.url), 'utf8'));
   }
+  database.exec("INSERT INTO user (id, name, email, emailVerified, createdAt, updatedAt) VALUES ('editor', 'Test editor', 'editor@example.test', 1, '2026-10-01', '2026-10-01')");
   database.exec(`INSERT INTO events (id, slug, title, summary, category, starts_on, venue, community, cost, status, created_at, updated_at)
     VALUES ('existing', 'existing', 'Existing event', 'Existing summary', 'community', '2026-10-10', 'Test park', 'Sandusky', 'Free; rides extra', 'published', 123, 456)`);
   database.exec(readFileSync(new URL('../migrations/0019_event_offers_performers.sql', import.meta.url), 'utf8'));
@@ -70,7 +80,7 @@ test('event admission and performers', async (t) => {
   });
 
   await t.test('paid offer survives saving, public reads, editing, and copying', async () => {
-    const saved = await saveEventFromForm(form({ status: 'published', performer: 'Test Quartet', ticket_price: '15.50',
+    const saved = await save(form({ status: 'published', performer: 'Test Quartet', ticket_price: '15.50',
       ticket_url: 'example.com/tickets', ticket_availability: 'InStock', end_time: '21:00',
       organizer: 'Test host', organizer_url: 'example.com/host' }), null);
     assert.equal(saved.ok, true);
@@ -86,7 +96,7 @@ test('event admission and performers', async (t) => {
     assert.equal(copyOfEvent(admin).performer, 'Test Quartet');
     assert.equal(valuesFromEvent(admin).organizer_url, 'https://example.com/host');
     assert.equal(copyOfEvent(admin).organizer_url, 'https://example.com/host');
-    const edited = await saveEventFromForm(form({ slug: event.slug, status: 'published', performer: 'Test Speaker', performer_type: 'Person', ticket_price: '0' }), admin);
+    const edited = await save(form({ slug: event.slug, status: 'published', performer: 'Test Speaker', performer_type: 'Person', ticket_price: '0' }), admin);
     assert.equal(edited.ok, true);
     const updated = markup(await getEvent('test-event'));
     assert.deepEqual(updated.offers, { '@type': 'Offer', price: 0, priceCurrency: 'USD' });
@@ -94,6 +104,32 @@ test('event admission and performers', async (t) => {
     assert.equal(updated.endDate, undefined);
     assert.equal(updated.image, undefined);
     assert.equal(updated.organizer, undefined);
+  });
+
+  await t.test('event saves are audited with status changes and changed field names, never details text', async () => {
+    const rows = () => database.prepare("SELECT actor_id, actor_name, target_type, target_label, action, detail, outcome FROM admin_audit_log WHERE target_type = 'event' ORDER BY rowid").all().map((row) => ({ ...row }));
+    const [created, published, updated] = rows();
+    assert.deepEqual(created, { actor_id: 'editor', actor_name: 'Test editor', target_type: 'event', target_label: 'Test event', action: 'event-create', detail: '/events/test-event; published', outcome: 'success' });
+    assert.equal(published.action, 'event-publish');
+    assert.equal(updated.action, 'event-update');
+    assert.match(updated.detail, /^Changed: .*performer.*ticket price/);
+    assert.doesNotMatch(updated.detail, /summary|details/);
+    database.exec('DELETE FROM admin_audit_log');
+    const event = await getAdminEvent((await getEvent('test-event')).id);
+    const values = valuesFromEvent(event);
+    const same = () => form({ ...values, description: 'SECRET details text for the audit log' });
+    assert.equal((await save(same(), event)).ok, true);
+    assert.deepEqual(rows().map((row) => [row.action, row.detail]), [['event-update', 'Changed: details']]);
+    database.exec('DELETE FROM admin_audit_log');
+    const cancelled = await getAdminEvent(event.id);
+    assert.equal((await save(form({ ...valuesFromEvent(cancelled), status: 'cancelled' }), cancelled)).ok, true);
+    assert.deepEqual(rows().map((row) => row.action), ['event-cancel']);
+    assert.doesNotMatch(JSON.stringify(rows()), /SECRET/);
+    const after = await getAdminEvent(event.id);
+    assert.equal((await save(form({ ...valuesFromEvent(after), status: 'cancelled' }), after)).ok, true);
+    assert.equal(rows().length, 1);
+    assert.equal((await save(form({ ...valuesFromEvent(after), title: 'X' }), after)).ok, false);
+    assert.equal(rows().length, 1);
   });
 
   await t.test('invalid ticket data cannot save', async () => {
@@ -110,7 +146,7 @@ test('event admission and performers', async (t) => {
       { organizer: 'Test host', organizer_url: 'https://user:password@example.com/host' },
       { organizer: 'Test host', organizer_url: `https://example.com/${'a'.repeat(500)}` },
     ]) {
-      const result = await saveEventFromForm(form(overrides), null);
+      const result = await save(form(overrides), null);
       assert.equal(result.ok, false, JSON.stringify(overrides));
     }
     assert.equal(database.prepare('SELECT COUNT(*) AS n FROM events').get().n, 2);

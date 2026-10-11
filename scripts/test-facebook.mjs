@@ -264,7 +264,12 @@ test('resolution endpoints reject unsigned users, moderators, cross-origin reque
   const adminUrl = moduleUrl('src/lib/admin.ts');
   const forumUrl = moduleUrl('src/lib/forum.ts', { 'cloudflare:workers': 'data:text/javascript,export const env = {};' });
   const bodyUrl = moduleUrl('src/lib/request-body.ts');
+  // Denied attempts by signed-in accounts are recorded; this fake database captures what would be written.
+  const denied = [];
+  globalThis.__facebookDenied = { DB: { prepare: () => ({ bind: (...values) => ({ run: async () => { denied.push(values); } }) }) } };
+  const auditUrl = moduleUrl('src/lib/audit.ts', { 'cloudflare:workers': 'data:text/javascript,export const env = globalThis.__facebookDenied;' });
   const { POST } = await import(moduleUrl('src/pages/api/admin/facebook/resolve.ts', {
+    '../../../../lib/audit': auditUrl,
     '../../../../lib/admin': adminUrl,
     '../../../../lib/forum': forumUrl,
     '../../../../lib/request-body': bodyUrl,
@@ -276,8 +281,18 @@ test('resolution endpoints reject unsigned users, moderators, cross-origin reque
   for (const locals of [{ user: null, staffRole: null }, { user: { id: 'user' }, staffRole: null }, { user: { id: 'moderator' }, staffRole: 'moderator' }]) {
     assert.equal((await POST({ request: request('https://firelandscurrent.com'), locals })).status, 403);
   }
+  // Only the two signed-in accounts left a record; the signed-out request has no one to attribute it to.
+  assert.deepEqual(denied.map((values) => [values[1], values[4], values[5]]), [
+    ['user', 'facebook-resolve', 'Needs a staff role this account lacks (account role: none)'],
+    ['moderator', 'facebook-resolve', 'Needs a staff role this account lacks (account role: moderator)'],
+  ]);
+  denied.length = 0;
   const locals = { user: { id: 'editor' }, staffRole: 'editor' };
   assert.equal((await POST({ request: request('https://other.example'), locals })).status, 403);
   assert.equal((await POST({ request: request(null), locals })).status, 403);
+  assert.deepEqual(denied.map((values) => [values[1], values[4], values[5]]), [
+    ['editor', 'facebook-resolve', 'Cross-origin request refused'], ['editor', 'facebook-resolve', 'Cross-origin request refused'],
+  ]);
+  delete globalThis.__facebookDenied;
   assert.equal((await POST({ request: request('https://firelandscurrent.com', false), locals })).status, 400);
 });

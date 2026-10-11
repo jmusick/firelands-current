@@ -7,10 +7,14 @@ import { ADMIN, requireSection } from '../../../lib/admin';
 import { openCorrectionsFor } from '../../../lib/corrections';
 import { STATUS_LABELS, getAdminEvent } from '../../../lib/events';
 import { saveEventFromForm, valuesFromEvent } from '../../../lib/events-admin';
+import { denyAdmin, recordDenied } from '../../../lib/audit';
 import { sameOrigin } from '../../../lib/forum';
 
 const denied = requireSection(Astro, ADMIN.events);
-if (denied) return denied;
+if (denied) {
+  if (Astro.request.method === 'POST') await recordDenied(Astro.locals.user, Astro.request, 'event-save', 'role', Astro.locals.staffRole);
+  return denied;
+}
 
 const event = await getAdminEvent(Astro.params.id ?? '');
 if (!event) return new Response('Event not found', { status: 404 });
@@ -18,10 +22,10 @@ if (!event) return new Response('Event not found', { status: 404 });
 let values = valuesFromEvent(event);
 let errors: string[] = [];
 if (Astro.request.method === 'POST') {
-  if (!sameOrigin(Astro.request)) return new Response('Invalid request origin', { status: 403 });
+  if (!sameOrigin(Astro.request)) return denyAdmin(Astro.locals, Astro.request, 'event-save', 'origin');
   const form = await readForm(Astro.request);
   if (form instanceof Response) return form;
-  const result = await saveEventFromForm(form, event);
+  const result = await saveEventFromForm(form, event, Astro.locals.user!);
   if (result.ok) return Astro.redirect(`/admin/events/${result.id}?saved=1`, 303);
   ({ values, errors } = result);
 }

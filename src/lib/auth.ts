@@ -3,6 +3,7 @@ import { betterAuth } from 'better-auth';
 import { APIError, createAuthMiddleware, getAuthoritativeSessionFromCtx } from 'better-auth/api';
 import { captcha } from 'better-auth/plugins';
 import { importPKCS8, SignJWT } from 'jose';
+import { recordAuthSuccess } from './auth-events';
 import { d1RateLimitStorage } from './auth-rate-limit';
 import { sendPasswordResetMail, sendVerificationMail } from './mail';
 import { MAX_PASSWORD, MIN_PASSWORD, PASSWORD_MESSAGES, passwordProblem } from './password-policy';
@@ -120,6 +121,8 @@ export function createAuth() {
       // Typing the password, or finishing a provider sign-in, opens the window for privileged actions
       // (src/lib/reauth.ts). Sessions opened any other way, such as by an emailed link, start without it.
       after: createAuthMiddleware(async (ctx) => {
+        // Security events for Workers Logs (src/lib/auth-events.ts); refusals are logged where the response is built.
+        await recordAuthSuccess(ctx);
         if (!ctx.path.startsWith('/sign-in/') && !ctx.path.startsWith('/callback/') && ctx.path !== '/change-password') return;
         const session = ctx.context.newSession?.session;
         if (!session) return;
