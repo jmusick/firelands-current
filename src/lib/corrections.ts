@@ -1,4 +1,5 @@
 import { env } from 'cloudflare:workers';
+import type { AuditActor } from './audit';
 
 export type CorrectionKind = 'news' | 'event';
 export type CorrectionStatus = 'open' | 'corrected' | 'declined';
@@ -76,10 +77,23 @@ export async function openCorrectionsFor(kind: CorrectionKind, id: string): Prom
   return (await env.DB.prepare(`SELECT id, details FROM corrections WHERE ${column} = ? AND status = 'open' ORDER BY created_at`).bind(id).all<{ id: string; details: string }>()).results;
 }
 
-export async function resolveCorrection(id: string, status: CorrectionStatus, note: string, staffId: string): Promise<boolean> {
+const CORRECTION_ACTIONS: Record<CorrectionStatus, string> = { open: 'correction-reopen', corrected: 'correction-corrected', declined: 'correction-declined' };
+
+/**
+ * Settles or reopens a request and records who did it. The entry names the story or event and the status
+ * change; the reader's details, contact information and the staff note stay in the corrections table.
+ */
+export async function resolveCorrection(id: string, status: CorrectionStatus, note: string, actor: AuditActor): Promise<boolean> {
   const now = Date.now();
   const reopened = status === 'open';
-  const result = await env.DB.prepare('UPDATE corrections SET status = ?, resolution_note = ?, resolved_by = ?, resolved_at = ?, updated_at = ? WHERE id = ?')
-    .bind(status, reopened ? '' : note, reopened ? null : staffId, reopened ? null : now, now, id).run();
+  const [, result] = await env.DB.batch([
+    // Ahead of the update, so it can say where the status came from.
+    env.DB.prepare(`
+      INSERT INTO admin_audit_log (id, actor_id, actor_name, target_type, target_id, target_label, action, detail, outcome, created_at)
+      SELECT ?, ?, ?, 'correction', id, substr(item_title, 1, 200), ?, kind || ': ' || status || ' → ' || ?, 'success', ? FROM corrections WHERE id = ?
+    `).bind(crypto.randomUUID(), actor.id, actor.name, CORRECTION_ACTIONS[status], status, now, id),
+    env.DB.prepare('UPDATE corrections SET status = ?, resolution_note = ?, resolved_by = ?, resolved_at = ?, updated_at = ? WHERE id = ?')
+      .bind(status, reopened ? '' : note, reopened ? null : actor.id, reopened ? null : now, now, id),
+  ]);
   return result.meta.changes > 0;
 }

@@ -3,14 +3,15 @@ import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { ADMIN, canAccess } from '../../../lib/admin';
 import { adAudit, getAd } from '../../../lib/ads-admin';
+import { denyAdmin } from '../../../lib/audit';
 import { cleanText, sameOrigin } from '../../../lib/forum';
 
 // Creating and editing an ad happens on its admin pages, which can redisplay the form with errors.
 // Status changes and deletion go through here.
 export const POST: APIRoute = async ({ request, locals }) => {
   const actor = locals.user;
-  if (!actor || !canAccess(locals.staffRole, ADMIN.ads)) return new Response('Forbidden', { status: 403 });
-  if (!sameOrigin(request)) return new Response('Invalid request origin', { status: 403 });
+  if (!actor || !canAccess(locals.staffRole, ADMIN.ads)) return denyAdmin(locals, request, 'ad-admin', 'role');
+  if (!sameOrigin(request)) return denyAdmin(locals, request, 'ad-admin', 'origin');
 
   const form = await readForm(request, uploadFormBytes(4 * 1024 * 1024));
 

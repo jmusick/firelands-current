@@ -1,4 +1,5 @@
 import { env } from 'cloudflare:workers';
+import { type AuditActor, auditRecord, auditResource, changedFields } from './audit';
 import { type AdminEvent, type Category, type EventStatus, type PerformerType, type TicketAvailability, STATUS_LABELS, TICKET_AVAILABILITY, isCategory } from './events';
 import { cleanText, ensureEventThread } from './forum';
 import { isMediaId } from './media';
@@ -46,7 +47,32 @@ const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const validDate = (d: string) => DATE.test(d) && !Number.isNaN(Date.parse(d));
 const MAX_SPAN_DAYS = 366;
 
-export async function saveEventFromForm(form: FormData, existing: AdminEvent | null): Promise<EventFormResult> {
+// Field names an audit entry lists when an event is edited. Status has its own actions.
+const AUDITED_FIELDS: Record<string, string> = {
+  title: 'title', slug: 'URL slug', summary: 'summary', description: 'details', category: 'category', starts_on: 'start date',
+  start_time: 'start time', ends_on: 'last day', end_time: 'end time', hours_note: 'hours', venue: 'venue', address: 'address',
+  community: 'community', organizer: 'organizer', organizer_url: 'organizer website', cost: 'cost', link: 'link',
+  performer: 'performer', performer_type: 'performer type', ticket_price: 'ticket price', ticket_url: 'ticket URL',
+  ticket_availability: 'ticket availability', image_media_id: 'image',
+};
+
+const STATUS_ACTIONS: Record<EventStatus, string> = { draft: 'event-unpublish', published: 'event-publish', cancelled: 'event-cancel' };
+
+/** Audit statements for one save: a create, or an update naming only the fields that changed, plus status changes. */
+function eventAudit(actor: AuditActor, id: string, values: EventFormValues, existing: AdminEvent | null) {
+  const before = existing ? valuesFromEvent(existing) : null;
+  const statements = [];
+  if (!before) {
+    statements.push(auditResource(actor, { type: 'event', id, label: values.title }, 'event-create', `/events/${values.slug}; ${values.status}`));
+  } else {
+    const changed = changedFields(before, values, AUDITED_FIELDS);
+    if (changed.length) statements.push(auditRecord(actor, 'event', id, 'event-update', `Changed: ${changed.join(', ')}`));
+  }
+  if (values.status !== (before?.status ?? 'draft')) statements.push(auditRecord(actor, 'event', id, STATUS_ACTIONS[values.status]));
+  return statements;
+}
+
+export async function saveEventFromForm(form: FormData, existing: AdminEvent | null, actor: AuditActor): Promise<EventFormResult> {
   const category = cleanText(form.get('category'));
   const status = cleanText(form.get('status'));
   const typedSlug = sanitizeSlug(cleanText(form.get('slug')));
@@ -153,7 +179,8 @@ export async function saveEventFromForm(form: FormData, existing: AdminEvent | n
   if (errors.length) return { ok: false, values: { ...values, slug: typedSlug }, errors };
 
   const now = Date.now();
-  await env.DB.prepare(`
+  // The audit entries share the save's batch, so an event never changes without a record of who changed it.
+  await env.DB.batch([env.DB.prepare(`
     INSERT INTO events (id, slug, title, summary, description, category, starts_on, start_time, ends_on, end_time,
       venue, address, community, organizer, cost, link, image_media_id, status, created_at, updated_at, hours_note,
       performer, performer_type, ticket_price, ticket_url, ticket_availability, organizer_url)
@@ -170,7 +197,7 @@ export async function saveEventFromForm(form: FormData, existing: AdminEvent | n
     values.start_time || null, values.ends_on || null, (values.start_time && values.end_time) || null,
     values.venue, values.address, values.community, values.organizer, values.cost, values.link,
     values.image_media_id || null, values.status, now, values.hours_note,
-    values.performer, values.performer_type, values.ticket_price, values.ticket_url, values.ticket_availability, values.organizer_url).run();
+    values.performer, values.performer_type, values.ticket_price, values.ticket_url, values.ticket_availability, values.organizer_url), ...eventAudit(actor, id, values, existing)]);
   if (values.status !== 'draft') await ensureEventThread({ id, title: values.title, summary: values.summary });
   return { ok: true, id };
 }

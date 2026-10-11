@@ -2,6 +2,7 @@ import { readForm } from '../../../lib/request-body';
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { ADMIN, canAccess, gainsAccess } from '../../../lib/admin';
+import { denyAdmin } from '../../../lib/audit';
 import { cleanText, sameOrigin } from '../../../lib/forum';
 import { passwordProblem } from '../../../lib/password-policy';
 import { isFresh, reauthPath } from '../../../lib/reauth';
@@ -19,8 +20,8 @@ const passwordError = (problem: NonNullable<Awaited<ReturnType<typeof passwordPr
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const actor = locals.user;
-  if (!actor || !canAccess(locals.staffRole, ADMIN.users)) return new Response('Forbidden', { status: 403 });
-  if (!sameOrigin(request)) return new Response('Invalid request origin', { status: 403 });
+  if (!actor || !canAccess(locals.staffRole, ADMIN.users)) return denyAdmin(locals, request, 'user-admin', 'role');
+  if (!sameOrigin(request)) return denyAdmin(locals, request, 'user-admin', 'origin');
 
   const form = await readForm(request);
 

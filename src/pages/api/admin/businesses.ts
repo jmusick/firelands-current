@@ -3,6 +3,7 @@ import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { ADMIN, canAccess } from '../../../lib/admin';
 import { MEMBER_ROLE_LABELS, getBusiness, isMemberRole } from '../../../lib/businesses';
+import { denyAdmin } from '../../../lib/audit';
 import { cleanText, sameOrigin } from '../../../lib/forum';
 import { auditStatement } from '../../../lib/users';
 
@@ -10,8 +11,8 @@ import { auditStatement } from '../../../lib/users';
 // redisplay the form with errors. Everything else about a business goes through here.
 export const POST: APIRoute = async ({ request, locals }) => {
   const actor = locals.user;
-  if (!actor || !canAccess(locals.staffRole, ADMIN.businesses)) return new Response('Forbidden', { status: 403 });
-  if (!sameOrigin(request)) return new Response('Invalid request origin', { status: 403 });
+  if (!actor || !canAccess(locals.staffRole, ADMIN.businesses)) return denyAdmin(locals, request, 'business-admin', 'role');
+  if (!sameOrigin(request)) return denyAdmin(locals, request, 'business-admin', 'origin');
 
   const form = await readForm(request);
 

@@ -40,8 +40,11 @@ function loadSource(path, replacements = {}) {
 const { getProfile, profileItems } = await loadSource('src/lib/profiles.ts');
 const { listArticles } = await loadSource('src/lib/news.ts');
 await loadSource('src/lib/forum.ts');
+await loadSource('src/lib/audit.ts');
+await loadSource('src/lib/auth-events.ts');
+const actor = { id: 'jd', name: 'jd' };
 const { saveArticleFromForm } = await loadSource('src/lib/news-admin.ts', {
-  './news': modules.get('src/lib/news.ts'), './forum': modules.get('src/lib/forum.ts'),
+  './news': modules.get('src/lib/news.ts'), './forum': modules.get('src/lib/forum.ts'), './audit': modules.get('src/lib/audit.ts'),
   './media': 'data:text/javascript,export const isMediaId = () => false;',
 });
 globalThis.__profileTestMail = [];
@@ -51,7 +54,7 @@ await loadSource('src/lib/reauth.ts');
 await loadSource('src/lib/oauth-tokens.ts');
 const { createAuth } = await loadSource('src/lib/auth.ts', {
   './mail': 'data:text/javascript,export const sendVerificationMail = async (user, url) => globalThis.__profileTestMail.push({ user, url }); export const sendPasswordResetMail = async () => {};',
-  './auth-rate-limit': modules.get('src/lib/auth-rate-limit.ts'),
+  './auth-rate-limit': modules.get('src/lib/auth-rate-limit.ts'), './auth-events': modules.get('src/lib/auth-events.ts'),
   './password-policy': modules.get('src/lib/password-policy.ts'),
   './reauth': modules.get('src/lib/reauth.ts'),
   './oauth-tokens': modules.get('src/lib/oauth-tokens.ts'),
@@ -126,13 +129,13 @@ test('account profiles, author assignment, and email verification', async (t) =>
   await t.test('editor validates authors and preserves guest bylines', async () => {
     const form = new FormData();
     for (const [key, value] of Object.entries({ headline: 'New regression story', summary: 'A sufficiently long summary.', body: 'A sufficiently long story body.', section: 'local', community: 'Sandusky', byline: 'Guest Writer', author_id: 'missing', status: 'draft' })) form.set(key, value);
-    assert.equal((await saveArticleFromForm(form, null)).ok, false);
+    assert.equal((await saveArticleFromForm(form, null, actor)).ok, false);
     form.set('author_id', 'jd');
-    let saved = await saveArticleFromForm(form, null);
+    let saved = await saveArticleFromForm(form, null, actor);
     assert.equal(saved.ok, true);
     assert.equal(database.prepare('SELECT author_id FROM news_articles WHERE id = ?').get(saved.id).author_id, 'jd');
     form.set('author_id', ''); form.set('slug', 'guest-story');
-    saved = await saveArticleFromForm(form, null);
+    saved = await saveArticleFromForm(form, null, actor);
     assert.equal(saved.ok, true);
     assert.deepEqual({ ...database.prepare('SELECT author_id, byline FROM news_articles WHERE id = ?').get(saved.id) }, { author_id: null, byline: 'Guest Writer' });
   });

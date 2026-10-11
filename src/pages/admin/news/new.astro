@@ -4,12 +4,16 @@ import { ArrowLeft } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import NewsEditor from '../../../components/NewsEditor.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
+import { auditRecord, denyAdmin, recordDenied } from '../../../lib/audit';
 import { sameOrigin } from '../../../lib/forum';
 import { env } from 'cloudflare:workers';
 import { emptyArticle, saveArticleFromForm, type ArticleFormValues } from '../../../lib/news-admin';
 
 const denied = requireSection(Astro, ADMIN.news);
-if (denied) return denied;
+if (denied) {
+  if (Astro.request.method === 'POST') await recordDenied(Astro.locals.user, Astro.request, 'story-save', 'role', Astro.locals.staffRole);
+  return denied;
+}
 
 let values: ArticleFormValues = { ...emptyArticle, byline: Astro.locals.user!.name, author_id: Astro.locals.user!.id };
 let errors: string[] = [];
@@ -19,14 +23,18 @@ if (submissionId && /^[\w-]{8,64}$/.test(submissionId)) {
   if (tip) values = { ...values, headline: tip.subject.slice(0, 160), summary: tip.body.replace(/\s+/g, ' ').slice(0, 400), body: tip.body.slice(0, 50000), author_id: tip.credit_requested ? '' : Astro.locals.user!.id, byline: tip.credit_requested ? tip.name.slice(0, 80) : Astro.locals.user!.name };
 }
 if (Astro.request.method === 'POST') {
-  if (!sameOrigin(Astro.request)) return new Response('Invalid request origin', { status: 403 });
+  if (!sameOrigin(Astro.request)) return denyAdmin(Astro.locals, Astro.request, 'story-save', 'origin');
   const form = await readForm(Astro.request, STORY_FORM_BYTES);
 
   if (form instanceof Response) return form;
-  const result = await saveArticleFromForm(form, null);
+  const result = await saveArticleFromForm(form, null, Astro.locals.user!);
   if (result.ok) {
     const linkedSubmission = form.get('submission_id')?.toString() ?? '';
-    if (/^[\w-]{8,64}$/.test(linkedSubmission)) await env.DB.prepare("UPDATE news_submissions SET status = 'converted', article_id = ?, updated_at = ? WHERE id = ? AND status != 'converted'").bind(result.id, Date.now(), linkedSubmission).run();
+    // The audit entry is written only while the tip is still unconverted, in the same batch as the conversion. No tip text or contact details.
+    if (/^[\w-]{8,64}$/.test(linkedSubmission)) await env.DB.batch([
+      auditRecord(Astro.locals.user!, 'tip', linkedSubmission, 'tip-converted', `Story ${result.id}`, { sql: "status != 'converted'", binds: [] }),
+      env.DB.prepare("UPDATE news_submissions SET status = 'converted', article_id = ?, updated_at = ? WHERE id = ? AND status != 'converted'").bind(result.id, Date.now(), linkedSubmission),
+    ]);
     return Astro.redirect(`/admin/news/${result.id}?saved=1`, 303);
   }
   ({ values, errors } = result);

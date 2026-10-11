@@ -40,6 +40,9 @@ export type AuditEntry = {
   target_user_id: string | null;
   target_business_id: string | null;
   target_media_id: string | null;
+  target_type: string | null;
+  target_id: string | null;
+  outcome: 'success' | 'denied';
   target_label: string;
   action: string;
   detail: string | null;
@@ -47,6 +50,8 @@ export type AuditEntry = {
   user_exists?: number;
   business_exists?: number;
   media_exists?: number;
+  /** Set by listAudit for a story, event, correction or news tip that still exists: where to open it. */
+  resource_href?: string | null;
 };
 
 export type UserDetail = {
@@ -184,11 +189,21 @@ export async function getUserDetail(id: string): Promise<UserDetail | null> {
 
 export async function listAudit(limit = 100): Promise<AuditEntry[]> {
   const result = await env.DB.prepare(`
-    SELECT l.*, u.id IS NOT NULL AS user_exists, b.id IS NOT NULL AS business_exists, m.id IS NOT NULL AS media_exists
+    SELECT l.*, u.id IS NOT NULL AS user_exists, b.id IS NOT NULL AS business_exists, m.id IS NOT NULL AS media_exists,
+      CASE
+        WHEN l.target_type = 'story' AND a.id IS NOT NULL THEN '/admin/news/' || a.id
+        WHEN l.target_type = 'event' AND e.id IS NOT NULL THEN '/admin/events/' || e.id
+        WHEN l.target_type = 'correction' AND c.id IS NOT NULL THEN '/admin/corrections/' || c.id
+        WHEN l.target_type = 'tip' AND s.id IS NOT NULL THEN '/admin/submissions/' || s.id
+      END AS resource_href
     FROM admin_audit_log l
     LEFT JOIN "user" u ON u.id = l.target_user_id
     LEFT JOIN businesses b ON b.id = l.target_business_id
     LEFT JOIN media m ON m.id = l.target_media_id
+    LEFT JOIN news_articles a ON l.target_type = 'story' AND a.id = l.target_id
+    LEFT JOIN events e ON l.target_type = 'event' AND e.id = l.target_id
+    LEFT JOIN corrections c ON l.target_type = 'correction' AND c.id = l.target_id
+    LEFT JOIN news_submissions s ON l.target_type = 'tip' AND s.id = l.target_id
     ORDER BY l.created_at DESC, l.rowid DESC LIMIT ?
   `).bind(limit).all<AuditEntry>();
   return result.results;
@@ -272,6 +287,39 @@ export const AUDIT_LABELS: Record<string, string> = {
   'media-upload': 'Uploaded image',
   'media-update': 'Edited image details',
   'media-delete': 'Deleted image',
+  'story-create': 'Created story',
+  'story-update': 'Edited story',
+  'story-publish': 'Published story',
+  'story-unpublish': 'Unpublished story',
+  'story-feature': 'Featured story',
+  'story-unfeature': 'Removed story from featured',
+  'story-delete': 'Deleted story',
+  'story-save': 'Saved a story',
+  'event-create': 'Created event',
+  'event-update': 'Edited event',
+  'event-publish': 'Published event',
+  'event-unpublish': 'Returned event to draft',
+  'event-cancel': 'Cancelled event',
+  'event-delete': 'Deleted event',
+  'event-save': 'Saved an event',
+  'thread-hide': 'Hid discussion',
+  'thread-restore': 'Restored discussion',
+  'reply-hide': 'Hid reply',
+  'report-dismiss': 'Dismissed report',
+  'talk-moderate': 'Moderated Talk of the Town',
+  'correction-corrected': 'Marked correction made',
+  'correction-declined': 'Declined correction request',
+  'correction-reopen': 'Reopened correction request',
+  'correction-resolve': 'Resolved a correction request',
+  'tip-reviewed': 'Marked news tip reviewed',
+  'tip-declined': 'Declined news tip',
+  'tip-converted': 'Converted news tip to a story',
+  'tip-review': 'Reviewed a news tip',
+  'user-admin': 'Changed a user account',
+  'business-admin': 'Changed a business',
+  'ad-admin': 'Changed an ad',
+  'media-admin': 'Changed the media library',
+  'facebook-resolve': 'Resolved a Facebook post',
 };
 
 /** Short, readable description of a browser user-agent string. */
