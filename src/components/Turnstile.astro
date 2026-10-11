@@ -1,5 +1,17 @@
 ---
+interface Props { action?: string; id?: string }
 import { env } from 'cloudflare:workers';
+const { action, id } = Astro.props;
 ---
-<div class="cf-turnstile" data-sitekey={env.TURNSTILE_SITE_KEY}></div>
-<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<div class="captcha" data-captcha data-sitekey={env.TURNSTILE_SITE_KEY} data-action={action}>
+  <div class="captcha-widget" id={id} data-captcha-widget tabindex="-1"></div>
+  <p class="captcha-status" role="status" data-captcha-status></p>
+</div>
+<script>
+  import '../lib/turnstile-client';
+</script>
+<style>
+  .captcha-widget:focus-visible { outline: 3px solid var(--channel); }
+  .captcha-status { margin: 0; color: var(--alert); font-weight: 600; font-size: .95rem; }
+  .captcha-status:not(:empty) { margin-top: .5rem; }
+</style>

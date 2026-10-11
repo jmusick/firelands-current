@@ -10,3 +10,6 @@ export function authErrorMessage(code: string | null): string | null {
   if (!code) return null;
   return MESSAGES[code.toLowerCase()] ?? 'That sign-in did not work. Please try again.';
 }
+
+// Shown when the request itself fails (offline, DNS, a dropped connection) rather than the server answering with an error.
+export const NETWORK_ERROR = 'We could not reach the server. Check your connection and try again.';

@@ -40,12 +40,14 @@ globalThis.fetch = async (_url, options) => {
 const stubEnv = 'data:text/javascript,export const env = globalThis.__correctionEnv;';
 const forumModule = sourceModule('src/lib/forum.ts', { 'cloudflare:workers': stubEnv });
 const bodyModule = sourceModule('src/lib/request-body.ts');
+const formErrorsModule = sourceModule('src/lib/form-errors.ts');
 const inboxModule = sourceModule('src/lib/inbox.ts', { 'cloudflare:workers': stubEnv });
 // Quota counting has its own tests (test-quotas.mjs); these fixtures only model the form flow.
 const quotasStub = 'data:text/javascript,export const takeQuota = async () => null; export const quotaResponse = () => new Response(null, { status: 429 });';
 const correctionsModule = sourceModule('src/lib/corrections.ts', { 'cloudflare:workers': stubEnv });
 const { POST } = await import(sourceModule('src/pages/api/corrections.ts', {
   '../../lib/corrections': correctionsModule, '../../lib/forum': forumModule, '../../lib/request-body': bodyModule, '../../lib/inbox': inboxModule, '../../lib/quotas': quotasStub,
+  '../../lib/form-errors': formErrorsModule,
 }));
 
 const values = { type: 'news', slug: 'fixture-story', name: 'Reader', email: 'reader@example.com',
@@ -89,10 +91,15 @@ test('honeypots, failed human checks, and invalid fields store nothing', async (
   captchaValid = false;
   assert.match((await call()).headers.get('Location'), /error=captcha$/);
   captchaValid = true;
-  for (const invalid of [{ name: '' }, { email: 'bad' }, { details: 'short' }, { details: 'a'.repeat(5001) },
-    { source_url: 'javascript:alert(1)' }, { source_url: 'ftp://example.com/file' }]) {
-    assert.match((await call(invalid)).headers.get('Location'), /error=invalid$/);
+  // The redirect names the invalid fields but never repeats what was typed.
+  for (const [invalid, field] of [[{ name: '' }, 'name'], [{ email: 'bad' }, 'email'], [{ details: 'short' }, 'details'],
+    [{ details: 'a'.repeat(5001) }, 'details'], [{ suggested_fix: 'a'.repeat(2001) }, 'suggested_fix'],
+    [{ source_url: 'javascript:alert(1)' }, 'source_url'], [{ source_url: 'ftp://example.com/file' }, 'source_url']]) {
+    assert.equal((await call(invalid)).headers.get('Location'),
+      `https://firelandscurrent.com/report-inaccuracy?type=news&slug=fixture-story&error=invalid&fields=${field}`);
   }
+  assert.equal((await call({ name: '', details: 'short', source_url: 'nope' })).headers.get('Location'),
+    'https://firelandscurrent.com/report-inaccuracy?type=news&slug=fixture-story&error=invalid&fields=name,details,source_url');
   assert.equal(inserts.length, 0);
   assert.equal(emails.length, 0);
 });

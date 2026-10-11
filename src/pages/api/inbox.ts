@@ -1,6 +1,7 @@
 import { readForm } from '../../lib/request-body';
 import type { APIRoute } from 'astro';
 import { cleanText, sameOrigin } from '../../lib/forum';
+import { invalidFieldsQuery } from '../../lib/form-errors';
 import { INBOXES, isInboxKind, sendToInbox, verifyTurnstile } from '../../lib/inbox';
 import { quotaResponse, takeQuota } from '../../lib/quotas';
 import { env } from 'cloudflare:workers';
@@ -27,10 +28,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const email = cleanText(form.get('email'));
   const subject = cleanText(form.get('subject')).replace(/[\r\n]+/g, ' ');
   const body = cleanText(form.get('body'));
-  if (!name || name.length > 100 || email.length > 200 || !EMAIL.test(email) ||
-      subject.length < 3 || subject.length > 120 || body.length < 20 || body.length > 10000) {
-    return back('error=invalid');
-  }
+  const invalid = [
+    ...(!name || name.length > 100 ? ['name'] : []),
+    ...(email.length > 200 || !EMAIL.test(email) ? ['email'] : []),
+    ...(subject.length < 3 || subject.length > 120 ? ['subject'] : []),
+    ...(body.length < 20 || body.length > 10000 ? ['body'] : []),
+  ];
+  if (invalid.length) return back(invalidFieldsQuery(invalid));
 
   const retryAfter = await takeQuota('inbox', request, locals.user?.id);
   if (retryAfter !== null) return quotaResponse(retryAfter);

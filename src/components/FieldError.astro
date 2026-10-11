@@ -1,0 +1,6 @@
+---
+// Sits right after a field's label. The field points at it with aria-describedby only while it has a message.
+interface Props { field: string; message?: string }
+const { field, message } = Astro.props;
+---
+<p class="field-error" id={`${field}-error`} hidden={!message}>{message && <><span class="visually-hidden">Error: </span>{message}</>}</p>

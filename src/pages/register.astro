@@ -30,6 +30,7 @@ if (Astro.locals.user) return Astro.redirect('/account');
   <script>
     import { authClient } from '../lib/auth-client';
     import { captchaHeaders, resetCaptcha } from '../lib/turnstile-client';
+    import { NETWORK_ERROR } from '../lib/auth-errors';
     const form = document.querySelector<HTMLFormElement>('#register-form')!;
     const message = document.querySelector<HTMLElement>('#form-message')!;
     form.addEventListener('submit', async (event) => {
@@ -40,7 +41,15 @@ if (Astro.locals.user) return Astro.redirect('/account');
       const email = String(data.get('email') ?? '').trim();
       const password = String(data.get('password') ?? '');
       if (name.length < 2 || name.length > 60) { message.textContent = 'Use a display name between 2 and 60 characters.'; message.hidden = false; return; }
-      const result = await authClient.signUp.email({ name, email, password, callbackURL: '/account?verified=1' }, { headers: captchaHeaders(form) });
+      const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+      button.disabled = true;
+      let result;
+      try {
+        result = await authClient.signUp.email({ name, email, password, callbackURL: '/account?verified=1' }, { headers: captchaHeaders(form) });
+      } catch {
+        message.textContent = NETWORK_ERROR; message.hidden = false; resetCaptcha(); button.disabled = false; return;
+      }
+      button.disabled = false;
       if (result.error) { message.textContent = result.error.message || 'Could not create your account.'; message.hidden = false; resetCaptcha(); return; }
       document.querySelector<HTMLElement>('#sent-to')!.textContent = email;
       form.hidden = true;

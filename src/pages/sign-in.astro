@@ -23,13 +23,22 @@ const errorMessage = authErrorMessage(errorCode);
   <p>New here? <a href="/register">Create an account</a>.</p>
   <script>
     import { authClient } from '../lib/auth-client';
+    import { NETWORK_ERROR } from '../lib/auth-errors';
     const form = document.querySelector<HTMLFormElement>('#sign-in-form')!;
     const message = document.querySelector<HTMLElement>('#form-message')!;
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       message.hidden = true;
       const data = new FormData(form);
-      const result = await authClient.signIn.email({ email: String(data.get('email') ?? ''), password: String(data.get('password') ?? ''), callbackURL: '/account?verified=1' });
+      const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+      button.disabled = true;
+      let result;
+      try {
+        result = await authClient.signIn.email({ email: String(data.get('email') ?? ''), password: String(data.get('password') ?? ''), callbackURL: '/account?verified=1' });
+      } catch {
+        message.textContent = NETWORK_ERROR; message.hidden = false; button.disabled = false; return;
+      }
+      button.disabled = false;
       if (result.error) {
         // Better Auth has already mailed a fresh link by the time it reports this.
         message.textContent = result.error.code === 'EMAIL_NOT_VERIFIED'
