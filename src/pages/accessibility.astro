@@ -1,0 +1,47 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const description = 'How Firelands Current approaches web accessibility, what we have and have not tested, known limitations, and how to report a barrier.';
+---
+<BaseLayout title="Accessibility" description={description}>
+  <article class="policy">
+    <h1>Accessibility</h1>
+    <p class="lede">We want everyone in Sandusky and the Firelands to be able to read the news, find events, and join the discussion on Firelands Current, including readers who use screen readers, keyboards, magnification, or other assistive technology.</p>
+    <p class="muted">Last reviewed October 11, 2026.</p>
+
+    <h2 id="feedback">Report a barrier</h2>
+    <p>If something on the site is hard or impossible to use, tell us. Use our <a href="/contact">contact form</a> or write to <a href="mailto:contact@firelandscurrent.com">contact@firelandscurrent.com</a>. Please include the page address, what you were trying to do, and the browser and assistive technology you use, if you know them. We read every report and will reply if you give us a way to reach you. A missing text description on a story image or an unreadable table is handled like any other error in a story: we fix it.</p>
+    <p>If the human check on the contact form is a barrier for you, email us instead.</p>
+
+    <h2 id="goal">What we aim for</h2>
+    <p>Our goal is for the public site to meet the Web Content Accessibility Guidelines (WCAG) 2.2 at level AA. That is a goal, not a claim. We have not had the site audited against those guidelines, and we do not say it conforms.</p>
+    <p>Some things we do today:</p>
+    <ul>
+      <li>Every page has a "Skip to main content" link and a main landmark.</li>
+      <li>Every image saved in our media library needs either a text description or a decision that it is decorative. Images uploaded before that rule took effect and still lack a decision are being reviewed.</li>
+      <li>Our newsroom follows written guidelines on image descriptions, headings, link text, tables, and charts in stories.</li>
+      <li>Ads are labeled as advertising, and each ad image has a text description made from the advertiser's name and the ad's headline.</li>
+    </ul>
+
+    <h2 id="testing">What has been tested</h2>
+    <p>We check pages as we build them. We have not yet run an automated accessibility scan across the site or tested it with a screen reader such as NVDA, and no outside audit has been done. We will update this page, and the date above, when that testing is finished and say what it found.</p>
+
+    <h2 id="limitations">Known limitations</h2>
+    <ul>
+      <li><strong>Human check on forms.</strong> The contact, news tip, advertising inquiry, inaccuracy report, registration, and password reset forms use Cloudflare Turnstile to screen out automated spam. Cloudflare provides it, and we have not tested it with assistive technology. If it blocks you, email us at the addresses on the <a href="/contact">contact page</a>.</li>
+      <li><strong>Staff editing tools.</strong> Staff write stories in a Markdown editor (EasyMDE) in the admin area. We have not tested it with assistive technology. It does not affect readers, but it may limit who can work on the newsroom side.</li>
+      <li><strong>Advertisements.</strong> Ads come from local businesses. An ad image's description names the advertiser and headline but does not describe the artwork, and any text inside the image may not be available as text.</li>
+      <li><strong>Older content.</strong> Some older images may still lack a text description, and older stories may not follow our current heading and table guidelines.</li>
+      <li><strong>Signing in with other services.</strong> Signing in with Google, Facebook, Apple, or Microsoft takes you to that company's pages, which we do not control.</li>
+    </ul>
+
+    <p>This page covers firelandscurrent.com. Our <a href="https://www.facebook.com/people/Firelands-Current/61594659460586/">Facebook</a> and <a href="https://x.com/FirelandCurrent">X</a> pages follow those services' own accessibility features. See also our <a href="/about">editorial standards</a> and <a href="/privacy">Privacy Policy</a>.</p>
+  </article>
+</BaseLayout>
+
+<style>
+  .policy { max-width: 760px; line-height: 1.7; }
+  .policy h2 { margin-top: 2.2rem; }
+  .policy ul { padding-left: 1.3rem; }
+  .policy li + li { margin-top: .35rem; }
+</style>

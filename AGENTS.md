@@ -62,6 +62,7 @@ docs/                Newsroom guides (news-sources.md)
 - **Styling** is plain CSS in the layouts and pages; there is no CSS framework.
 - **Icons** in the admin panel come from Lucide via `@lucide/astro` (`import { Plus } from '@lucide/astro'`), rendered as inline SVG on the server. Use current icon names, not the deprecated aliases (`Trash`, not `Trash2`). Icons sit before a button's or heading's text and are decorative; the text carries the meaning.
 - Writing or sourcing news stories: read [docs/news-sources.md](docs/news-sources.md) first. It covers the editorial rules, which sources to trust, and how stories get into the database.
+- Publishing images, tables, charts, or media: read [docs/accessible-publishing.md](docs/accessible-publishing.md) too. Keep the public statement at `/accessibility` accurate when those rules or the site's known limits change.
 - Dated reporting reviews, evidence, content snapshots, and publication records belong in the separate project library, not `docs/` or `.wrangler/`. Keep their utilities in `scripts/` and resolve the library through `scripts/project-library.mjs` or `scripts/project_library.py`; the README documents `FIRELANDS_PROJECT_DIR` and the dated folders.
 - Match the surrounding code: comment density, naming, and idiom. Comments explain why, not what.
 - Keep `README.md` current when behavior an operator or editor would notice changes.
