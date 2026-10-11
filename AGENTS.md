@@ -19,6 +19,7 @@ Guidance for AI coding agents working on Firelands Current, an independent local
 | `npm run build` | Production build into `dist/` |
 | `npm run test:body` | Isolated tests for the bounded request-body readers |
 | `npm run test:preview` | Isolated regression tests for safe story previews and their endpoint |
+| `npm run test:media-metadata` | Isolated tests for upload metadata stripping and failed-upload cleanup |
 | `npm run db:migrate:local` | Apply D1 migrations to the local database under `.wrangler/` |
 | `npm run db:seed:demo` | Load fictional demo stories and discussions; only for a throwaway database (see below) |
 | `npm run cf:types` | Regenerate `worker-configuration.d.ts` from `wrangler.jsonc` |
@@ -56,7 +57,7 @@ docs/                Newsroom guides (news-sources.md)
 - **Content Security Policy** (`src/lib/response-headers.ts`, report-only while `CSP_ENFORCE` is false) allows scripts only by per-response nonce. Every `<script is:inline>` carries `nonce={Astro.locals.cspNonce}`; don't add inline event handlers, `javascript:` URLs, `<style>` elements, or `eval`. A new third-party origin goes into the policy, its tests, and the Privacy Policy. Run `npm run test:headers` and `npm run test:csp-report` when changing it.
 - **Editor assets** are bundled, not loaded from a CDN: `NewsEditor.astro` imports `easymde` (pinned to an exact version) and its stylesheet, passes `autoDownloadFontAwesome: false`, and swaps the toolbar icons for Lucide. Keep the editor free of third-party script, style, and font origins.
 - **Admin changes to users, businesses, ads, and media** are recorded in `admin_audit_log` (see `auditStatement` in `src/lib/users.ts`, `adAudit`, `mediaAudit`); keep new admin actions audited the same way.
-- **Images** go through the media library (`src/lib/media.ts`): every file in R2 has a `media` row with a required credit, and stories, events, and ads refer to library items. Never delete an R2 object that a story, event, or ad might use; use `mediaUsage` first. Story Markdown only renders `/media/…` images that exist in the library.
+- **Images** go through the media library (`src/lib/media.ts`): every file in R2 has a `media` row with a required credit, and stories, events, and ads refer to library items. Never delete an R2 object that a story, event, or ad might use; use `mediaUsage` first. Story Markdown only renders `/media/…` images that exist in the library. Uploads go through `checkUpload`, which rebuilds each file without metadata (see the README's policy table) and refuses files it can't parse; save new uploads with `batchWithUploads` so a failed write removes only their unreferenced files. Run `npm run test:media-metadata` when changing either.
 - **Ads** never appear on forms, account pages, dashboards, or the admin panel. Placements are defined in `PLACEMENTS` in `src/lib/ads.ts`.
 - **Styling** is plain CSS in the layouts and pages; there is no CSS framework.
 - **Icons** in the admin panel come from Lucide via `@lucide/astro` (`import { Plus } from '@lucide/astro'`), rendered as inline SVG on the server. Use current icon names, not the deprecated aliases (`Trash`, not `Trash2`). Icons sit before a button's or heading's text and are decorative; the text carries the meaning.

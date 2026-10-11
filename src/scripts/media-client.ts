@@ -15,7 +15,7 @@ const encode = (canvas: HTMLCanvasElement, type: string) =>
 /**
  * Redraws the image at most MAX_EDGE pixels on its long side. Redrawing also drops the file's
  * metadata, including a phone photo's GPS location. PNGs stay PNG so logos keep transparency;
- * GIFs are left alone so animations survive.
+ * GIFs are left alone so animations survive, and the server strips their metadata instead.
  */
 export async function prepareImage(file: File): Promise<File> {
   if (!TYPES.includes(file.type)) throw new Error('Choose a PNG, JPEG, GIF or WebP image.');

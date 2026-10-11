@@ -9,6 +9,7 @@ import { ADMIN, requireSection } from '../../../lib/admin';
 import { STATE_LABELS, adAudit, adAuditLog, adBinds, applyImages, describeAdChanges, describeRun, fmtDay, fmtNum, getAd, getStats, libraryForAdSizes, rangeFrom, validateAdForm, valuesFromRecord, type RangeDays } from '../../../lib/ads-admin';
 import { businessOptions } from '../../../lib/businesses';
 import { sameOrigin } from '../../../lib/forum';
+import { batchWithUploads } from '../../../lib/media';
 import { AUDIT_LABELS, fmtDateTime } from '../../../lib/users';
 
 const denied = requireSection(Astro, ADMIN.ads);
@@ -34,8 +35,8 @@ if (Astro.request.method === 'POST') {
     const names = Object.fromEntries(businesses.map((b) => [b.id, b.name]));
     const changes = [describeAdChanges(values, v, names), ...result.choices.map((c) => `New ${c.size} image`), ...result.removals.map((s) => `Removed ${s} image`)].filter(Boolean).join('; ');
     if (!changes) return Astro.redirect(`/admin/ads/${record.id}?notice=unchanged`, 303);
-    const statements = await applyImages({ id: record.id, name: v.name }, { name: names[v.business_id] }, result.choices, result.removals, Astro.locals.user!);
-    await env.DB.batch([
+    const { statements, uploads } = await applyImages({ id: record.id, name: v.name }, { name: names[v.business_id] }, result.choices, result.removals, Astro.locals.user!);
+    await batchWithUploads(uploads, [
       env.DB.prepare(`
         UPDATE ads SET business_id = ?, name = ?, status = ?, headline = ?, body = ?, cta = ?, href = ?, theme_bg = ?, theme_fg = ?, theme_accent = ?,
           placements = ?, sections = ?, weight = ?, starts_on = ?, ends_on = ?, impression_cap = ?, terms = ?, updated_at = ?

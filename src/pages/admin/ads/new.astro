@@ -8,6 +8,7 @@ import { ADMIN, requireSection } from '../../../lib/admin';
 import { adAudit, adBinds, applyImages, emptyAd, libraryForAdSizes, validateAdForm } from '../../../lib/ads-admin';
 import { businessOptions } from '../../../lib/businesses';
 import { sameOrigin } from '../../../lib/forum';
+import { batchWithUploads } from '../../../lib/media';
 
 const denied = requireSection(Astro, ADMIN.ads);
 if (denied) return denied;
@@ -25,8 +26,8 @@ if (Astro.request.method === 'POST') {
     const now = Date.now();
     const v = result.values;
     const business = businesses.find((b) => b.id === v.business_id)!;
-    const statements = await applyImages({ id, name: v.name }, business, result.choices, [], Astro.locals.user!);
-    await env.DB.batch([
+    const { statements, uploads } = await applyImages({ id, name: v.name }, business, result.choices, [], Astro.locals.user!);
+    await batchWithUploads(uploads, [
       env.DB.prepare(`
         INSERT INTO ads (id, business_id, name, status, headline, body, cta, href, theme_bg, theme_fg, theme_accent, placements, sections, weight, starts_on, ends_on, impression_cap, terms, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)

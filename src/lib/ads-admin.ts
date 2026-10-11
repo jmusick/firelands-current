@@ -2,7 +2,7 @@ import { env } from 'cloudflare:workers';
 import { statDay } from './ad-tracking';
 import { DEFAULT_THEME, IMAGE_SIZES, PLACEMENTS, adFromRow, isPlacement, type Ad, type AdImageRow, type AdRow, type ImageSize, type PlacementKey } from './ads';
 import { cleanText } from './forum';
-import { checkUpload, isMediaId, mediaAudit, storeMedia, type CheckedImage } from './media';
+import { checkUpload, discardUnsavedMedia, isMediaId, mediaAudit, storeMedia, type CheckedImage, type MediaRecord } from './media';
 import { SECTIONS, isSection, type Section } from './news';
 
 export type AdStatus = 'draft' | 'active' | 'paused';
@@ -226,19 +226,30 @@ export async function libraryForAdSizes(): Promise<Record<ImageSize, (LibraryIma
 }
 
 /**
- * Statements that point the ad's banner sizes at their new images and drop removed ones. New uploads join
- * the media library, credited to the advertiser. Replaced images stay in the library; nothing is deleted from R2 here.
+ * Statements that point the ad's banner sizes at their new images and drop removed ones, and the new
+ * uploads they save; run them with `batchWithUploads`. New uploads join the media library, credited to the
+ * advertiser. Replaced images stay in the library; nothing already saved is deleted from R2 here.
  */
 export async function applyImages(ad: { id: string; name: string }, business: { name: string }, choices: ImageChoice[], removals: ImageSize[], actor: { id: string; name: string }) {
   const now = Date.now();
   const statements: D1PreparedStatement[] = [];
+  const uploads: MediaRecord[] = [];
   for (const choice of choices) {
     let media: LibraryImage;
     if ('upload' in choice) {
-      const { record, statement } = await storeMedia(choice.upload, choice.upload.filename,
-        // Banners render with the ad's own alt text (advertiser and headline); this is for the library, where
-        // an empty alt would flag every banner as undecided.
-        { alt: `Advertisement from ${business.name}`, decorative: false, caption: '', credit: `Supplied by ${business.name}`, source: 'Advertiser creative' }, actor.id);
+      let stored: Awaited<ReturnType<typeof storeMedia>>;
+      try {
+        stored = await storeMedia(choice.upload, choice.upload.filename,
+          // Banners render with the ad's own alt text (advertiser and headline); this is for the library, where
+          // an empty alt would flag every banner as undecided.
+          { alt: `Advertisement from ${business.name}`, decorative: false, caption: '', credit: `Supplied by ${business.name}`, source: 'Advertiser creative' }, actor.id);
+      } catch (error) {
+        // An earlier banner's file is already in R2 and its record will never be saved.
+        await discardUnsavedMedia(uploads);
+        throw error;
+      }
+      const { record, statement } = stored;
+      uploads.push(record);
       statements.push(statement, mediaAudit(actor, record, 'media-upload', `${IMAGE_SIZES[choice.size].label} banner for ${ad.name}`));
       media = record;
     } else media = choice.media;
@@ -250,7 +261,7 @@ export async function applyImages(ad: { id: string; name: string }, business: { 
     `).bind(ad.id, choice.size, spec.width, spec.height, now, media.id));
   }
   for (const size of removals) statements.push(env.DB.prepare('DELETE FROM ad_images WHERE ad_id = ? AND size = ?').bind(ad.id, size));
-  return statements;
+  return { statements, uploads };
 }
 
 export const adBinds = (v: AdFormValues) => [

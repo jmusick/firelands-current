@@ -16,6 +16,7 @@
     "test:facebook": "node --test scripts/test-facebook.mjs",
     "test:preview": "node --test scripts/test-preview.mjs",
     "test:media-alt": "node --test scripts/test-media-alt.mjs",
+    "test:media-metadata": "node --test scripts/test-media-metadata.mjs",
     "test:forum-pagination": "node --test scripts/test-forum-pagination.mjs",
     "test:body": "node --test scripts/test-request-body.mjs",
     "test:headers": "node --test scripts/test-response-headers.mjs",
