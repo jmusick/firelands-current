@@ -71,7 +71,7 @@ const { gainsAccess } = await import(adminModule);
 const usersApi = await import(sourceModule('src/pages/api/admin/users.ts', {
   '../../../lib/request-body': bodyModule, '../../../lib/admin': adminModule, '../../../lib/forum': forumModule, '../../../lib/audit': auditModule,
   '../../../lib/password-policy': policyModule, '../../../lib/reauth': reauthModule, '../../../lib/staff': staffModule,
-  '../../../lib/users': usersModule,
+  '../../../lib/users': usersModule, '../../../lib/tip-retention': sourceModule('src/lib/tip-retention.ts'),
 }));
 const reauthApi = await import(sourceModule('src/pages/api/reauth.ts', {
   '../../lib/forum': forumModule, '../../lib/quotas': quotasModule, '../../lib/password-policy': policyModule,
@@ -292,9 +292,23 @@ test('privileged staff actions need a recent password confirmation', async (t) =
     assert.equal(sessions('target'), 0);
     const swapped = await adminPost(bossCookie, { action: 'update-profile', userId: 'other', name: 'Person other', email: 'swapped@example.test', emailVerified: 'on' });
     assert.equal(where(swapped).searchParams.get('notice'), 'profile');
+    // Tips sent from the account follow the retention policy (src/lib/tip-retention.ts): unused ones go with it,
+    // reviewed and converted ones stay as the reporting record without the account link.
+    const tip = database.prepare(`INSERT INTO news_submissions (id, submitter_user_id, name, email, subject, body, status, decided_at, created_at, updated_at)
+      VALUES (?, ?, 'Person other', 'other@example.test', 'A subject', 'Tip text', ?, ?, 1, 1)`);
+    for (const status of ['unread', 'declined', 'reviewed', 'converted']) tip.run(`other-${status}`, 'other', status, status === 'unread' ? null : 1);
+    tip.run('target-unread', 'target', 'unread', null);
     const removed = await adminPost(bossCookie, { action: 'delete', userId: 'other', confirm: 'swapped@example.test' });
     assert.equal(where(removed).pathname, '/admin/users');
     assert.equal(database.prepare("SELECT COUNT(*) AS n FROM user WHERE id = 'other'").get().n, 0);
+    assert.deepEqual(database.prepare('SELECT id, submitter_user_id, name, email, body FROM news_submissions ORDER BY id').all().map((row) => ({ ...row })), [
+      { id: 'other-converted', submitter_user_id: null, name: 'Person other', email: 'other@example.test', body: 'Tip text' },
+      { id: 'other-reviewed', submitter_user_id: null, name: 'Person other', email: 'other@example.test', body: 'Tip text' },
+      { id: 'target-unread', submitter_user_id: 'target', name: 'Person other', email: 'other@example.test', body: 'Tip text' },
+    ]);
+    assert.equal(database.prepare("SELECT detail FROM admin_audit_log WHERE action = 'delete' AND target_user_id = 'other'").get().detail,
+      'News tips: 2 deleted, 2 kept as reporting record');
+    database.exec('DELETE FROM news_submissions');
     // Only an administrator reaches the endpoint at all (this account's sessions were signed out above).
     assert.equal((await adminPost(otherCookie, { action: 'set-role', userId: 'target', role: 'admin' })).status, 403);
   });

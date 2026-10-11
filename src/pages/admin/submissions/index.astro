@@ -1,21 +1,38 @@
 ---
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
+import { STALE_UNREAD_TIP_MS } from '../../../lib/tip-retention';
 import { env } from 'cloudflare:workers';
 
 const denied = requireSection(Astro, ADMIN.submissions);
 if (denied) return denied;
-const rows = await env.DB.prepare(`SELECT s.id, s.name, s.email, s.subject, s.status, s.credit_requested, s.created_at, u.name AS account_name
-  FROM news_submissions s LEFT JOIN "user" u ON u.id = s.submitter_user_id ORDER BY s.created_at DESC`).all<any>();
+// One account's or one address's tips, for answering a request to see or delete someone's information.
+const account = Astro.url.searchParams.get('account')?.trim() ?? '';
+const email = Astro.url.searchParams.get('email')?.trim().toLowerCase() ?? '';
+const filter = account ? { sql: 'WHERE s.submitter_user_id = ?', value: account } : email ? { sql: 'WHERE lower(s.email) = ?', value: email } : null;
+const query = env.DB.prepare(`SELECT s.id, s.name, s.email, s.subject, s.status, s.credit_requested, s.anonymized_at, s.created_at, u.name AS account_name
+  FROM news_submissions s LEFT JOIN "user" u ON u.id = s.submitter_user_id ${filter?.sql ?? ''} ORDER BY s.created_at DESC`);
+const [rows, stale] = await Promise.all([
+  (filter ? query.bind(filter.value) : query).all<any>(),
+  env.DB.prepare("SELECT COUNT(*) AS count FROM news_submissions WHERE status = 'unread' AND created_at < ?").bind(Date.now() - STALE_UNREAD_TIP_MS).first<{ count: number }>(),
+]);
 const fmt = (ms: number) => new Date(ms).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
 ---
 <AdminLayout title="News tips">
   <span class="eyebrow">Newsroom</span><h1>Submitted news</h1>
-  <p class="muted">Tips from the public, newest first. Unread tips are shown in bold.</p>
+  <p class="muted">Tips from the public, newest first. Unread tips are shown in bold. Declined tips are deleted 90 days after they’re declined; reviewed and converted tips lose the submitter’s name and email a year after the decision.</p>
+  {stale?.count ? <p class="notice">{stale.count} unread {stale.count === 1 ? 'tip is' : 'tips are'} more than 90 days old. Unread tips are never deleted automatically; review or decline them.</p> : null}
+  <form class="filter" method="get" action="/admin/submissions">
+    <label>Submitter email <input name="email" type="email" value={email} autocomplete="off" spellcheck="false" /></label>
+    <button class="button secondary small" type="submit">Find</button>
+    {filter && <a href="/admin/submissions">Show all tips</a>}
+  </form>
   {rows.results.length ? <div class="table-wrap"><table><thead><tr><th>Topic</th><th>Submitted by</th><th>Status</th><th>Date</th></tr></thead><tbody>
-    {rows.results.map((s: any) => <tr><td><a class="headline" href={`/admin/submissions/${s.id}`}>{s.subject}</a></td><td>{s.name}<div class="meta">{s.account_name ? `Account: ${s.account_name}` : s.email}{s.credit_requested ? ' · credit requested' : ''}</div></td><td><span class={`pill ${s.status}`}>{s.status}</span></td><td class="meta">{fmt(s.created_at)}</td></tr>)}
-  </tbody></table></div> : <div class="card"><h2>No news tips yet</h2></div>}
+    {rows.results.map((s: any) => <tr><td><a class="headline" href={`/admin/submissions/${s.id}`}>{s.subject}</a></td><td>{s.anonymized_at ? <span class="muted">Details removed</span> : s.name}<div class="meta">{s.anonymized_at ? '' : s.account_name ? `Account: ${s.account_name}` : s.email}{s.credit_requested ? ' · credit requested' : ''}</div></td><td><span class={`pill ${s.status}`}>{s.status}</span></td><td class="meta">{fmt(s.created_at)}</td></tr>)}
+  </tbody></table></div> : <div class="card"><h2>{filter ? 'No matching news tips' : 'No news tips yet'}</h2></div>}
 </AdminLayout>
 <style>
   .table-wrap { overflow-x:auto; border-top:3px solid var(--deep); } table { width:100%; border-collapse:collapse; } th { text-align:left; font-size: .88rem; color:var(--slate); padding:.8rem .6rem; border-bottom:1px solid var(--line); } td { padding:.9rem .6rem; border-bottom:1px solid var(--line); vertical-align:top; } .meta { margin-top:.2rem; } .headline { font-weight:700; color:var(--deep); text-decoration:none; } .headline:hover { text-decoration:underline; } .pill { display:inline-block; padding:.15rem .55rem; border-radius:999px; font-size:.78rem; font-weight:700; text-transform:capitalize; background:var(--shoal); } .pill.unread { background:var(--alert-bg); color:var(--alert); }
+  .notice { padding:.7rem .9rem; border-left:3px solid var(--alert); background:var(--alert-bg); max-width:850px; }
+  .filter { display:flex; gap:.6rem; align-items:end; flex-wrap:wrap; margin:1rem 0; } .filter label { display:grid; gap:.25rem; font-size:.88rem; } .filter input { min-width:16rem; max-width:100%; }
 </style>
