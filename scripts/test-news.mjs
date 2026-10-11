@@ -234,3 +234,27 @@ test('story saves are audited with changed field names, never story text', async
     assert.doesNotMatch(JSON.stringify(auditRows()), /SECRET/);
   });
 });
+
+test('related coverage', async (t) => {
+  const story = (id, section, community, publishedAt, status = 'published') => database.prepare(`
+    INSERT INTO news_articles (id, slug, headline, summary, body, section, community, byline, status, published_at, created_at, updated_at)
+    VALUES (?, ?, ?, 'A summary long enough to save.', 'Story text long enough to save.', ?, ?, 'Test reporter', ?, ?, 1, 1)
+  `).run(id, id, `Story about ${id}`, section, community, status, publishedAt);
+  story('rel-self', 'schools', 'Rel Town', 500);
+  story('rel-same-old', 'schools', 'Rel Town', 10);
+  story('rel-section-new', 'schools', 'Elsewhere', 400);
+  story('rel-town-new', 'business', 'rel town', 450);
+  story('rel-unrelated', 'business', 'Elsewhere', 900);
+  story('rel-draft', 'schools', 'Rel Town', 800, 'draft');
+  const self = { id: 'rel-self', section: 'schools', community: 'Rel Town' };
+
+  await t.test('ranks shared section and community first, then section, then community; excludes self, drafts, and unrelated', async () => {
+    const ids = (await news.module.relatedArticles(self)).map((a) => a.id);
+    assert.deepEqual(ids, ['rel-same-old', 'rel-section-new', 'rel-town-new']);
+  });
+
+  await t.test('honors the limit and returns nothing when nothing relates', async () => {
+    assert.deepEqual((await news.module.relatedArticles(self, 1)).map((a) => a.id), ['rel-same-old']);
+    assert.deepEqual(await news.module.relatedArticles({ id: 'x', section: 'outdoors', community: 'Nowhere' }), []);
+  });
+});
