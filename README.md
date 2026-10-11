@@ -221,6 +221,31 @@ The blocklist runs locally, identically at Better Auth's `/sign-up/email`, `/cha
 
 Run `npm run test:fresh-auth` for the freshness window, `/reauth` and `next` validation, stale versus fresh privileged actions, session revocation on role changes, the link and unlink guard, and the password rules, through the real Better Auth handlers, site middleware, and admin endpoints against an isolated in-memory database with the Pwned Passwords service simulated.
 
+### Password hashing
+
+Every password is hashed and checked by `src/lib/password-hash.ts`, and nothing else: Better Auth uses it for sign-up, sign-in, change and reset (`emailAndPassword.password` in `src/lib/auth.ts`), and the admin Add user and Set password actions and `/reauth` call it directly (`src/lib/users.ts`). New hashes are **scrypt with N=2^14, r=8, p=5** (16 MiB of memory, 16-byte random salt, 32-byte key), one of the equivalent scrypt profiles in [OWASP's Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html), stored in a self-describing PHC string: `$scrypt$ln=14,r=8,p=5$<salt>$<key>` (unpadded base64). Passwords are NFKC-normalized first, as Better Auth did. Keys are compared with `timingSafeEqual`. A stored hash that is not one of the two formats, or asks for more than 64 MiB or four times the current work, is treated as a wrong password rather than an error.
+
+**Existing accounts keep working; no reset and no migration.** Hashes Better Auth wrote before this (`<hex salt>:<hex key>`, scrypt N=2^14, r=16, p=1, below OWASP's profiles) still verify. After a successful password sign-in or `/reauth` confirmation, an old hash, or a new-format one with different parameters, is replaced with a current one (`upgradePasswordHash`). It checks the stored value again and replaces only that exact value, so a password changed at the same moment is never overwritten. If the write fails, the old hash stays, the sign-in still succeeds, and `{"event":"password_rehash_failed"}` is logged. Accounts that never sign in again keep their old hash. A refused sign-in (wrong password, unverified email) changes nothing. Checking an old hash also does some padding work, so it takes about as long as checking a current hash or an unknown email. Otherwise sign-in timing would reveal which addresses have accounts that haven't signed in since the upgrade. To see how many accounts still have an old hash: `SELECT COUNT(*) FROM account WHERE password IS NOT NULL AND password NOT LIKE '$scrypt$%'`. To raise the profile later, change `CURRENT`. Hashes are upgraded the same way, and `MAX_WORK` scales with it.
+
+**Measured budget (October 11, 2026).** `wrangler.jsonc` sets no `limits`, so on the Workers Paid plan the Worker gets the default 30 seconds of CPU per request. The Free plan's 10 ms could not fit even the old hash, so this assumes the account is on Paid. Memory is capped at 128 MB per isolate, shared by any concurrent requests. Medians of 21 runs on a local workerd 1.20261006.1 (Miniflare, `nodejs_compat`, AMD Ryzen 7 7800X3D), timed per request with a ~1 ms no-op request as the baseline:
+
+| Configuration | Memory | workerd | Node 24 |
+| --- | --- | --- | --- |
+| scrypt N=2^14, r=16, p=1 (old Better Auth hash) | 32 MiB | 46 ms | 57 ms |
+| scrypt N=2^17, r=8, p=1 (OWASP) | 128 MiB | 176 ms | 229 ms |
+| scrypt N=2^16, r=8, p=2 (OWASP) | 64 MiB | 164 ms | 196 ms |
+| scrypt N=2^15, r=8, p=3 (OWASP) | 32 MiB | 117 ms | 144 ms |
+| **scrypt N=2^14, r=8, p=5 (OWASP, chosen)** | **16 MiB** | **98 ms** | 117 ms |
+| scrypt N=2^13, r=8, p=10 (OWASP) | 8 MiB | 96 ms | 112 ms |
+| PBKDF2-HMAC-SHA256, 600,000 iterations (OWASP), WebCrypto | small | 209 ms | 75 ms |
+| PBKDF2-HMAC-SHA256, 100,000 iterations, WebCrypto | small | 35 ms | 12 ms |
+
+The real module in workerd: hashing 95 ms; checking a current hash 96 to 98 ms; checking an old hash, with its padding, 101 to 108 ms; an unreadable hash 102 ms. A sign-in that upgrades an old hash spends about 240 ms on hashing once (check, re-check, new hash); a password change about 200 ms (Better Auth hashes the new password and checks the current one).
+
+The 128 MiB and 64 MiB profiles were ruled out on memory: a single hash would take all or half of the isolate's limit. The 16 MiB profile costs no more CPU than the 32 MiB one and less than the larger ones, and halves the old hash's memory. The 8 MiB profile is barely cheaper but gives an attacker's hardware less memory to pay for. PBKDF2 at OWASP's 600,000 iterations was twice as slow in workerd as the chosen scrypt profile, and it is not memory-hard. The local CPU has a 96 MB L3 cache, which flatters the large-memory profiles. Cloudflare's servers will likely be slower on every row, so expect a few hundred milliseconds per hash at most. Workers Logs shows the real CPU time per request: check it on `/api/auth/sign-in/email` after deploying.
+
+Run `npm run test:password-hash` for the format, old hashes (including Unicode normalization), wrong passwords, unreadable and out-of-bounds hashes, the upgrade on sign-in and `/reauth` (and its race and failure cases), every way a password is set (sign-up, change, reset, admin Add user and Set password), and that no password or hash reaches the logs, against an isolated in-memory database.
+
 ## Audit log and security events
 
 ### Staff actions: `admin_audit_log`

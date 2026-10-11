@@ -52,14 +52,16 @@ await loadSource('src/lib/auth-rate-limit.ts');
 await loadSource('src/lib/password-policy.ts');
 await loadSource('src/lib/reauth.ts');
 await loadSource('src/lib/oauth-tokens.ts');
+await loadSource('src/lib/password-hash.ts');
 const { createAuth } = await loadSource('src/lib/auth.ts', {
   './mail': 'data:text/javascript,export const sendVerificationMail = async (user, url) => globalThis.__profileTestMail.push({ user, url }); export const sendPasswordResetMail = async () => {};',
   './auth-rate-limit': modules.get('src/lib/auth-rate-limit.ts'), './auth-events': modules.get('src/lib/auth-events.ts'),
   './password-policy': modules.get('src/lib/password-policy.ts'),
   './reauth': modules.get('src/lib/reauth.ts'),
   './oauth-tokens': modules.get('src/lib/oauth-tokens.ts'),
+  './password-hash': modules.get('src/lib/password-hash.ts'),
 });
-await loadSource('src/lib/users.ts', { './auth': modules.get('src/lib/auth.ts'), './forum': modules.get('src/lib/forum.ts'), './password-policy': modules.get('src/lib/password-policy.ts') });
+await loadSource('src/lib/users.ts', { './auth': modules.get('src/lib/auth.ts'), './forum': modules.get('src/lib/forum.ts'), './password-policy': modules.get('src/lib/password-policy.ts'), './password-hash': modules.get('src/lib/password-hash.ts') });
 const { getStaffBio, saveStaffBio, bioParagraphs, BIO_MAX } = await loadSource('src/lib/bios.ts', { './users': modules.get('src/lib/users.ts') });
 function user(id, email =`${id}@example.test`) {
   database.prepare('INSERT INTO user (id, name, email, emailVerified, createdAt, updatedAt) VALUES (?, ?, ?, 1, ?, ?)')
