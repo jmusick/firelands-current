@@ -14,3 +14,11 @@ updates:
         update-types:
           - minor
           - patch
+  # Keeps the SHA-pinned actions in .github/workflows current. The pinned
+  # Gitleaks release is updated by hand: see scripts/secret-scan.mjs.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14

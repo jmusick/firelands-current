@@ -20,6 +20,9 @@ node_modules/
 /.cache/
 /coverage/
 /test-results/
+# Secret scan reports are redacted terminal output only; never write them to the repo.
+gitleaks-report*
+*.sarif
 /playwright-report/
 /backups/
 /exports/

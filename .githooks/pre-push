@@ -1,0 +1,5 @@
+#!/bin/sh
+# Scans the commits a push would add for secrets. Fails closed: if node or the
+# scanner is missing, the push is blocked. Enable with: npm run hooks:install
+# Emergency bypass (CI still scans): git push --no-verify
+exec node scripts/secret-scan.mjs hook pre-push "$@"

@@ -1,0 +1,5 @@
+#!/bin/sh
+# Scans the staged changes for secrets. Fails closed: if node or the scanner is
+# missing, the commit is blocked. Enable with: npm run hooks:install
+# Emergency bypass (CI still scans): git commit --no-verify
+exec node scripts/secret-scan.mjs hook pre-commit "$@"

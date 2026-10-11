@@ -10,6 +10,10 @@
     "preview": "astro preview --host 127.0.0.1 --port 4321",
     "check": "astro check",
     "audit": "npm audit --audit-level=moderate",
+    "hooks:install": "node scripts/secret-scan.mjs setup",
+    "secrets:install": "node scripts/secret-scan.mjs install",
+    "secrets:scan": "node scripts/secret-scan.mjs history",
+    "secrets:staged": "node scripts/secret-scan.mjs staged",
     "test:profiles": "node --test scripts/test-profiles.mjs",
     "test:auth": "node --test scripts/test-auth.mjs",
     "test:fresh-auth": "node --test scripts/test-fresh-auth.mjs",
@@ -28,6 +32,7 @@
     "test:audit": "node --test scripts/test-audit.mjs",
     "test:corrections": "node --test scripts/test-corrections.mjs",
     "test:quotas": "node --test scripts/test-quotas.mjs",
+    "test:secret-scan": "node --test scripts/test-secret-scan.mjs",
     "cf:types": "wrangler types",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:seed:demo": "wrangler d1 execute DB --local --file scripts/seed-demo.sql"
