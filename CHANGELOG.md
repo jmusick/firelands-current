@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.26.0] - 2026-10-11
+
+### Added
+
+- Story pages end with a "Related coverage" list of up to four other published stories: ones in the same section rank first, then ones about the same community, newest first within each. Stories that share neither never appear, and the list is left out when nothing qualifies. Migration `0029_related_coverage_index.sql` adds an index for the community lookup (#37)
+
 ## [1.25.0] - 2026-10-11
 
 ### Added
