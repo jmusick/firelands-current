@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.27.3] - 2026-10-11
+
+### Security
+
+- Passwords are now hashed with scrypt at OWASP's 16 MiB profile (N=2^14, r=8, p=5), stored as a self-describing `$scrypt$` string so the cost can be raised later without a migration. Sign-up, sign-in, password change and reset, admin-created accounts, admin password resets and `/reauth` all share one implementation. Existing hashes keep working and are upgraded transparently the next time their owner signs in or confirms their password; no one has to reset. Checks of old and new hashes take about the same time, so sign-in timing doesn't reveal which accounts haven't been upgraded, and a damaged hash is treated as a wrong password. The README records the measured costs (#47)
+
 ## [1.27.2] - 2026-10-11
 
 ### Fixed
