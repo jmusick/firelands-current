@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.23.0] - 2026-10-11
+
+### Added
+
+- An About page at `/about` explains who publishes Firelands Current, the coverage area, how stories are sourced and attributed, bylines, the corrections process, how advertising is kept apart from news, community discussion rules, and how to send a tip. It is linked from the footer, listed in the sitemap, and carries `AboutPage` structured data (#29)
+
 ## [1.22.35] - 2026-10-11
 
 ### Security
