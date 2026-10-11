@@ -1,4 +1,5 @@
 import { env } from 'cloudflare:workers';
+import { countAuthEvent } from './auth-alerts';
 
 /**
  * Authentication security events as structured console lines, read in Workers Logs (the `observability`
@@ -13,6 +14,9 @@ import { env } from 'cloudflare:workers';
  * BETTER_AUTH_SECRET), so repeated failures against one address or from one network can be counted and
  * correlated without the log being a list of who tried to sign in. `user` is the opaque account id, only
  * when the request already belonged to a signed-in account. Rotating BETTER_AUTH_SECRET changes the hashes.
+ *
+ * The lines are not stored, but a few kinds of event also add to small counters in D1 (src/lib/auth-alerts.ts)
+ * so the scheduled Worker can email the owner about bursts. Those hold the same two hashes and nothing more.
  */
 
 /** Better Auth endpoints that matter for account security, and the name each event goes by. */
@@ -45,8 +49,16 @@ type EventFields = { type: string; outcome: 'success' | 'failure'; status?: numb
 
 async function emit(fields: EventFields): Promise<void> {
   const { email, ip, ...rest } = fields;
-  const line = { event: 'auth_event', ...rest, ...(email ? { account: await fingerprint('email', email) } : {}), ...(ip ? { client: await fingerprint('ip', ip) } : {}) };
+  const account = email ? await fingerprint('email', email) : undefined;
+  const client = ip ? await fingerprint('ip', ip) : undefined;
+  const line = { event: 'auth_event', ...rest, ...(account ? { account } : {}), ...(client ? { client } : {}) };
   (fields.outcome === 'failure' ? console.warn : console.log)(JSON.stringify(line));
+  // After the log line, so a counter problem never costs the line; the alerts are the only thing it affects.
+  try {
+    await countAuthEvent(env.DB, { type: fields.type, outcome: fields.outcome, status: fields.status, code: fields.code, account, client });
+  } catch {
+    console.error(JSON.stringify({ event: 'auth_counter_failed' }));
+  }
 }
 
 // The fields of a Better Auth hook context this module reads.

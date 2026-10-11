@@ -52,7 +52,7 @@ function sourceModule(path, replacements = {}, page = false) {
 const rateLimitModule = sourceModule('src/lib/auth-rate-limit.ts');
 const passwordPolicyModule = sourceModule('src/lib/password-policy.ts');
 const reauthModule = sourceModule('src/lib/reauth.ts');
-const authEventsModule = sourceModule('src/lib/auth-events.ts');
+const authEventsModule = sourceModule('src/lib/auth-events.ts', { './auth-alerts': sourceModule('src/lib/auth-alerts.ts') });
 const passwordHashModule = sourceModule('src/lib/password-hash.ts');
 const authModule = sourceModule('src/lib/auth.ts', {
   './password-hash': passwordHashModule,

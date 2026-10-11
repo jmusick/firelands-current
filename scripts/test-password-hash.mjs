@@ -56,7 +56,7 @@ const adminModule = sourceModule('src/lib/admin.ts');
 const forumModule = sourceModule('src/lib/forum.ts');
 const bodyModule = sourceModule('src/lib/request-body.ts');
 const authModule = sourceModule('src/lib/auth.ts', {
-  './auth-events': sourceModule('src/lib/auth-events.ts'),
+  './auth-events': sourceModule('src/lib/auth-events.ts', { './auth-alerts': sourceModule('src/lib/auth-alerts.ts') }),
   './mail': 'data:text/javascript,export const sendPasswordResetMail = async (user, url) => globalThis.__hashTestMail.push({ user, url }); export const sendVerificationMail = async () => {};',
   './auth-rate-limit': rateLimit, './password-policy': policyModule, './reauth': reauthModule,
   './oauth-tokens': sourceModule('src/lib/oauth-tokens.ts'), './password-hash': hashModule,
