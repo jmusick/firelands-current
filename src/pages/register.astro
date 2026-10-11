@@ -32,6 +32,7 @@ if (Astro.locals.user) return Astro.redirect('/account');
     import { authClient } from '../lib/auth-client';
     import { captchaHeaders, resetCaptcha } from '../lib/turnstile-client';
     import { NETWORK_ERROR } from '../lib/auth-errors';
+    import { queueSignUp } from '../scripts/outcome-events';
     const form = document.querySelector<HTMLFormElement>('#register-form')!;
     const message = document.querySelector<HTMLElement>('#form-message')!;
     form.addEventListener('submit', async (event) => {
@@ -52,6 +53,7 @@ if (Astro.locals.user) return Astro.redirect('/account');
       }
       button.disabled = false;
       if (result.error) { message.textContent = result.error.message || 'Could not create your account.'; message.hidden = false; resetCaptcha(); return; }
+      queueSignUp('email');
       document.querySelector<HTMLElement>('#sent-to')!.textContent = email;
       form.hidden = true;
       document.querySelector<HTMLElement>('#check-email')!.hidden = false;

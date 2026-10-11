@@ -54,5 +54,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     console.error('inbox send failed', kind);
     if (kind !== 'news') return back('error=send');
   }
-  return back('sent=1');
+  // o=1 (unlike the honeypot's plain sent=1) marks a real accepted submission so the page can report it to
+  // analytics once (src/scripts/outcome-events.ts).
+  return back('sent=1&o=1');
 };

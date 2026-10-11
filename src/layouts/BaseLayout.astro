@@ -190,6 +190,9 @@ const gaConfig = staffRole ? { traffic_type: 'internal' } : {};
         if (event.key === 'Escape' && toggle?.getAttribute('aria-expanded') === 'true') { setOpen(false); toggle.focus(); }
       });
     </script>
+    <script>
+      import '../scripts/outcome-events';
+    </script>
     {showAds && <div class="ad-band"><AdSlot placement="site-leaderboard" /></div>}
     <main id="main-content" tabindex="-1"><slot /></main>
     <footer class="site-footer"><div class="site-footer-inner">
