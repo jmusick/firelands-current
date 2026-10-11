@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.22] - 2026-10-11
+
+### Security
+
+- Refreshed dependencies: Better Auth 1.7.7 (fixes Magic Link and OAuth Proxy issues in plugins this site does not enable), Astro 7.3.8, @astrojs/cloudflare 14.3.4, @lucide/astro 1.55.0, and marked 18.1.0. The lockfile already resolved Undici 7.29.1 and source-map-js 1.2.2; `npm audit` reports no vulnerabilities. Dependabot now opens one grouped minor/patch npm pull request a week, and `npm run audit` runs an on-demand audit outside the build (#14)
+
 ## [1.22.21] - 2026-10-11
 
 ### Changed
