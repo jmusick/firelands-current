@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.27.1] - 2026-10-11
+
+### Security
+
+- New `npm run test:authorization` regression suite checks access rules against the real middleware, Better Auth sessions, endpoints and migrations in an isolated database. Every endpoint must be listed with its guard, so a new one can't ship unclassified. Each data-changing request is sent as a signed-out visitor, a suspended account, a reader, a business owner and every staff role, and refusals must change nothing. It also covers cross-origin posts, suspensions and role removals taking effect on the next request, business members guessing other businesses' IDs, forged ad tokens, author-bio edits, and the session cookie's `HttpOnly`, `Secure` and `SameSite` attributes. No authorization bugs were found (#16)
+
 ## [1.27.0] - 2026-10-11
 
 ### Added
