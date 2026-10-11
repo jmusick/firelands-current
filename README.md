@@ -303,6 +303,17 @@ The forms, verification links, and password-reset links send from `noreply@firel
 
 `.github/dependabot.yml` opens one grouped pull request a week for minor and patch npm updates (majors come separately). Review it, run `npm run check`, `npm run build`, and the `npm run test:*` scripts, and merge to deploy. `npm run audit` runs `npm audit` against the lockfile on demand; it is not part of `npm run build`, so advisories never fail the Cloudflare build. Many advisories hit build-time tooling (Wrangler, Miniflare, Vite) rather than the deployed Worker, so check whether the vulnerable code is reachable before treating one as urgent.
 
+### Dependency cooldown
+
+`.npmrc` sets `min-release-age=7` (npm 11, measured in days): when npm resolves versions (`npm install`, `npm update`, adding a package), it only considers versions published at least a week ago, so a compromised release has time to be noticed and pulled before it reaches the lockfile. `npm ci` installs the exact versions in `package-lock.json` and is unaffected, so the Cloudflare Workers Builds install step (a lockfile install, followed by `npm run build`) keeps working. Dependabot resolves through npm and honors `.npmrc`, so a release younger than seven days waits for a later weekly pull request. The cooldown does not vet packages already in the lockfile; review the lockfile diff in every dependency pull request.
+
+If a security fix cannot wait, make the exception explicit and reviewed:
+
+1. Read the advisory, then inspect the release: `npm view <pkg>@<version> dist.integrity dist.attestations`, check provenance on the package page, and compare tarballs (`npm diff --diff=<pkg>@<old> --diff=<pkg>@<new>`) for new install scripts, network calls, or obfuscated code.
+2. Install once with `npm install <pkg>@<version> --ignore-scripts --min-release-age-exclude=<pkg>`. Transitive dependencies are filtered too, so also exclude any young ones the error names. Don't put exclusions in `.npmrc`.
+3. Read the `package-lock.json` diff, then run `npm run check`, `npm run build`, and the relevant `npm run test:*` scripts. The lockfile pin outlives the exception, so `.npmrc` stays unchanged.
+4. Record the package, version, and review in the pull request, and get a second look before merging.
+
 ## Versioning
 
 The site follows [Semantic Versioning](https://semver.org/). The version in `package.json` is shown in the site footer, releases are tagged `vX.Y.Z`, and changes are listed in [CHANGELOG.md](CHANGELOG.md).
