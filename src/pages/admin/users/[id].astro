@@ -3,8 +3,9 @@ import { ArrowLeft, Ban, BuildingComplex, Check, EyeOff, KeyRound, LogOut, Messa
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
 import { KIND_LABELS, MEMBER_ROLE_LABELS, businessOptions, membershipsFor } from '../../../lib/businesses';
+import { PASSWORD_MESSAGES } from '../../../lib/password-policy';
 import { ROLE_LABELS } from '../../../lib/staff';
-import { AUDIT_LABELS, MIN_PASSWORD, PROVIDER_LABELS, describeAgent, fmtDate, fmtDateTime, getUserDetail } from '../../../lib/users';
+import { AUDIT_LABELS, MAX_PASSWORD, MIN_PASSWORD, PROVIDER_LABELS, describeAgent, fmtDate, fmtDateTime, getUserDetail } from '../../../lib/users';
 
 const denied = requireSection(Astro, ADMIN.users);
 if (denied) return denied;
@@ -46,7 +47,9 @@ const ERRORS: Record<string, string> = {
   staff: 'Remove this account’s staff role first.',
   'current-session': 'That’s the session you’re using now. Sign out from your account page instead.',
   'self-password': 'Change your own password from your account page.',
-  password: `Passwords must be ${MIN_PASSWORD}–128 characters.`,
+  password: PASSWORD_MESSAGES.length,
+  'password-predictable': PASSWORD_MESSAGES.predictable,
+  'password-breached': PASSWORD_MESSAGES.breached,
   confirm: 'The email address you typed didn’t match. Nothing was deleted.',
   member: 'Choose a business role, and keep the title under 80 characters.',
   'already-member': 'They’re already a member of that business.',
@@ -165,7 +168,7 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
           <summary>{hasPassword ? 'Set a new password' : 'Add email & password sign-in'}</summary>
           <form class="form" method="post" action="/api/admin/users" style="margin-top:.8rem">
             <input type="hidden" name="userId" value={user.id} />
-            <label>New password <input name="password" type="text" required minlength={MIN_PASSWORD} maxlength="128" autocomplete="off" spellcheck="false" /></label>
+            <label>New password <input name="password" type="text" required minlength={MIN_PASSWORD} maxlength={MAX_PASSWORD} autocomplete="off" spellcheck="false" /></label>
             <p class="meta" style="margin:0">Signs them out everywhere. Give them the password privately and ask them to change it.</p>
             <div><button class="button small" name="action" value="set-password" type="submit"><KeyRound />Set password</button></div>
           </form>

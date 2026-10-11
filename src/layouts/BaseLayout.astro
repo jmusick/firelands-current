@@ -20,7 +20,7 @@ interface Props {
 const { title, description = 'Independent local news and conversation for Sandusky and the Firelands.', image, type = 'website', noindex = false, canonicalPath } = Astro.props;
 const previewImage = image ?? { url: '/social-logo.png?v=2', width: 1200, height: 630, alt: 'Firelands Current' };
 const pageUrl = new URL(canonicalPath ?? Astro.url.pathname, Astro.url.origin).href;
-const accountPage = ['/sign-in', '/register', '/forgot-password', '/reset-password', '/account', '/business'].some((path) => Astro.url.pathname === path || Astro.url.pathname.startsWith(`${path}/`));
+const accountPage = ['/sign-in', '/register', '/forgot-password', '/reset-password', '/reauth', '/account', '/business'].some((path) => Astro.url.pathname === path || Astro.url.pathname.startsWith(`${path}/`));
 const user = Astro.locals.user;
 const staffRole = Astro.locals.staffRole;
 const showAds = pageTakesAds(Astro.url.pathname);

@@ -201,7 +201,7 @@ export function adPlanFor(request: Request, locals: App.Locals, context: AdConte
 
 /** Pages that are about the reader's own business — forms, accounts, dashboards — carry no ads. */
 export function pageTakesAds(pathname: string): boolean {
-  return !/^\/(admin|account|business|sign-in|register|forgot-password|reset-password|talk\/new|advertise|report-inaccuracy|api)(\/|$)/.test(pathname);
+  return !/^\/(admin|account|business|sign-in|register|forgot-password|reset-password|reauth|talk\/new|advertise|report-inaccuracy|api)(\/|$)/.test(pathname);
 }
 
 /** Where in-story ads go: after the third block, and again after the tenth in long stories. Short stories get none. */

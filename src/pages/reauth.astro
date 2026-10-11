@@ -1,0 +1,55 @@
+---
+import { env } from 'cloudflare:workers';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { enabledProviders } from '../lib/auth';
+import { MAX_PASSWORD } from '../lib/password-policy';
+import { REAUTH_REASONS, REAUTH_WINDOW_MINUTES, safeNext } from '../lib/reauth';
+import { PROVIDER_LABELS } from '../lib/users';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect(`/sign-in?next=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`);
+
+const next = safeNext(Astro.url.searchParams.get('next'));
+const reasonKey = Astro.url.searchParams.get('reason') ?? '';
+const reason = Object.hasOwn(REAUTH_REASONS, reasonKey) ? REAUTH_REASONS[reasonKey] : null;
+const linked = await env.DB.prepare('SELECT providerId FROM account WHERE userId = ?').bind(user.id).all<{ providerId: string }>();
+const hasPassword = linked.results.some((entry) => entry.providerId === 'credential');
+const providers = enabledProviders().filter((provider) => linked.results.some((entry) => entry.providerId === provider));
+const error = Astro.url.searchParams.get('error');
+---
+<BaseLayout title="Confirm it’s you" noindex>
+  <h1>Confirm it’s you</h1>
+  <p class="lede" style="max-width:650px">{reason ? `Before ${reason}, confirm` : 'Before continuing, confirm'} that this is still you. {hasPassword ? 'Enter your password' : 'Sign in again'} to unlock privileged changes for {REAUTH_WINDOW_MINUTES} minutes, then you’ll go back to where you were. Nothing has been changed yet.</p>
+  {error === 'password' && <p class="message" role="alert" style="max-width:650px">That password didn’t match. Try again.</p>}
+  {hasPassword && (
+    <form class="form" method="post" action="/api/reauth" style="max-width:650px">
+      <input type="hidden" name="next" value={next} />
+      <input type="hidden" name="reason" value={reasonKey} />
+      <label>Password for {user.email} <input name="password" type="password" required maxlength={MAX_PASSWORD} autocomplete="current-password" autofocus /></label>
+      <div><button class="button" type="submit">Confirm and continue</button></div>
+    </form>
+  )}
+  {providers.length > 0 && (
+    <div style="margin-top:1.5rem;max-width:650px">
+      <p class="muted">{hasPassword ? 'Or sign in again with a linked service:' : 'Sign in again with a linked service:'}</p>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap">{providers.map((provider) => <button class="button secondary small reauth-provider" data-provider={provider} data-next={next} type="button">Sign in with {PROVIDER_LABELS[provider]}</button>)}</div>
+      <p id="reauth-message" class="message" role="alert" hidden></p>
+    </div>
+  )}
+  {!hasPassword && providers.length === 0 && <p class="message" role="alert" style="max-width:650px">This account has no way to confirm itself right now. Sign out and sign in again, or ask an administrator to set a password.</p>}
+  <p><a href={next}>Cancel</a></p>
+  <script>
+    import { authClient } from '../lib/auth-client';
+    import { NETWORK_ERROR } from '../lib/auth-errors';
+    const message = document.querySelector<HTMLElement>('#reauth-message');
+    document.querySelectorAll<HTMLButtonElement>('.reauth-provider').forEach((button) => button.addEventListener('click', async () => {
+      const provider = button.dataset.provider as 'google' | 'facebook' | 'apple' | 'microsoft';
+      try {
+        const result = await authClient.signIn.social({ provider, callbackURL: button.dataset.next ?? '/account' });
+        if (result.error && message) { message.textContent = result.error.message || 'Sign in with this service failed.'; message.hidden = false; }
+      } catch {
+        if (message) { message.textContent = NETWORK_ERROR; message.hidden = false; }
+      }
+    }));
+  </script>
+</BaseLayout>

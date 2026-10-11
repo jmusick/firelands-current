@@ -12,6 +12,7 @@
     "audit": "npm audit --audit-level=moderate",
     "test:profiles": "node --test scripts/test-profiles.mjs",
     "test:auth": "node --test scripts/test-auth.mjs",
+    "test:fresh-auth": "node --test scripts/test-fresh-auth.mjs",
     "test:facebook": "node --test scripts/test-facebook.mjs",
     "test:preview": "node --test scripts/test-preview.mjs",
     "test:media-alt": "node --test scripts/test-media-alt.mjs",

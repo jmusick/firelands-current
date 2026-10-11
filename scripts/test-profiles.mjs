@@ -46,9 +46,13 @@ const { saveArticleFromForm } = await loadSource('src/lib/news-admin.ts', {
 });
 globalThis.__profileTestMail = [];
 await loadSource('src/lib/auth-rate-limit.ts');
+await loadSource('src/lib/password-policy.ts');
+await loadSource('src/lib/reauth.ts');
 const { createAuth } = await loadSource('src/lib/auth.ts', {
   './mail': 'data:text/javascript,export const sendVerificationMail = async (user, url) => globalThis.__profileTestMail.push({ user, url }); export const sendPasswordResetMail = async () => {};',
   './auth-rate-limit': modules.get('src/lib/auth-rate-limit.ts'),
+  './password-policy': modules.get('src/lib/password-policy.ts'),
+  './reauth': modules.get('src/lib/reauth.ts'),
 });
 function user(id, email = `${id}@example.test`) {
   database.prepare('INSERT INTO user (id, name, email, emailVerified, createdAt, updatedAt) VALUES (?, ?, ?, 1, ?, ?)')

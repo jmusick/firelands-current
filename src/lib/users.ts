@@ -4,8 +4,7 @@ import { NEWSROOM_USER_ID } from './forum';
 import type { StaffRole } from './staff';
 
 export const PAGE_SIZE = 50;
-export const MIN_PASSWORD = 12;
-export const MAX_PASSWORD = 128;
+export { MAX_PASSWORD, MIN_PASSWORD } from './password-policy';
 export const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type UserFilters = {
@@ -212,6 +211,15 @@ export function auditStatement(actor: { id: string; name: string }, target: Audi
 export async function hashPassword(password: string): Promise<string> {
   const context = await createAuth().$context;
   return context.password.hash(password);
+}
+
+/** Whether `password` is the one this account signs in with. False for an account with no password. */
+export async function verifyAccountPassword(userId: string, password: string): Promise<boolean> {
+  const account = await env.DB.prepare("SELECT password FROM account WHERE userId = ? AND providerId = 'credential'")
+    .bind(userId).first<{ password: string | null }>();
+  if (!account?.password) return false;
+  const context = await createAuth().$context;
+  return context.password.verify({ hash: account.password, password });
 }
 
 /** Creates an email/password account the same way sign-up does, without signing anyone in. Staff vouch for the address, so it starts verified. */

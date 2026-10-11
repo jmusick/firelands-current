@@ -2,16 +2,22 @@
 import { ArrowLeft, Dices, UserPlus } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
+import { PASSWORD_MESSAGES } from '../../../lib/password-policy';
 import { ROLE_LABELS } from '../../../lib/staff';
-import { MIN_PASSWORD } from '../../../lib/users';
+import { isFresh, reauthPath } from '../../../lib/reauth';
+import { MAX_PASSWORD, MIN_PASSWORD } from '../../../lib/users';
 
 const denied = requireSection(Astro, ADMIN.users);
 if (denied) return denied;
+// Adding an account needs a recent password confirmation; ask now rather than after the form is filled in.
+if (!(await isFresh(Astro.locals.session?.id))) return Astro.redirect(reauthPath('/admin/users/new', 'create'));
 
 const ERRORS: Record<string, string> = {
   profile: 'Enter a name (up to 80 characters) and a valid email address.',
   'email-taken': 'An account with that email address already exists.',
-  password: `Passwords must be ${MIN_PASSWORD}–128 characters.`,
+  password: PASSWORD_MESSAGES.length,
+  'password-predictable': PASSWORD_MESSAGES.predictable,
+  'password-breached': PASSWORD_MESSAGES.breached,
   role: 'Choose a valid role.',
 };
 const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
@@ -26,7 +32,7 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
     <label>Display name <input name="name" required maxlength="80" /></label>
     <label>Email <input name="email" type="email" required maxlength="254" /></label>
     <label>Temporary password
-      <span class="pw"><input id="password" name="password" type="text" required minlength={MIN_PASSWORD} maxlength="128" autocomplete="off" spellcheck="false" /><button id="generate" class="button secondary small" type="button"><Dices />Generate</button></span>
+      <span class="pw"><input id="password" name="password" type="text" required minlength={MIN_PASSWORD} maxlength={MAX_PASSWORD} autocomplete="off" spellcheck="false" /><button id="generate" class="button secondary small" type="button"><Dices />Generate</button></span>
     </label>
     <label>Staff role
       <select name="role"><option value="">None (member)</option>{Object.entries(ROLE_LABELS).map(([key, label]) => <option value={key}>{label}</option>)}</select>

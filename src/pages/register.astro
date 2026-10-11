@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SocialButtons from '../components/SocialButtons.astro';
 import Turnstile from '../components/Turnstile.astro';
+import { MAX_PASSWORD, MIN_PASSWORD, PASSWORD_HINT } from '../lib/password-policy';
 if (Astro.locals.user) return Astro.redirect('/account');
 ---
 <BaseLayout title="Create an account">
@@ -10,7 +11,7 @@ if (Astro.locals.user) return Astro.redirect('/account');
   <form id="register-form" class="form">
     <label>Display name <input name="name" required minlength="2" maxlength="60" autocomplete="nickname" /></label>
     <label>Email address <input name="email" type="email" required autocomplete="email" /></label>
-    <label>Password <input name="password" type="password" required minlength="12" autocomplete="new-password" /><span class="muted" style="font-weight:400">At least 12 characters.</span></label>
+    <label>Password <input name="password" type="password" required minlength={MIN_PASSWORD} maxlength={MAX_PASSWORD} autocomplete="new-password" /><span class="muted" style="font-weight:400">{PASSWORD_HINT}</span></label>
     <Turnstile />
     <div id="form-message" class="message" role="alert" hidden></div>
     <button class="button" type="submit">Create account</button>

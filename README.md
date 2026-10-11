@@ -159,8 +159,37 @@ Administrators manage accounts at `/admin/users`: search and filter by role or s
 - **Set a password**, for someone who can't use password reset by email. It signs the person out everywhere.
 - **Add users** with a temporary password, for example new staff. These accounts start with their email marked verified.
 - **Delete** an account and everything it posted, after typing its email address to confirm.
+- **Change a staff role** (administrator, editor, moderator, or none). Giving someone access to an admin section they didn't have signs them out of every session, so they sign in again with the new role; see below.
 
 Staff accounts and your own account can't be suspended or deleted; remove the role first. Nobody can change their own role, so there's always at least one administrator. Every change is recorded in `admin_audit_log` and shown at `/admin/users/log` and on each user's page.
+
+### Recent confirmation and role changes
+
+Privileged actions need the signed-in person to have proved who they are within the last **15 minutes** (`REAUTH_WINDOW_MS` in `src/lib/reauth.ts`): typing their password, or finishing a provider sign-in. A session's age is not enough, because it never moves and also covers sessions opened by an emailed link. Signing in with a password, finishing a provider sign-in, and changing your password all open the window, so someone who has just signed in is never asked twice. It does not slide: every privileged action inside the window uses the same confirmation, and the window ends 15 minutes after the proof.
+
+The proof is a row in `session_reauth` (migration `0025_session_reauth.sql`: `session_id` and `reauthenticated_at`, deleted with the session). A session with no row is stale. The sign-in hooks in `src/lib/auth.ts` write it, as does `POST /api/reauth`. **Apply migration `0025` to production with `npx wrangler d1 migrations apply DB --remote` before deploying this code**; without the table nobody can confirm a password, and the admin user pages and endpoints that check freshness return errors.
+
+These need it, and a stale session is redirected to `/reauth?next=<page>&reason=<action>` with nothing changed:
+
+- Admin changes of a staff role, setting a password, deleting an account, adding an account (the add-user page asks up front, before the form is filled in), and changing another account's email address or its verified flag (a way to take over an account through password reset)
+- Linking or removing a sign-in method from the account page (`/link-social`, `/unlink-account`, guarded in the Better Auth hook, which answers `403` with code `REAUTH_REQUIRED`; the account page then redirects to `/reauth`). Better Auth's own `/delete-user` is switched off, so there is no self-service account deletion; the hook would gate it if it were enabled.
+
+Suspending, signing people out, hiding posts, and editing a display name stay open to a stale session so a moderator can react to an emergency. The existing 24-hour session-age check for changing your own email address and unlinking a provider remains in addition.
+
+`/reauth` asks for the password and posts to `/api/reauth`, which accepts five attempts per account per 10 minutes (`reauth` in `src/lib/quotas.ts`), then returns `429`. An account with no password, or one that prefers a provider, signs in again with a linked provider instead; the callback records the proof for the new session. `next` is validated as a same-origin path (`safeNext`: no `//`, backslash, control characters, other origins, or `/reauth` itself) and anything else returns to `/account`. `/reauth` carries `noindex`, takes no ads or analytics, and is never cached.
+
+When a role change **gains access** to an admin section the person didn't have (none to any role, or any move to a role with a section the old one lacks, such as editor to moderator for Talk, or moderator to editor for News), every session of that person is deleted in the same batch as the role change, and the `set-role` audit entry records it (for example "None → Editor; signed out 2 sessions"). Taking access away (administrator to editor, or to none) does not sign anyone out: the role is read from the database on every request in `src/middleware.ts` (Better Auth's cookie cache is not enabled), so a demotion applies to the person's very next request. Sessions are not signed out on demotion because nothing about them has gained authority.
+
+### Passwords
+
+Passwords follow NIST SP 800-63B-4 for a password used as the only factor: **15 to 128 characters** (`MIN_PASSWORD` and `MAX_PASSWORD` in `src/lib/password-policy.ts`, the one source for the sign-up, reset, account, and admin forms, their hints, and Better Auth's `minPasswordLength`), no composition rules, no forced rotation, and a blocklist. Anything is allowed, including spaces and Unicode. Existing accounts are not forced to change: only choosing a password (registration, reset, change, admin set or create) is checked, and signing in never is.
+
+The blocklist has two parts, applied identically at Better Auth's `/sign-up/email`, `/change-password`, and `/reset-password` (a before hook) and in the admin Add user and Set password endpoints:
+
+- **Predictable values**, checked locally: one repeated character or short pattern, runs along the digits, the alphabet, or the keyboard rows, and passwords that are little more than the site's name, "password", the person's name, or their email address once those words are removed (fewer than 8 characters left).
+- **Known breaches**, using Have I Been Pwned's Pwned Passwords range API (k-anonymity). The Worker sends only the first five characters of the password's SHA-1 hash, with `Add-Padding: true`; the password, the rest of the hash, and any account detail stay here, and the browser never contacts the service. A match with a count above zero refuses the password with the reason shown. This was chosen over Better Auth's `haveIBeenPwned` plugin because the plugin fails closed (an outage answers `500` and blocks sign-up and password reset), whereas here a timeout (3 seconds), an error, or an unreadable reply skips the check and logs `password_blocklist_unavailable`, so recovery keeps working. It was chosen over a bundled list because common-password lists are mostly short passwords the 15-character minimum already excludes, while the breach corpus also catches long leaked passphrases, with no bundle or list upkeep. The Privacy Policy discloses this flow.
+
+Run `npm run test:fresh-auth` for the freshness window, `/reauth` and `next` validation, stale versus fresh privileged actions, session revocation on role changes, the link and unlink guard, and the password rules, through the real Better Auth handlers, site middleware, and admin endpoints against an isolated in-memory database with the Pwned Passwords service simulated.
 
 ## Businesses
 

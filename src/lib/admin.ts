@@ -31,6 +31,13 @@ export function sectionsFor(role: StaffRole): AdminSectionKey[] {
   return (Object.keys(ADMIN) as AdminSectionKey[]).filter((key) => ADMIN[key].roles.includes(role));
 }
 
+/** Whether moving from one staff role (or none) to another opens any admin section the first didn't. */
+export function gainsAccess(from: StaffRole | null, to: StaffRole | null): boolean {
+  if (!to) return false;
+  const had = from ? sectionsFor(from) : [];
+  return sectionsFor(to).some((key) => !had.includes(key));
+}
+
 export function canAccess(role: StaffRole | null, section: AdminSection): boolean {
   return role !== null && section.roles.includes(role);
 }
