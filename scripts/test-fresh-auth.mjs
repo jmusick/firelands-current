@@ -56,13 +56,15 @@ const forumModule = sourceModule('src/lib/forum.ts');
 const bodyModule = sourceModule('src/lib/request-body.ts');
 const authEventsModule = sourceModule('src/lib/auth-events.ts');
 const auditModule = sourceModule('src/lib/audit.ts');
+const passwordHashModule = sourceModule('src/lib/password-hash.ts');
 const authModule = sourceModule('src/lib/auth.ts', {
+  './password-hash': passwordHashModule,
   './auth-events': authEventsModule,
   './mail': 'data:text/javascript,export const sendPasswordResetMail = async (user, url) => globalThis.__freshTestMail.push({ user, url }); export const sendVerificationMail = async () => {};',
   './auth-rate-limit': rateLimit, './password-policy': policyModule, './reauth': reauthModule,
   './oauth-tokens': sourceModule('src/lib/oauth-tokens.ts'),
 });
-const usersModule = sourceModule('src/lib/users.ts', { './auth': authModule, './forum': forumModule, './staff': staffModule, './password-policy': policyModule });
+const usersModule = sourceModule('src/lib/users.ts', { './auth': authModule, './password-hash': passwordHashModule, './forum': forumModule, './staff': staffModule, './password-policy': policyModule });
 const quotasModule = sourceModule('src/lib/quotas.ts', { './auth-rate-limit': rateLimit });
 const { createAuth } = await import(authModule);
 const { isFresh, recordReauth, safeNext, reauthPath, REAUTH_WINDOW_MS } = await import(reauthModule);

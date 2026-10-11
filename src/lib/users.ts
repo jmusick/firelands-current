@@ -1,6 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { createAuth } from './auth';
 import { NEWSROOM_USER_ID } from './forum';
+import { hashPassword, upgradePasswordHash, verifyPassword } from './password-hash';
 import type { StaffRole } from './staff';
 
 export const PAGE_SIZE = 50;
@@ -225,18 +226,16 @@ export function auditStatement(actor: { id: string; name: string }, target: Audi
   `).bind(crypto.randomUUID(), actor.id, actor.name, user?.id ?? null, business?.id ?? null, label, action, detail ?? null, Date.now());
 }
 
-export async function hashPassword(password: string): Promise<string> {
-  const context = await createAuth().$context;
-  return context.password.hash(password);
-}
+export { hashPassword };
 
 /** Whether `password` is the one this account signs in with. False for an account with no password. */
 export async function verifyAccountPassword(userId: string, password: string): Promise<boolean> {
   const account = await env.DB.prepare("SELECT password FROM account WHERE userId = ? AND providerId = 'credential'")
     .bind(userId).first<{ password: string | null }>();
   if (!account?.password) return false;
-  const context = await createAuth().$context;
-  return context.password.verify({ hash: account.password, password });
+  if (!(await verifyPassword({ hash: account.password, password }))) return false;
+  await upgradePasswordHash(userId, password);
+  return true;
 }
 
 /** Creates an email/password account the same way sign-up does, without signing anyone in. Staff vouch for the address, so it starts verified. */
@@ -247,7 +246,7 @@ export async function createPasswordUser(name: string, email: string, password: 
     userId: user.id,
     providerId: 'credential',
     accountId: user.id,
-    password: await context.password.hash(password),
+    password: await hashPassword(password),
   });
   return user.id;
 }

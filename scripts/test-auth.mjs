@@ -53,7 +53,9 @@ const rateLimitModule = sourceModule('src/lib/auth-rate-limit.ts');
 const passwordPolicyModule = sourceModule('src/lib/password-policy.ts');
 const reauthModule = sourceModule('src/lib/reauth.ts');
 const authEventsModule = sourceModule('src/lib/auth-events.ts');
+const passwordHashModule = sourceModule('src/lib/password-hash.ts');
 const authModule = sourceModule('src/lib/auth.ts', {
+  './password-hash': passwordHashModule,
   './auth-events': authEventsModule,
   './mail': 'data:text/javascript,export const sendPasswordResetMail = async (user, url) => globalThis.__authTestMail.push({ user, url }); export const sendVerificationMail = async () => {};',
   './auth-rate-limit': rateLimitModule,
@@ -152,11 +154,14 @@ test('password-reset recovery revokes sessions at the shared page boundary', asy
   });
 
   await t.test('invalid and expired tokens neither change the password nor revoke sessions', async () => {
+    // Signing in already replaced the legacy fixture hash (src/lib/password-hash.ts); this is the one to keep.
+    const stored = database.prepare("SELECT password FROM account WHERE userId = 'staff'").get().password;
+    assert.notEqual(stored, hash);
     assert.equal((await post('reset-password', { token: 'invalid-fixture-token', newPassword })).status, 400);
     database.prepare('UPDATE verification SET expiresAt = ? WHERE identifier = ?')
       .run(new Date(Date.now() - 1000).toISOString(), `reset-password:${token}`);
     assert.equal((await post('reset-password', { token, newPassword })).status, 400);
-    assert.equal(database.prepare("SELECT password FROM account WHERE userId = 'staff'").get().password, hash);
+    assert.equal(database.prepare("SELECT password FROM account WHERE userId = 'staff'").get().password, stored);
     for (const cookie of cookies) assert.equal((await page('/account', cookie)).response.status, 200);
     token = await resetToken();
   });

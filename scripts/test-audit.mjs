@@ -50,7 +50,7 @@ const { recordDenied, denyAdmin, auditRecord, DENIED_THROTTLE_MS } = await impor
 const correctionsUrl = sourceModule('src/lib/corrections.ts');
 const usersUrl = sourceModule('src/lib/users.ts', {
   './auth': 'data:text/javascript,export const createAuth = () => { throw new Error("not used"); };',
-  './forum': forumUrl, './password-policy': 'data:text/javascript,export const MAX_PASSWORD = 128, MIN_PASSWORD = 12;',
+  './forum': forumUrl, './password-hash': sourceModule('src/lib/password-hash.ts'), './password-policy': 'data:text/javascript,export const MAX_PASSWORD = 128, MIN_PASSWORD = 12;',
 });
 const { listAudit, AUDIT_LABELS } = await import(usersUrl);
 const endpoint = (path, name) => import(sourceModule(path, {

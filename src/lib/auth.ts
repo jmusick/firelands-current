@@ -7,6 +7,7 @@ import { recordAuthSuccess } from './auth-events';
 import { d1RateLimitStorage } from './auth-rate-limit';
 import { sendPasswordResetMail, sendVerificationMail } from './mail';
 import { withoutOAuthTokens } from './oauth-tokens';
+import { hashPassword, upgradePasswordHash, verifyPassword } from './password-hash';
 import { MAX_PASSWORD, MIN_PASSWORD, PASSWORD_MESSAGES, passwordProblem } from './password-policy';
 import { REAUTH_WINDOW_MINUTES, isFresh, recordReauth } from './reauth';
 
@@ -124,6 +125,12 @@ export function createAuth() {
       after: createAuthMiddleware(async (ctx) => {
         // Security events for Workers Logs (src/lib/auth-events.ts); refusals are logged where the response is built.
         await recordAuthSuccess(ctx);
+        // A password sign-in that worked is the one moment the plain password is at hand to replace a legacy
+        // or outdated hash (src/lib/password-hash.ts).
+        if (ctx.path === '/sign-in/email' && ctx.context.newSession) {
+          const password = (ctx.body as Record<string, unknown> | undefined)?.password;
+          if (typeof password === 'string') await upgradePasswordHash(ctx.context.newSession.session.userId, password);
+        }
         if (!ctx.path.startsWith('/sign-in/') && !ctx.path.startsWith('/callback/') && ctx.path !== '/change-password') return;
         const session = ctx.context.newSession?.session;
         if (!session) return;
@@ -139,6 +146,8 @@ export function createAuth() {
       enabled: true,
       minPasswordLength: MIN_PASSWORD,
       maxPasswordLength: MAX_PASSWORD,
+      // Shared with the admin and /reauth paths, so every password is hashed and checked one way.
+      password: { hash: hashPassword, verify: verifyPassword },
       // Nobody gets a session until they prove they own the address.
       requireEmailVerification: true,
       resetPasswordTokenExpiresIn: 60 * 60,

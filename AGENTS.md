@@ -20,6 +20,7 @@ Guidance for AI coding agents working on Firelands Current, an independent local
 | `npm run test:body` | Isolated tests for the bounded request-body readers |
 | `npm run test:preview` | Isolated regression tests for safe story previews and their endpoint |
 | `npm run test:media-metadata` | Isolated tests for upload metadata stripping and failed-upload cleanup |
+| `npm run test:password-hash` | Isolated tests for password hashing, legacy-hash verification, and the upgrade on sign-in |
 | `npm run hooks:install` | Once per clone: enable the secret-scanning pre-commit and pre-push hooks and fetch the pinned Gitleaks (bypass and details: "Secret scanning" in README.md) |
 | `npm run test:secret-scan` | Isolated tests for the secret-scanning hooks and their fail-closed paths |
 | `npm run db:migrate:local` | Apply D1 migrations to the local database under `.wrangler/` |
@@ -51,6 +52,7 @@ docs/                Newsroom guides (news-sources.md)
 
 - **Data access** goes through `src/lib/*` modules that import `env` from `cloudflare:workers` and use `env.DB.prepare(...).bind(...)` with bound parameters. Never interpolate user input into SQL.
 - **Timestamps** are stored as Unix milliseconds (`Date.now()`, or `unixepoch() * 1000` in SQL).
+- **Passwords** are hashed and checked only through `src/lib/password-hash.ts` (Better Auth's `emailAndPassword.password`, the admin user actions, `/reauth`). Never call Better Auth's or `@better-auth/utils`' hashing directly, never log a password or hash, and keep old formats verifying. Run `npm run test:password-hash` when changing it.
 - **Auth state** comes from `Astro.locals` / `locals` (`user`, `session`, `staffRole`), set by `src/middleware.ts`. Suspended users are treated as signed out.
 - **Admin sections** are declared in `ADMIN` in `src/lib/admin.ts`. Admin pages call `requireSection(Astro, ADMIN.x)`; admin endpoints check `canAccess(locals.staffRole, ADMIN.x)`. A new content area adds an entry there, reuses those roles, and gets a sidebar icon in `SECTION_ICONS` in `AdminLayout.astro`.
 - **API endpoints** are `APIRoute` handlers that accept form posts: check the user and role, reject cross-origin requests with `sameOrigin(request)` from `src/lib/forum.ts`, read fields through `cleanText`, validate ids with a regex, and answer with a `303` redirect back to the page. Return plain-text error responses with the right status (400, 403, 404).
