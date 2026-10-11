@@ -2,6 +2,18 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.27.0] - 2026-10-11
+
+### Added
+
+- Staff can write a short author bio (up to 600 characters of plain text) about their local experience and coverage. Staff edit their own under **Author bio** on `/account`, and administrators can edit any staff member's from `/admin/users/<id>`; an administrator's edit is recorded in the activity log by length only, never the text. The bio appears on the person's public profile and under their byline on stories, only while the account holds a staff role. Migration `0030_staff_bios.sql` adds the `staff_bios` table, and the Privacy Policy describes the new public field (#38)
+
+## [1.26.0] - 2026-10-11
+
+### Added
+
+- Story pages end with a "Related coverage" list of up to four other published stories: ones in the same section rank first, then ones about the same community, newest first within each. Stories that share neither never appear, and the list is left out when nothing qualifies. Migration `0029_related_coverage_index.sql` adds an index for the community lookup (#37)
+
 ## [1.25.0] - 2026-10-11
 
 ### Added

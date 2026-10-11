@@ -1,6 +1,8 @@
 ---
 import { ArrowLeft, Ban, BuildingComplex, Check, EyeOff, KeyRound, LogOut, MessagesSquare, MonitorSmartphone, Plus, RotateCcwClock, Shield, ShieldCheck, Trash, TriangleAlert, UserMinus, UserRound } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
+import BioForm from '../../../components/BioForm.astro';
+import { BIO_MAX, getStaffBio } from '../../../lib/bios';
 import { ADMIN, requireSection } from '../../../lib/admin';
 import { KIND_LABELS, MEMBER_ROLE_LABELS, businessOptions, membershipsFor } from '../../../lib/businesses';
 import { PASSWORD_MESSAGES } from '../../../lib/password-policy';
@@ -20,6 +22,9 @@ const self = user.id === Astro.locals.user!.id;
 const currentSession = Astro.locals.session?.id;
 const hasPassword = providers.some((p) => p.providerId === 'credential');
 const protectedAccount = self || role !== null;
+
+const bio = role ? await getStaffBio(user.id) : null;
+const BIO_NOTICES: Record<string, string> = { saved: 'Author bio saved.', cleared: 'Author bio removed.', unchanged: 'Nothing changed.' };
 
 const NOTICES: Record<string, string> = {
   created: 'Account created. Share the password with them privately; they can change it from their account page.',
@@ -54,8 +59,8 @@ const ERRORS: Record<string, string> = {
   'already-member': 'They’re already a member of that business.',
   archived: 'That business is archived. Restore it before adding members.',
 };
-const notice = NOTICES[Astro.url.searchParams.get('notice') ?? ''];
-const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
+const notice = NOTICES[Astro.url.searchParams.get('notice') ?? ''] ?? BIO_NOTICES[Astro.url.searchParams.get('bio') ?? ''];
+const error = ERRORS[Astro.url.searchParams.get('error') ?? ''] ?? (Astro.url.searchParams.get('bioError') === 'too-long' ? `Keep the author bio to ${BIO_MAX} characters or fewer. Nothing was saved.` : undefined);
 ---
 <AdminLayout title={user.name}>
   <a class="back" href="/admin/users"><ArrowLeft />All users</a>
@@ -91,6 +96,11 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
         </form>
         <p class="meta" style="margin-bottom:0">Last updated {fmtDateTime(user.updatedAt)}</p>
       </section>
+
+      {role && <section class="card">
+        <h2><UserRound />Author bio</h2>
+        <BioForm bio={bio} userId={user.id} />
+      </section>}
 
       <section class="card">
         <h2><Shield />Staff role</h2>

@@ -1,9 +1,12 @@
 ---
+import AuthorBio from '../../components/AuthorBio.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getStaffBio } from '../../lib/bios';
 import { getProfile, profileItems, PROFILE_PAGE_SIZE, type ProfileTab } from '../../lib/profiles';
 
 const profile = await getProfile(Astro.params.id ?? '');
 if (!profile) return new Response('Profile not found', { status: 404 });
+const bio = await getStaffBio(profile.id);
 const tabs: Record<ProfileTab, string> = { articles: 'Articles', topics: 'Topics', replies: 'Replies' };
 const requestedTab = Astro.url.searchParams.get('tab');
 const tab: ProfileTab = requestedTab === 'topics' || requestedTab === 'replies' ? requestedTab : 'articles';
@@ -23,6 +26,7 @@ const fmt = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateStyle
   <div class="profile">
     <span class="eyebrow">Public profile</span>
     <h1>{profile.name}</h1>
+    <AuthorBio name={profile.name} bio={bio} heading />
     {Astro.locals.user?.id === profile.id && <p><a href="/account">Edit your account</a></p>}
     <nav class="filter-tabs" aria-label="Profile activity">
       {Object.entries(tabs).map(([key, label]) => <a href={href(key as ProfileTab)} aria-current={tab === key ? 'page' : undefined}>{label}</a>)}
