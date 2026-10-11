@@ -30,6 +30,8 @@ const current = (prefix: string) => Astro.url.pathname === prefix || Astro.url.p
 // Account and password pages can contain private information and authentication tokens.
 const analyticsHost = Astro.url.protocol === 'https:' && Astro.url.origin === new URL(env.SITE_URL).origin;
 const gaId = import.meta.env.PROD && analyticsHost && !accountPage && /^G-[A-Z0-9]+$/.test(env.GA_MEASUREMENT_ID ?? '') ? env.GA_MEASUREMENT_ID : null;
+// Staff visits are marked by sign-in rather than IP, which changes; GA's "Internal Traffic" data filter drops them.
+const gaConfig = staffRole ? { traffic_type: 'internal' } : {};
 ---
 <!doctype html>
 <html lang="en">
@@ -42,12 +44,12 @@ const gaId = import.meta.env.PROD && analyticsHost && !accountPage && /^G-[A-Z0-
     <script is:inline>document.documentElement.classList.add('js');</script>
     {gaId && <>
       <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}></script>
-      <script is:inline define:vars={{ gaId }}>
+      <script is:inline define:vars={{ gaId, gaConfig }}>
         // define:vars wraps this script in a function, so gtag is set on window explicitly for later event calls.
         window.dataLayer = window.dataLayer || [];
         window.gtag = function () { dataLayer.push(arguments); };
         gtag('js', new Date());
-        gtag('config', gaId);
+        gtag('config', gaId, gaConfig);
       </script>
     </>}
     <meta name="description" content={description} />

@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.21] - 2026-10-11
+
+### Changed
+
+- Page views from signed-in staff now tell Google Analytics they are internal traffic (`traffic_type: 'internal'`), so the GA "Internal Traffic" data filter can exclude newsroom visits without relying on IP addresses. Reader visits are unchanged; the Privacy Policy notes the exclusion (#56)
+
 ## [1.22.20] - 2026-10-10
 
 ### Fixed
