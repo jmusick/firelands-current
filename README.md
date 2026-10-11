@@ -305,7 +305,7 @@ The forms, verification links, and password-reset links send from `noreply@firel
 
 ### Dependency cooldown
 
-`.npmrc` sets `min-release-age=7` (npm 11, measured in days): when npm resolves versions (`npm install`, `npm update`, adding a package), it only considers versions published at least a week ago, so a compromised release has time to be noticed and pulled before it reaches the lockfile. `npm ci` installs the exact versions in `package-lock.json` and is unaffected, so the Cloudflare Workers Builds install step (a lockfile install, followed by `npm run build`) keeps working. Dependabot resolves through npm and honors `.npmrc`, so a release younger than seven days waits for a later weekly pull request. The cooldown does not vet packages already in the lockfile; review the lockfile diff in every dependency pull request.
+`.npmrc` sets `min-release-age=7` (npm 11, measured in days): when npm resolves versions (`npm install`, `npm update`, adding a package), it only considers versions published at least a week ago, so a compromised release has time to be noticed and pulled before it reaches the lockfile. `npm ci` installs the exact versions in `package-lock.json` and is unaffected, so the Cloudflare Workers Builds install step (a lockfile install, followed by `npm run build`) keeps working. `.github/dependabot.yml` sets a matching seven-day `cooldown`, so Dependabot waits a week before proposing a new release. The cooldown does not vet packages already in the lockfile; review the lockfile diff in every dependency pull request.
 
 If a security fix cannot wait, make the exception explicit and reviewed:
 

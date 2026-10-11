@@ -5,6 +5,9 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # Matches min-release-age in .npmrc: wait a week before proposing a new release.
+    cooldown:
+      default-days: 7
     # Minor and patch updates arrive as one weekly pull request; majors stay separate.
     groups:
       npm-minor-patch:
