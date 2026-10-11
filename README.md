@@ -233,6 +233,10 @@ A route's own `no-store` is kept. Media images, feeds, sitemaps, `robots.txt`, a
 
 The forms, verification links, and password-reset links send from `noreply@firelandscurrent.com` through the `send_email` binding (`EMAIL`) in `wrangler.jsonc`; no API token is needed. Onboard the domain once with `npx wrangler email sending enable firelandscurrent.com`, and make sure `news@` and `contact@` exist as real mailboxes or Email Routing addresses that deliver to staff. In `npm run dev`, verification and password-reset links are printed in the server console instead of sent.
 
+### Dependency audits
+
+`.github/dependabot.yml` opens one grouped pull request a week for minor and patch npm updates (majors come separately). Review it, run `npm run check`, `npm run build`, and the `npm run test:*` scripts, and merge to deploy. `npm run audit` runs `npm audit` against the lockfile on demand; it is not part of `npm run build`, so advisories never fail the Cloudflare build. Many advisories hit build-time tooling (Wrangler, Miniflare, Vite) rather than the deployed Worker, so check whether the vulnerable code is reachable before treating one as urgent.
+
 ## Versioning
 
 The site follows [Semantic Versioning](https://semver.org/). The version in `package.json` is shown in the site footer, releases are tagged `vX.Y.Z`, and changes are listed in [CHANGELOG.md](CHANGELOG.md).
