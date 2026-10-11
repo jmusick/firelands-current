@@ -20,7 +20,7 @@ const links = all.filter((link) => (!county || link.county === county) && (!stat
     <input type="search" name="q" value={Astro.url.searchParams.get('q') ?? ''} aria-label="Search links" placeholder="Name, community, or type" />
     <select name="county" aria-label="County"><option value="">All counties</option>{Object.entries(COUNTIES).map(([key, label]) => <option value={key} selected={county === key}>{label}</option>)}</select>
     <select name="status" aria-label="Status"><option value="">All statuses</option><option value="draft" selected={status === 'draft'}>Draft</option><option value="published" selected={status === 'published'}>Published</option></select>
-    <button class="button secondary" type="submit">Filter</button><a href="/admin/links">Clear filters</a>
+    <div class="filter-actions"><button class="button secondary" type="submit">Filter</button><a href="/admin/links">Clear filters</a></div>
   </form>
   <p class="meta">{links.length} {links.length === 1 ? 'link' : 'links'}</p>
   {links.length ? <ul class="link-list">{links.map((link) => <li>
@@ -31,6 +31,11 @@ const links = all.filter((link) => (!county || link.county === county) && (!stat
 <style>
   .heading, .link-list li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
   .heading { flex-wrap: wrap; }
+  .filters { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin: 1.5rem 0 1rem; }
+  .filters input { flex: 1 1 18rem; min-width: min(100%, 18rem); }
+  .filters select { max-width: 100%; }
+  .filter-actions { display: flex; align-items: center; gap: .75rem; }
+  .filter-actions a { display: inline-flex; align-items: center; min-height: 2.25rem; }
   .link-list { list-style: none; padding: 0; }
   .link-list li { padding: 1rem 0; border-top: 1px solid var(--line); }
   .link-list h2 { font-size: 1.15rem; margin: 0; }

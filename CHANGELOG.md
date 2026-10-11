@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.29.1] - 2026-10-11
+
+### Fixed
+
+- Community links admin filters now have consistent spacing, a wider search field, and responsive wrapping. The Filter button and Clear filters link stay together on smaller screens (#95)
+
 ## [1.29.0] - 2026-10-11
 
 ### Added
