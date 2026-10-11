@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.23.1] - 2026-10-11
+
+### Changed
+
+- Google Analytics now receives three outcome events, sent only after the action succeeds and counted once: `sign_up` (with the sign-in method) when an account is created, `news_tip_submitted` when a tip is accepted, and `advertiser_inquiry` when an advertising inquiry is accepted. No names, email addresses or form contents are sent. Because account pages don't load analytics, a new account's event waits in local storage until the next public page. The Privacy Policy and README describe the events (#57)
+
 ## [1.23.0] - 2026-10-11
 
 ### Added
