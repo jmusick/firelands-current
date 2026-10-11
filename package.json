@@ -36,7 +36,8 @@
     "test:tip-retention": "node --test scripts/test-tip-retention.mjs",
     "cf:types": "wrangler types",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
-    "db:seed:demo": "wrangler d1 execute DB --local --file scripts/seed-demo.sql"
+    "db:seed:demo": "wrangler d1 execute DB --local --file scripts/seed-demo.sql",
+    "test:a11y": "node scripts/test-a11y.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.3.3",
@@ -49,7 +50,10 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@axe-core/playwright": "4.13.0",
     "@types/node": "^26.6.3",
+    "axe-core": "4.13.0",
+    "playwright": "1.63.0",
     "typescript": "^6.0.3",
     "wrangler": "^4.141.0"
   }

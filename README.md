@@ -437,6 +437,26 @@ The scan is deliberately not part of `npm run build`. The Workers Builds environ
 
 `npm run test:secret-scan` proves the behavior in throwaway repositories under the OS temp directory: a made-up AWS-style key is blocked by both hooks without being printed, a clean change passes, and a missing, wrong-version, or crashing scanner blocks.
 
+## Accessibility testing
+
+`npm run test:a11y` (issue #26) is the automated half of accessibility testing. It is a dev tool: Playwright and `@axe-core/playwright` are exact-pinned devDependencies, nothing from them reaches the site, and it is not part of `npm run build` or CI.
+
+```
+npx playwright install chromium          # once per machine (Chromium only)
+npx astro dev --host 127.0.0.1 --port 4399   # leave running
+npm run test:a11y                         # in a second terminal
+```
+
+- `A11Y_BASE_URL` points it at another server (default `http://127.0.0.1:4399`). Only `127.0.0.1`, `localhost`, and `[::1]` are accepted, because the script writes to the local database. If you use another port, set `SITE_URL` in `.dev.vars` to match, as for any local run.
+- **What it scans** with axe-core using the WCAG 2.0, 2.1 and 2.2 level A and AA tags: the public pages (home, news list and section, a story, the inaccuracy report form, events list and an event, Talk of the Town list and a discussion, About, Accessibility, Privacy, Terms, Contact, Submit news, Advertise, sign-in, register, forgot password), a signed-in reader's account, new-discussion and profile pages, a business member's portal pages, and every admin section including the story and event editors (as an administrator). It then repeats three pages at 375 px wide (also checking for horizontal scrolling), loads four pages under forced-colors and prefers-reduced-motion emulation (no page errors, `main` and `h1` visible, no endless animations), and tabs through the Contact form (skip link first, every control reached in source order, visible focus indicator on each stop, no stuck focus). A non-200 page or a redirect to sign-in counts as a failure, so a broken test session cannot pass silently.
+- **Test accounts.** Signed-in pages use a reader, a business owner (with a throwaway business), and an administrator that the script inserts into the **local** D1 database with signed session cookies built from `BETTER_AUTH_SECRET` (from `.dev.vars`, or the environment). Their email addresses end in `@a11y.invalid`, their ids start with `a11y-axe-`, and the script deletes them (cascading to sessions and roles) and the business when it finishes, is interrupted, or starts again after a crash. It never reads the sign-in form, never touches `--remote`, and does not send the browser to other origins: third-party requests (Turnstile, Google Analytics) and the ad-statistics beacons are blocked, so a run records no ad counts. Content is whatever the local database holds, so the pages and states scanned are only as varied as that data; the Astro dev toolbar is excluded from the scan and the Tab test.
+- `npm run check` breaks a running dev server (see AGENTS.md); restart it before scanning.
+- Automated rules find roughly a third of accessibility problems. A pass here does not mean the site conforms to WCAG; it is meant to catch regressions between manual passes.
+
+**Tested versions (October 11, 2026):** Playwright 1.63.0, `@axe-core/playwright` 4.13.0, axe-core 4.13.0, Chromium 153.0.8010.12 (Playwright's bundled build), on Windows 11, against `astro dev`.
+
+**Not covered, still manual (issue #26):** NVDA with a mainstream browser (landmarks, headings, error summaries, the Turnstile alternatives, the EasyMDE editor, menus and dialogs, vote state), text-spacing overrides, 200% and 400% zoom, and keyboard-only completion of each form end to end. Record NVDA and browser versions and the page states tried alongside the versions above when that pass is done.
+
 ## Versioning
 
 The site follows [Semantic Versioning](https://semver.org/). The version in `package.json` is shown in the site footer, releases are tagged `vX.Y.Z`, and changes are listed in [CHANGELOG.md](CHANGELOG.md).

@@ -223,6 +223,9 @@ const lead = values.lead_media_id ? await getMedia(values.lead_media_id) : null;
   .danger { max-width: 900px; margin-top: 3rem; border-color: var(--alert-line); }
   .danger h2 { margin-top: 0; font-size: 1.15rem; color: var(--alert); }
   :global(.EasyMDEContainer .CodeMirror) { border-color: var(--field); font-family: var(--read); font-size: 1.12rem; line-height: 1.6; }
+  /* EasyMDE colors Markdown links, URLs, and quotes #7f8c8d and #aab2b3, below 4.5:1 on white. */
+  :global(.EasyMDEContainer .CodeMirror .cm-link), :global(.EasyMDEContainer .CodeMirror .cm-url), :global(.EasyMDEContainer .CodeMirror .cm-quote) { color: #4b5f63; }
+  :global(.editor-statusbar) { color: #4b5f63; }
   :global(.editor-toolbar button svg) { width: 1.05rem; height: 1.05rem; vertical-align: middle; }
   :global(.editor-toolbar) { border-color: var(--field); background: var(--paper); opacity: 1; }
   :global(.editor-preview), :global(.editor-preview-side) { background: var(--paper); line-height: 1.8; }
