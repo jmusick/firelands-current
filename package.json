@@ -9,6 +9,7 @@
     "build": "astro build",
     "preview": "astro preview --host 127.0.0.1 --port 4321",
     "check": "astro check",
+    "audit": "npm audit --audit-level=moderate",
     "test:profiles": "node --test scripts/test-profiles.mjs",
     "test:auth": "node --test scripts/test-auth.mjs",
     "test:facebook": "node --test scripts/test-facebook.mjs",
@@ -28,7 +29,7 @@
     "@astrojs/cloudflare": "^14.3.3",
     "@lucide/astro": "^1.48.0",
     "astro": "^7.3.5",
-    "better-auth": "^1.7.6",
+    "better-auth": "^1.7.7",
     "easymde": "2.21.0",
     "jose": "^6.2.12",
     "marked": "^18.0.14"
