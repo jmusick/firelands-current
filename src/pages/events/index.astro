@@ -174,7 +174,7 @@ const title = past ? 'Past events' : category ? `${CATEGORIES[category]} events`
   .refine label { display: flex; align-items: center; gap: .5rem; font-weight: 600; font-size: .95rem; }
   .refine select { padding: .45rem .6rem; border: 1px solid var(--field); border-radius: 2px; background: var(--paper); color: var(--ink); font: inherit; }
   .refine .end { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1.25rem; margin-left: auto; }
-  .refine .when { font-weight: 600; }
+  .refine .when { display: inline-block; padding: .25rem 0; font-weight: 600; }
   .views { display: inline-flex; border: 1px solid var(--line); border-radius: 2px; }
   .views a { padding: .35rem .8rem; font-weight: 600; font-size: .95rem; text-decoration: none; color: var(--slate); }
   .views a + a { border-left: 1px solid var(--line); }
@@ -201,7 +201,7 @@ const title = past ? 'Past events' : category ? `${CATEGORIES[category]} events`
   .month-nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline; gap: 1rem; margin-top: 1.5rem; padding-top: .5rem; border-top: 3px solid var(--deep); }
   .month-nav h2 { margin: 0; font-size: 1.6rem; font-stretch: 85%; text-align: center; }
   .month-nav span:last-child { text-align: right; }
-  .month-nav a { font-weight: 600; }
+  .month-nav a { display: inline-block; padding: .25rem 0; font-weight: 600; }
   .this-month { margin: .3rem 0 0; text-align: center; font-size: .95rem; }
   /* A wall calendar: seven columns, the date in the corner, each event a line you can follow. Today is marked in sunset. */
   .weekdays, .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
