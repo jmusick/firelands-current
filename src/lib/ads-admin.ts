@@ -236,7 +236,9 @@ export async function applyImages(ad: { id: string; name: string }, business: { 
     let media: LibraryImage;
     if ('upload' in choice) {
       const { record, statement } = await storeMedia(choice.upload, choice.upload.filename,
-        { alt: '', caption: '', credit: `Supplied by ${business.name}`, source: 'Advertiser creative' }, actor.id);
+        // Banners render with the ad's own alt text (advertiser and headline); this is for the library, where
+        // an empty alt would flag every banner as undecided.
+        { alt: `Advertisement from ${business.name}`, decorative: false, caption: '', credit: `Supplied by ${business.name}`, source: 'Advertiser creative' }, actor.id);
       statements.push(statement, mediaAudit(actor, record, 'media-upload', `${IMAGE_SIZES[choice.size].label} banner for ${ad.name}`));
       media = record;
     } else media = choice.media;

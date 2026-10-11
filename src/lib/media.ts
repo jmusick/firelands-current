@@ -7,20 +7,20 @@ import { cleanText } from './forum';
 
 export type MediaRecord = {
   id: string; object_key: string; content_type: string; width: number; height: number; bytes: number;
-  filename: string; alt: string; caption: string; credit: string; source: string;
+  filename: string; alt: string; decorative: number; caption: string; credit: string; source: string;
   uploaded_by: string | null; created_at: number; updated_at: number;
 };
 
 /** What the picker and the editor need to place an image. */
 export type MediaItem = {
   id: string; url: string; width: number; height: number; filename: string;
-  alt: string; caption: string; credit: string;
+  alt: string; decorative: boolean; caption: string; credit: string;
 };
 
 export const mediaUrl = (key: string) => `/media/${key}`;
 export const isMediaId = (value: string) => /^[\w-]{8,64}$/.test(value);
 export const toItem = (m: MediaRecord): MediaItem => ({
-  id: m.id, url: mediaUrl(m.object_key), width: m.width, height: m.height, filename: m.filename, alt: m.alt, caption: m.caption, credit: m.credit,
+  id: m.id, url: mediaUrl(m.object_key), width: m.width, height: m.height, filename: m.filename, alt: m.alt, decorative: m.decorative === 1, caption: m.caption, credit: m.credit,
 });
 
 // The browser shrinks photos before upload, so real uploads land far under this.
@@ -90,15 +90,28 @@ export async function checkUpload(file: File, maxBytes = MAX_UPLOAD_BYTES, label
   return { bytes, type: info.type, ext: IMAGE_TYPES[info.type], width: info.width, height: info.height };
 }
 
-export type MediaDetails = { alt: string; caption: string; credit: string; source: string };
+// `decorative` is the editor's explicit choice that the image adds nothing a reader would miss, so it
+// renders with an empty alt. A decorative image never carries alt text.
+export type MediaDetails = { alt: string; decorative: boolean; caption: string; credit: string; source: string };
 
 export function detailsFrom(form: FormData): MediaDetails {
-  return { alt: cleanText(form.get('alt')), caption: cleanText(form.get('caption')), credit: cleanText(form.get('credit')), source: cleanText(form.get('source')) };
+  const decorative = ['on', '1', 'true'].includes(cleanText(form.get('decorative')));
+  return { alt: cleanText(form.get('alt')), decorative, caption: cleanText(form.get('caption')), credit: cleanText(form.get('credit')), source: cleanText(form.get('source')) };
 }
+
+// Alt text that says nothing: a placeholder word or a file name.
+const PLACEHOLDER_ALT = /^(image|photo|picture|pic|img|graphic|logo|screenshot|untitled|alt( text)?)\.?$/i;
+const FILE_NAME_ALT = /\.(png|jpe?g|gif|webp)$/i;
+
+/** Whether an image still lacks an editorial decision: no alt text and not marked decorative. */
+export const needsAltDecision = (m: { alt: string; decorative: number | boolean }) => !m.alt.trim() && !m.decorative;
 
 export function validateDetails(d: MediaDetails): string[] {
   const errors: string[] = [];
   if (d.credit.length < 2 || d.credit.length > 120) errors.push('Credit is required (2–120 characters), e.g. “Photo by Jane Doe” or “Courtesy of Huron County”.');
+  if (d.decorative && d.alt) errors.push('An image is either decorative or described: clear the alt text, or untick “This image is decorative”.');
+  else if (!d.decorative && !d.alt) errors.push('Describe the image in the alt text, or tick “This image is decorative” if it adds nothing a reader would miss.');
+  else if (!d.decorative && (PLACEHOLDER_ALT.test(d.alt) || FILE_NAME_ALT.test(d.alt))) errors.push('Alt text should describe what is in the image, not just name it (“photo”, a file name).');
   if (d.alt.length > 300) errors.push('Alt text must be under 300 characters.');
   if (d.caption.length > 500) errors.push('Caption must be under 500 characters.');
   if (d.source.length > 1000) errors.push('Source and permission must be under 1,000 characters.');
@@ -117,14 +130,14 @@ export async function storeMedia(image: CheckedImage, filename: string, details:
   const now = Date.now();
   const record: MediaRecord = {
     id, object_key: `library/${id}.${image.ext}`, content_type: image.type, width: image.width, height: image.height, bytes: image.bytes.length,
-    filename: cleanFilename(filename), ...details, uploaded_by: uploaderId, created_at: now, updated_at: now,
+    filename: cleanFilename(filename), ...details, decorative: details.decorative ? 1 : 0, uploaded_by: uploaderId, created_at: now, updated_at: now,
   };
   await env.MEDIA.put(record.object_key, image.bytes, { httpMetadata: { contentType: image.type } });
   const statement = env.DB.prepare(`
-    INSERT INTO media (id, object_key, content_type, width, height, bytes, filename, alt, caption, credit, source, uploaded_by, created_at, updated_at)
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?13)
+    INSERT INTO media (id, object_key, content_type, width, height, bytes, filename, alt, decorative, caption, credit, source, uploaded_by, created_at, updated_at)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?14)
   `).bind(id, record.object_key, record.content_type, record.width, record.height, record.bytes, record.filename,
-    record.alt, record.caption, record.credit, record.source, uploaderId, now);
+    record.alt, record.decorative, record.caption, record.credit, record.source, uploaderId, now);
   return { record, statement };
 }
 
@@ -146,16 +159,26 @@ export function parseMediaPage(raw: string | null): number | null {
   return Number.isSafeInteger(page) && page <= MEDIA_MAX_PAGE ? page : null;
 }
 
-export async function listMedia(q: string, page: number): Promise<MediaRecord[]> {
+const NEEDS_ALT_SQL = "alt = '' AND decorative = 0";
+
+/** `needsAlt` lists only images with no alt text and no decorative decision. */
+export async function listMedia(q: string, page: number, needsAlt = false): Promise<MediaRecord[]> {
   if (!Number.isSafeInteger(page) || page < 0 || page > MEDIA_MAX_PAGE) page = 0;
   const like = `%${q.toLowerCase().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
   const result = await env.DB.prepare(`
     SELECT * FROM media
-    WHERE ?1 = '' OR lower(filename || ' ' || alt || ' ' || caption || ' ' || credit) LIKE ?2 ESCAPE '\\'
+    WHERE (?1 = '' OR lower(filename || ' ' || alt || ' ' || caption || ' ' || credit) LIKE ?2 ESCAPE '\\')
+      AND (?5 = 0 OR (${NEEDS_ALT_SQL}))
     ORDER BY created_at DESC, rowid DESC
     LIMIT ?3 OFFSET ?4
-  `).bind(q, like, MEDIA_PAGE_SIZE + 1, page * MEDIA_PAGE_SIZE).all<MediaRecord>();
+  `).bind(q, like, MEDIA_PAGE_SIZE + 1, page * MEDIA_PAGE_SIZE, needsAlt ? 1 : 0).all<MediaRecord>();
   return result.results;
+}
+
+/** How many library images still need an alt text decision. */
+export async function countNeedingAlt(): Promise<number> {
+  const row = await env.DB.prepare(`SELECT count(*) AS n FROM media WHERE ${NEEDS_ALT_SQL}`).first<{ n: number }>();
+  return row?.n ?? 0;
 }
 
 export async function getMedia(id: string): Promise<(MediaRecord & { uploader_name: string | null }) | null> {

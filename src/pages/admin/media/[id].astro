@@ -7,7 +7,7 @@ import { ADMIN, canAccess, requireSection } from '../../../lib/admin';
 import { IMAGE_SIZES, type ImageSize } from '../../../lib/ads';
 import { STATUS_LABELS, type EventStatus } from '../../../lib/events';
 import { sameOrigin } from '../../../lib/forum';
-import { detailsFrom, fmtBytes, getMedia, mediaAudit, mediaAuditLog, mediaUrl, mediaUsage, validateDetails, type MediaDetails } from '../../../lib/media';
+import { detailsFrom, fmtBytes, getMedia, mediaAudit, mediaAuditLog, mediaUrl, mediaUsage, needsAltDecision, validateDetails, type MediaDetails } from '../../../lib/media';
 import { AUDIT_LABELS, fmtDateTime } from '../../../lib/users';
 
 const denied = requireSection(Astro, ADMIN.media);
@@ -16,7 +16,7 @@ if (denied) return denied;
 const media = await getMedia(Astro.params.id ?? '');
 if (!media) return new Response('Image not found', { status: 404 });
 
-let values: MediaDetails = { alt: media.alt, caption: media.caption, credit: media.credit, source: media.source };
+let values: MediaDetails = { alt: media.alt, decorative: media.decorative === 1, caption: media.caption, credit: media.credit, source: media.source };
 let errors: string[] = [];
 if (Astro.request.method === 'POST') {
   if (!sameOrigin(Astro.request)) return new Response('Invalid request origin', { status: 403 });
@@ -25,13 +25,15 @@ if (Astro.request.method === 'POST') {
   values = detailsFrom(form);
   errors = validateDetails(values);
   if (!errors.length) {
-    const LABELS: Record<keyof MediaDetails, string> = { alt: 'Alt text', caption: 'Caption', credit: 'Credit', source: 'Source' };
-    const changed = (Object.keys(LABELS) as (keyof MediaDetails)[]).filter((k) => values[k] !== media[k]);
-    if (!changed.length) return Astro.redirect(`/admin/media/${media.id}?notice=unchanged`, 303);
+    const LABELS = { alt: 'Alt text', caption: 'Caption', credit: 'Credit', source: 'Source' } as const;
+    const fields = (Object.keys(LABELS) as (keyof typeof LABELS)[]).filter((k) => values[k] !== media[k]).map((k) => LABELS[k]);
+    // The decorative choice is logged in its own words, so the history records the editorial decision itself.
+    const decision = values.decorative === (media.decorative === 1) ? '' : values.decorative ? 'marked decorative' : 'no longer decorative';
+    if (!fields.length && !decision) return Astro.redirect(`/admin/media/${media.id}?notice=unchanged`, 303);
     await env.DB.batch([
-      env.DB.prepare('UPDATE media SET alt = ?, caption = ?, credit = ?, source = ?, updated_at = ? WHERE id = ?')
-        .bind(values.alt, values.caption, values.credit, values.source, Date.now(), media.id),
-      mediaAudit(Astro.locals.user!, media, 'media-update', `${changed.map((k) => LABELS[k]).join(', ')} changed`),
+      env.DB.prepare('UPDATE media SET alt = ?, decorative = ?, caption = ?, credit = ?, source = ?, updated_at = ? WHERE id = ?')
+        .bind(values.alt, values.decorative ? 1 : 0, values.caption, values.credit, values.source, Date.now(), media.id),
+      mediaAudit(Astro.locals.user!, media, 'media-update', [fields.length && `${fields.join(', ')} changed`, decision].filter(Boolean).join('; ')),
     ]);
     return Astro.redirect(`/admin/media/${media.id}?notice=saved`, 303);
   }
@@ -42,6 +44,7 @@ const inUse = usage.stories.length + usage.ads.length + usage.events.length;
 const url = mediaUrl(media.object_key);
 const markdown = `![${media.alt.replace(/[[\]\n]/g, ' ')}](${url})`;
 const canSeeAds = canAccess(Astro.locals.staffRole, ADMIN.ads);
+const undecided = needsAltDecision(media);
 const NOTICES: Record<string, string> = { uploaded: 'Image uploaded.', saved: 'Details saved.', unchanged: 'Nothing changed.' };
 const notice = NOTICES[Astro.url.searchParams.get('notice') ?? ''];
 const inUseError = Astro.url.searchParams.get('error') === 'in-use';
@@ -51,12 +54,13 @@ const inUseError = Astro.url.searchParams.get('error') === 'in-use';
   <span class="eyebrow" style="display:block;margin-top:1.5rem">Media</span>
   <h1 class="filename">{media.filename}</h1>
   {notice && <p class="message ok" role="status">{notice}</p>}
+  {undecided && <p class="message" role="alert">This image has no alt text and hasn’t been marked decorative. Describe it below, or mark it decorative, before it goes in another story.</p>}
   {inUseError && <p class="message" role="alert">This image is still in use, so it wasn’t deleted. Remove it from the stories, ads and events below first.</p>}
 
   <div class="layout">
     <div class="main">
       <figure class="preview card">
-        <img src={url} alt={media.alt} width={media.width} height={media.height} />
+        <img src={url} alt={media.decorative ? '' : media.alt} width={media.width} height={media.height} />
         {(media.caption || media.credit) && <figcaption>{media.caption} <span class="credit">{media.credit}</span></figcaption>}
       </figure>
 
@@ -65,7 +69,8 @@ const inUseError = Astro.url.searchParams.get('error') === 'in-use';
         {errors.length > 0 && <div class="message" role="alert"><strong>Please fix:</strong><ul style="margin:.4rem 0 0">{errors.map((e) => <li>{e}</li>)}</ul></div>}
         <form class="form" method="post">
           <label>Credit <span class="hint">Shown with the image.</span><input name="credit" value={values.credit} required minlength="2" maxlength="120" /></label>
-          <label>Alt text <span class="hint">Describes the image for screen readers. A story can override it for one use.</span><input name="alt" value={values.alt} maxlength="300" /></label>
+          <label>Alt text <span class="hint">Describes the image for screen readers. Required unless the image is decorative. A story can override it for one use.</span><input name="alt" value={values.alt} maxlength="300" disabled={values.decorative && !values.alt} /></label>
+          <label class="check"><input type="checkbox" name="decorative" checked={values.decorative} /><span>This image is decorative <span class="hint">It adds nothing a reader would miss, so screen readers skip it. Don’t tick this for a photo that illustrates a story.</span></span></label>
           <label>Caption <span class="hint">Shown under the image in stories.</span><textarea name="caption" maxlength="500" style="min-height:80px">{values.caption}</textarea></label>
           <label>Source &amp; permission <span class="hint">Staff only.</span><textarea name="source" maxlength="1000" style="min-height:80px">{values.source}</textarea></label>
           <div><button class="button small" type="submit"><Check />Save details</button></div>
@@ -117,6 +122,9 @@ const inUseError = Astro.url.searchParams.get('error') === 'in-use';
 </AdminLayout>
 
 <script>
+  const decorative = document.querySelector<HTMLInputElement>('input[name=decorative]');
+  const alt = document.querySelector<HTMLInputElement>('input[name=alt]');
+  decorative?.addEventListener('change', () => { if (alt) { alt.disabled = decorative.checked; if (decorative.checked) alt.value = ''; } });
   document.getElementById('copy')?.addEventListener('click', async (event) => {
     const input = document.getElementById('markdown') as HTMLInputElement;
     const button = event.currentTarget as HTMLButtonElement;
@@ -139,6 +147,8 @@ const inUseError = Astro.url.searchParams.get('error') === 'in-use';
   .preview img { display: block; max-width: 100%; height: auto; max-height: 520px; object-fit: contain; margin: auto; background: repeating-conic-gradient(var(--line-soft) 0 25%, #fff 0 50%) 0 0 / 16px 16px; }
   .preview figcaption { margin-top: .6rem; font-size: .9rem; color: var(--slate); }
   .credit { color: var(--slate); font-size: .82rem; }
+  .check { display: flex; gap: .6rem; align-items: start; }
+  .check input { margin-top: .3rem; }
   .hint { font-weight: 400; color: var(--slate); font-size: .8rem; }
   dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .45rem 1rem; margin: 0 0 1rem; font-size: .9rem; }
   dt { font-weight: 700; color: var(--slate); }

@@ -50,6 +50,7 @@ const { id = 'media-picker' } = Astro.props;
   .grid :global(img) { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--shoal-2); border-radius: 2px; }
   .grid :global(.name) { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .grid :global(.dims) { color: var(--slate); }
+  .grid :global(.needs-alt) { color: var(--warn); font-weight: 700; }
   .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   .load-error { margin-bottom: 1rem; color: var(--deep); }
   .load-error p { margin: 0 0 .5rem; font-weight: 700; }

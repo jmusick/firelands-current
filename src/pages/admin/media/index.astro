@@ -3,18 +3,19 @@ import { ChevronLeft, ChevronRight, Upload } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import MediaUploadForm from '../../../components/MediaUploadForm.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
-import { MEDIA_PAGE_SIZE, fmtBytes, listMedia, mediaUrl, parseMediaPage } from '../../../lib/media';
+import { MEDIA_PAGE_SIZE, countNeedingAlt, fmtBytes, listMedia, mediaUrl, needsAltDecision, parseMediaPage } from '../../../lib/media';
 
 const denied = requireSection(Astro, ADMIN.media);
 if (denied) return denied;
 
 const q = (Astro.url.searchParams.get('q') ?? '').trim().slice(0, 100);
 const page = parseMediaPage(Astro.url.searchParams.get('page')) ?? 0;
-const rows = await listMedia(q, page);
+const needsAlt = Astro.url.searchParams.get('alt') === 'missing';
+const [rows, undecidedCount] = await Promise.all([listMedia(q, page, needsAlt), countNeedingAlt()]);
 const items = rows.slice(0, MEDIA_PAGE_SIZE);
 const hasNext = rows.length > MEDIA_PAGE_SIZE;
 const deleted = Astro.url.searchParams.get('deleted');
-const pageUrl = (p: number) => `/admin/media?${new URLSearchParams({ ...(q && { q }), ...(p && { page: String(p) }) })}`;
+const pageUrl = (p: number) => `/admin/media?${new URLSearchParams({ ...(q && { q }), ...(needsAlt && { alt: 'missing' }), ...(p && { page: String(p) }) })}`;
 ---
 <AdminLayout title="Media">
   <div style="display:flex;justify-content:space-between;align-items:end;gap:1rem;flex-wrap:wrap">
@@ -24,13 +25,16 @@ const pageUrl = (p: number) => `/admin/media?${new URLSearchParams({ ...(q && { 
   <p class="muted" style="max-width:760px;margin-top:0">Every image used in stories and ads. Each one carries a credit, shown with it on the site, and a staff-only note on where it came from and who allowed its use.</p>
   {deleted && <p class="message" role="status">Deleted {deleted}.</p>}
 
+  {undecidedCount > 0 && !needsAlt && <p class="message" role="status">{undecidedCount} {undecidedCount === 1 ? 'image needs' : 'images need'} alt text or a decorative decision. <a href="/admin/media?alt=missing">Show {undecidedCount === 1 ? 'it' : 'them'}</a></p>}
+
   <form class="filters" method="get" action="/admin/media">
     <input name="q" type="search" value={q} placeholder="Search file name, alt text, caption or credit…" aria-label="Search media" />
+    <label class="only"><input type="checkbox" name="alt" value="missing" checked={needsAlt} />Needs alt text</label>
     <button class="button small" type="submit">Search</button>
-    {q && <a href="/admin/media">Clear</a>}
+    {(q || needsAlt) && <a href="/admin/media">Clear</a>}
   </form>
 
-  {items.length === 0 ? <div class="card"><p class="muted" style="margin:0">{q ? 'No images match that search.' : 'No images yet. Upload the first one below.'}</p></div> :
+  {items.length === 0 ? <div class="card"><p class="muted" style="margin:0">{q || needsAlt ? (needsAlt ? 'No images need alt text' + (q ? ' that match that search.' : '. Every image has alt text or is marked decorative.') : 'No images match that search.') : 'No images yet. Upload the first one below.'}</p></div> :
   <ul class="grid">
     {items.map((m) => <li>
       <a href={`/admin/media/${m.id}`}>
@@ -38,6 +42,7 @@ const pageUrl = (p: number) => `/admin/media?${new URLSearchParams({ ...(q && { 
         <span class="name">{m.filename}</span>
         <span class="meta">{m.width}×{m.height} · {fmtBytes(m.bytes)}</span>
         <span class="meta credit">{m.credit}</span>
+        {needsAltDecision(m) && <span class="badge">Needs alt text</span>}
       </a>
     </li>)}
   </ul>}
@@ -61,6 +66,8 @@ const pageUrl = (p: number) => `/admin/media?${new URLSearchParams({ ...(q && { 
 </script>
 
 <style>
+  .only { display: flex; align-items: center; gap: .35rem; font-size: .9rem; }
+  .badge { justify-self: start; font-size: .75rem; font-weight: 700; padding: .1rem .45rem; border-radius: 3px; border: 1px solid var(--alert-line); color: var(--warn); background: var(--paper); }
   .filters { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 1.25rem 0 1rem; }
   .grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1rem; }
   .grid a { display: grid; gap: .25rem; padding: .5rem; border: 1px solid var(--line-soft); border-radius: 4px; background: var(--paper); color: inherit; text-decoration: none; min-width: 0; }
