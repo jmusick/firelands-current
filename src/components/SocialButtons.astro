@@ -36,7 +36,7 @@ const ICONS: Record<SocialProvider, string> = {
   document.querySelectorAll<HTMLButtonElement>('.social-button').forEach((button) => button.addEventListener('click', async () => {
     const provider = button.dataset.provider as 'google' | 'facebook' | 'apple' | 'microsoft';
     try {
-      const result = await authClient.signIn.social({ provider, callbackURL: '/account' });
+      const result = await authClient.signIn.social({ provider, callbackURL: '/account', newUserCallbackURL: `/account?signup=${provider}` });
       if (result.error && message) { message.textContent = result.error.message || 'Sign in with this provider failed.'; message.hidden = false; }
     } catch {
       if (message) { message.textContent = NETWORK_ERROR; message.hidden = false; }

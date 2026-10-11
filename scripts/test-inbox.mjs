@@ -74,7 +74,7 @@ test.after(() => { globalThis.fetch = realFetch; delete globalThis.__inboxEnv; }
 test('signed-out advertising inquiries email the fixed ads inbox with Reply-To and no database write', async () => {
   const response = await call();
   assert.equal(response.status, 303);
-  assert.equal(response.headers.get('Location'), 'https://firelandscurrent.com/advertise?sent=1');
+  assert.equal(response.headers.get('Location'), 'https://firelandscurrent.com/advertise?sent=1&o=1');
   assert.equal(emails.length, 1);
   assert.equal(emails[0].to, 'ads@firelandscurrent.com');
   assert.equal(emails[0].from.email, 'noreply@firelandscurrent.com');
@@ -169,9 +169,9 @@ test('when expected hostnames are configured, the hostname and action must match
   try {
     const answer = (extra) => () => Response.json({ success: true, hostname: 'firelandscurrent.com', action: 'inbox', ...extra });
     siteverify = answer({});
-    assert.match((await call()).headers.get('Location'), /sent=1$/);
+    assert.match((await call()).headers.get('Location'), /sent=1&o=1$/);
     siteverify = answer({ hostname: 'WWW.firelandscurrent.com' });
-    assert.match((await call()).headers.get('Location'), /sent=1$/);
+    assert.match((await call()).headers.get('Location'), /sent=1&o=1$/);
     assert.equal(emails.length, 2);
     for (const wrong of [{ hostname: 'attacker.invalid' }, { hostname: undefined }, { action: 'corrections' }, { action: undefined }]) {
       siteverify = answer(wrong);
@@ -192,7 +192,7 @@ test('advertising and contact send failures report an error; stored news tips st
       assert.equal(response.headers.get('Location'), `https://firelandscurrent.com${path}?error=send`);
     }
     assert.equal(stored.length, 0);
-    assert.match((await call({ kind: 'news' })).headers.get('Location'), /submit-news\?sent=1$/);
+    assert.match((await call({ kind: 'news' })).headers.get('Location'), /submit-news\?sent=1&o=1$/);
     assert.equal(stored.length, 1);
   } finally { console.error = originalError; }
 });
