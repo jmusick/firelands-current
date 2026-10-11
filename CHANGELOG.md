@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.27.4] - 2026-10-11
+
+### Changed
+
+- Password hashing now uses scrypt N=2^14, r=8, p=2: the same CPU cost as the hashes Better Auth wrote before 1.27.3, in half the memory, instead of 1.27.3's OWASP profile, which took about twice as long. The site runs on the Workers Free plan, whose 10 ms CPU budget per request even the old hash exceeds, so the higher cost made a failed sign-in more likely. The versioned `$scrypt$` format, shared implementation and upgrade-on-sign-in from 1.27.3 stay; hashes written by 1.27.3 still verify and move to the new parameters at their next sign-in (#47)
+
 ## [1.27.3] - 2026-10-11
 
 ### Security

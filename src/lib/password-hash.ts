@@ -7,20 +7,19 @@ import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
  * (emailAndPassword.password in auth.ts), and the admin Add user, Set password and /reauth paths use it
  * directly (users.ts).
  *
- * New hashes are self-describing PHC strings, `$scrypt$ln=14,r=8,p=5$<salt>$<key>` (unpadded base64), so
+ * New hashes are self-describing PHC strings, `$scrypt$ln=14,r=8,p=2$<salt>$<key>` (unpadded base64), so
  * the profile can be raised later without a migration: anything not on CURRENT is replaced the next time
  * its owner types the password (upgradePasswordHash). Hashes Better Auth wrote before this
  * (`<hex salt>:<hex key>`, scrypt N=2^14 r=16 p=1) still verify and are upgraded the same way.
  *
- * CURRENT is OWASP's scrypt profile with 16 MiB of memory (N=2^14, r=8, p=5). The README's "Password
- * hashing" section has the measured costs and why the larger-memory equivalents were not chosen.
+ * CURRENT (N=2^14, r=8, p=2) does the same CPU work as the legacy hash (2^14·16·1 = 2^14·8·2) in half the
+ * memory. The site runs on the Workers Free plan, whose 10 ms CPU budget even the legacy hash exceeds, so the
+ * work factor is held where it was rather than raised to OWASP's profiles; the README's "Password hashing"
+ * section has the measured costs. Because legacy and CURRENT checks cost the same, sign-in timing doesn't
+ * tell which accounts haven't signed in since the format change.
  */
-export const CURRENT = { ln: 14, r: 8, p: 5 } as const;
+export const CURRENT = { ln: 14, r: 8, p: 2 } as const;
 const LEGACY = { ln: 14, r: 16, p: 1 } as const;
-// Extra work after checking a legacy hash, so it costs about what a CURRENT check (or Better Auth's dummy
-// hash for an unknown email) does: 2^14·16·1 + 2^14·8·3 = 2^14·8·5. Otherwise sign-in timing would tell
-// which addresses have accounts that haven't signed in since the upgrade.
-const LEGACY_PAD = { ln: 14, r: 8, p: 3 } as const;
 const SALT_BYTES = 16;
 const KEY_BYTES = 32;
 
@@ -82,9 +81,7 @@ export async function verifyPassword({ hash, password }: { hash: string; passwor
     await derive(password, randomBytes(SALT_BYTES), CURRENT, KEY_BYTES);
     return false;
   }
-  const ok = await matches(parsed, password);
-  if (parsed.legacy) await derive(password, randomBytes(SALT_BYTES), LEGACY_PAD, KEY_BYTES);
-  return ok;
+  return matches(parsed, password);
 }
 
 /** Whether a stored hash should be replaced by a CURRENT one. */

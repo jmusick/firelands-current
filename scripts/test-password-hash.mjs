@@ -99,7 +99,7 @@ test.after(() => {
   delete globalThis.__hashTestMail;
 });
 
-const PHC = /^\$scrypt\$ln=14,r=8,p=5\$[A-Za-z0-9+/]{22}\$[A-Za-z0-9+/]{43}$/;
+const PHC = /^\$scrypt\$ln=14,r=8,p=2\$[A-Za-z0-9+/]{22}\$[A-Za-z0-9+/]{43}$/;
 const LEGACY = /^[0-9a-f]{32}:[0-9a-f]{128}$/;
 let addresses = 0;
 const freshIp = () => { assert.ok(++addresses < 255); return `192.0.2.${addresses}`; };
@@ -134,7 +134,7 @@ async function account(id, password, { hash, role, verified = true } = {}) {
 
 test('hash format and verification', async (t) => {
   await t.test('new hashes are self-describing scrypt at the current profile, salted, and verify', async () => {
-    assert.deepEqual({ ...CURRENT }, { ln: 14, r: 8, p: 5 });
+    assert.deepEqual({ ...CURRENT }, { ln: 14, r: 8, p: 2 });
     const one = await hashPassword('a perfectly ordinary passphrase');
     const two = await hashPassword('a perfectly ordinary passphrase');
     assert.match(one, PHC);
