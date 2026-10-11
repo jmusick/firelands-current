@@ -52,7 +52,7 @@ For the October artist campaigns, `node scripts/ad-creatives/2026-10-artists/pre
 - Accessibility statement at `/accessibility`, linked from the footer and listed in the sitemap. It gives the feedback route (the contact form and contact@firelandscurrent.com), states WCAG 2.2 AA as a goal without claiming conformance, and lists tested support and known limitations. Update it, including its "last reviewed" date, when accessibility testing (issue #26) is done or a limitation changes
 - Terms of Service at `/terms`, linked from the footer and the registration page. It covers accounts, community posting and moderation, and advertising, and names Ohio law; have counsel review it before relying on it
 - Privacy Policy at `/privacy`, linked from the footer and the registration page. It describes exactly what the site collects (accounts, sessions, posts, Google Analytics, Cloudflare Web Analytics, ad counts), so update it whenever that changes
-- Admin panel at `/admin` (dashboard, News editor, news tips, events calendar, media library, Talk of the Town moderation, users, businesses, ads) gated by staff roles
+- Admin panel at `/admin` (dashboard, News editor, news tips, events calendar, community links, media library, Talk of the Town moderation, users, businesses, ads) gated by staff roles
 - On phones the main navigation folds into a Menu button in the masthead
 - Public and admin pages start with a keyboard-focusable “Skip to main content” link, visible on focus, that bypasses navigation and any header advertising.
 
@@ -91,7 +91,7 @@ The admin panel at `/admin` is available to users with a row in `staff_roles`:
 | Role | Access |
 | --- | --- |
 | `admin` | Every admin section, including Users, Businesses, and Ads; can delete stories and events |
-| `editor` | News, Facebook, News tips, Corrections, Events, and Media |
+| `editor` | News, Facebook, News tips, Corrections, Events, Community links, and Media |
 | `moderator` | Talk of the Town |
 
 Sections and the roles allowed in each are listed in `src/lib/admin.ts`; a new content area (classifieds, jobs, …) adds an entry there. Once one administrator exists, roles are managed at `/admin/users`. To create the first administrator, register the account, then:
@@ -323,6 +323,14 @@ Administrators group accounts under businesses at `/admin/businesses`: the Firel
 Add members from the business page by account email, or from a user's page. The user list filters by business. Archive former clients instead of deleting them: archived businesses keep their members and history but drop out of pickers. Deleting a business removes only the business and its member list, never the accounts.
 
 Business membership is separate from staff roles. Membership records who someone works for, and staff roles still decide who can use the admin panel. The owner/member distinction is groundwork for a future area where businesses manage their own ads and people.
+
+## Community links
+
+The public directory at `/links` groups official resources by county, then city, village, or township, with countywide resources first. It covers Erie, Ottawa, Sandusky, Huron, Lorain, and Seneca counties. It includes government, chambers of commerce, police, fire/EMS, libraries, sheriffs, public health, parks, and elections; individual businesses do not belong in this directory. Links appear in the main navigation and the directory is in the sitemap.
+
+Editors and administrators manage entries at `/admin/links`: add, search/filter, edit, publish, return to draft, and delete with a typed confirmation. A blank community means countywide. Use consistent community names; suggestions come from existing entries, and spelling is preserved when a name differs only in capitalization. A resource serving communities in multiple counties can have an entry in each relevant county. Drafts remain staff-only. Published links require a real last-checked date on or before today; editors must verify the organization’s official destination before publishing and refresh that date when reviewing a link. Only HTTP(S) URLs without embedded credentials are accepted. Each creation, edit, publication change, and deletion is recorded in the admin audit log.
+
+Migration `0032_community_links.sql` creates the directory; `0033_community_links_initial.sql` adds the initial official destinations checked October 11, 2026. Apply both migrations to production before deploying the feature. The initial list is a starting collection, not a complete inventory of every department or community. Expand it through the admin section and review links periodically. Run `npm run test:links` for isolated CRUD, validation, grouping, publication, and audit regressions; `npm run test:authorization` covers roles, suspension, and cross-origin requests. These tests do not modify the local content database.
 
 ## Events calendar
 

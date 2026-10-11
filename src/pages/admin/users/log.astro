@@ -13,7 +13,7 @@ const entries = await listAudit(200);
   <a class="back" href="/admin/users"><ArrowLeft />All users</a>
   <span class="eyebrow" style="display:block;margin-top:1.5rem">Users</span>
   <h1>Activity log</h1>
-  <p class="muted">The 200 most recent changes staff made to user accounts, businesses, ads, media, stories, events, discussions, corrections, news tips and Facebook posting records, and attempts by signed-in accounts to use admin tools their role doesn't allow. Entries are kept indefinitely and only administrators can see this page.</p>
+  <p class="muted">The 200 most recent changes staff made to user accounts, businesses, ads, media, stories, events, community links, discussions, corrections, news tips and Facebook posting records, and attempts by signed-in accounts to use admin tools their role doesn't allow. Entries are kept indefinitely and only administrators can see this page.</p>
   {entries.length === 0 ? <div class="card"><p class="muted" style="margin:0">No changes yet.</p></div> :
   <div class="table-wrap"><table>
     <thead><tr><th>When</th><th>Staff</th><th>Action</th><th>About</th></tr></thead>

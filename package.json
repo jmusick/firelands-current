@@ -1,6 +1,6 @@
 {
   "name": "firelands-current",
-  "version": "1.28.0",
+  "version": "1.29.0",
   "private": true,
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
@@ -29,6 +29,7 @@
     "test:csp-report": "node --test scripts/test-csp-report.mjs",
     "test:news": "node --test scripts/test-news.mjs",
     "test:events": "node --test scripts/test-events.mjs",
+    "test:links": "node --test scripts/test-links.mjs",
     "test:inbox": "node --test scripts/test-inbox.mjs",
     "test:audit": "node --test scripts/test-audit.mjs",
     "test:corrections": "node --test scripts/test-corrections.mjs",

@@ -1,0 +1,51 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { LINK_TYPES, groupLinks, listLinks } from '../lib/links';
+const groups = groupLinks(await listLinks(true));
+const description = 'Official government, police, fire, library, and chamber of commerce websites for Sandusky and the Firelands, organized by county and community.';
+const checkedDate = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'America/New_York' });
+---
+<BaseLayout title="Community links" description={description}>
+  <div class="wrap directory">
+    <header class="directory-intro"><h1>Community links</h1><p class="lede">Find your local government, public services, libraries, and chambers of commerce.</p><p>Official websites for the places we cover, organized by county and then community. Countywide resources appear first. This directory does not include individual businesses.</p></header>
+    {groups.length ? <>
+      <nav class="county-nav" aria-label="Jump to county">{groups.map((group) => <a href={`#${group.county}`}>{group.name}</a>)}</nav>
+      {groups.map((group) => <section class="county" aria-labelledby={group.county}>
+        <h2 id={group.county}>{group.name}</h2>
+        <div class="communities">{group.places.map((place) => <section class="community" aria-labelledby={`${group.county}-${encodeURIComponent(place.community || 'countywide')}`}>
+          <h3 id={`${group.county}-${encodeURIComponent(place.community || 'countywide')}`}>{place.community || 'Countywide'}</h3>
+          <ul>{place.items.map((link) => <li>
+            <span class="link-type">{LINK_TYPES[link.category]}</span>
+            <a href={link.url} rel="external">{link.name}</a>
+            {link.description && <p>{link.description}</p>}
+            {link.checked_on && <p class="checked">Checked <time datetime={link.checked_on}>{checkedDate(link.checked_on)}</time></p>}
+          </li>)}</ul>
+        </section>)}</div>
+      </section>)}
+    </> : <p class="empty">We’re preparing the directory. Official community links will appear here as they are checked and published.</p>}
+    <p class="directory-help">Know an official resource we should include, or found a broken link? <a href="/contact">Let us know</a>.</p>
+  </div>
+</BaseLayout>
+<style>
+  .directory { padding-block: 2.5rem 3.5rem; }
+  .directory-intro { max-width: 760px; }
+  h1 { margin-top: 0; }
+  .directory-intro > p:last-child { max-width: 65ch; color: var(--slate); }
+  .county-nav { display: flex; flex-wrap: wrap; gap: .5rem .75rem; margin: 1.75rem 0 2.5rem; }
+  .county-nav a { padding: .6rem .85rem; background: var(--shoal-2); border: 1px solid var(--line); border-radius: 2px; text-decoration: none; font-weight: 600; }
+  .county-nav a:hover { background: var(--shoal); }
+  .county { margin-top: 3rem; }
+  .county h2 { border-bottom: 3px solid var(--deep); padding-bottom: .65rem; scroll-margin-top: 1rem; }
+  .communities { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.75rem 2.5rem; }
+  .community { min-width: 0; }
+  .community h3 { font-size: 1.4rem; margin: .4rem 0 0; }
+  .community ul { list-style: none; padding: 0; margin: .65rem 0 0; }
+  .community li { padding: .8rem 0; border-top: 1px solid var(--line-soft); }
+  .link-type { display: block; color: var(--slate); font-size: .85rem; margin-bottom: .15rem; }
+  .community a { display: inline-block; font-weight: 650; padding-block: .2rem; overflow-wrap: anywhere; }
+  .community p { margin: .3rem 0 0; font-size: .95rem; }
+  .community .checked { font-size: .8rem; color: var(--slate); }
+  .directory-help { margin-top: 3rem; border-top: 1px solid var(--line); padding-top: 1.25rem; }
+  @media (max-width: 950px) { .communities { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 600px) { .communities { grid-template-columns: 1fr; gap: 1rem; } .directory { padding-top: 1.5rem; } }
+</style>

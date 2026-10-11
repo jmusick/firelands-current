@@ -176,7 +176,7 @@ const gaConfig = staffRole ? { traffic_type: 'internal' } : {};
         <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav"><Menu class="icon-open" size={20} aria-hidden="true" /><X class="icon-close" size={20} aria-hidden="true" /><span class="label">Menu</span></button>
       </div>
       <nav class="nav" id="site-nav" aria-label="Main navigation"><div class="nav-inner">
-        <a href="/news" aria-current={current('/news')}>News</a><a href="/events" aria-current={current('/events')}>Events</a><a href="/talk" aria-current={current('/talk')}>Talk of the Town</a><a href="/submit-news" aria-current={current('/submit-news')}>Submit news</a>
+        <a href="/news" aria-current={current('/news')}>News</a><a href="/events" aria-current={current('/events')}>Events</a><a href="/links" aria-current={current('/links')}>Community links</a><a href="/talk" aria-current={current('/talk')}>Talk of the Town</a><a href="/submit-news" aria-current={current('/submit-news')}>Submit news</a>
         {staffRole && <a class="right" href="/admin/news">Newsroom</a>}
         {user ? <a class={staffRole ? undefined : "right"} href="/account" aria-current={current('/account')}>{user.name}</a> : <a class="right" href="/sign-in" aria-current={current('/sign-in')}>Sign in</a>}
       </div></nav>

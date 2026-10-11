@@ -196,6 +196,7 @@ export async function listAudit(limit = 100): Promise<AuditEntry[]> {
       CASE
         WHEN l.target_type = 'story' AND a.id IS NOT NULL THEN '/admin/news/' || a.id
         WHEN l.target_type = 'event' AND e.id IS NOT NULL THEN '/admin/events/' || e.id
+        WHEN l.target_type = 'link' AND cl.id IS NOT NULL THEN '/admin/links/' || cl.id
         WHEN l.target_type = 'correction' AND c.id IS NOT NULL THEN '/admin/corrections/' || c.id
         WHEN l.target_type = 'tip' AND s.id IS NOT NULL THEN '/admin/submissions/' || s.id
       END AS resource_href
@@ -205,6 +206,7 @@ export async function listAudit(limit = 100): Promise<AuditEntry[]> {
     LEFT JOIN media m ON m.id = l.target_media_id
     LEFT JOIN news_articles a ON l.target_type = 'story' AND a.id = l.target_id
     LEFT JOIN events e ON l.target_type = 'event' AND e.id = l.target_id
+    LEFT JOIN community_links cl ON l.target_type = 'link' AND cl.id = l.target_id
     LEFT JOIN corrections c ON l.target_type = 'correction' AND c.id = l.target_id
     LEFT JOIN news_submissions s ON l.target_type = 'tip' AND s.id = l.target_id
     ORDER BY l.created_at DESC, l.rowid DESC LIMIT ?
@@ -304,6 +306,12 @@ export const AUDIT_LABELS: Record<string, string> = {
   'event-cancel': 'Cancelled event',
   'event-delete': 'Deleted event',
   'event-save': 'Saved an event',
+  'link-create': 'Created community link',
+  'link-update': 'Edited community link',
+  'link-publish': 'Published community link',
+  'link-unpublish': 'Returned community link to draft',
+  'link-delete': 'Deleted community link',
+  'link-save': 'Saved a community link',
   'thread-hide': 'Hid discussion',
   'thread-restore': 'Restored discussion',
   'reply-hide': 'Hid reply',

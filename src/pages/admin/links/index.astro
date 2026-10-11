@@ -1,0 +1,39 @@
+---
+import { Plus, Pencil } from '@lucide/astro';
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { ADMIN, requireSection } from '../../../lib/admin';
+import { COUNTIES, LINK_TYPES, listLinks } from '../../../lib/links';
+const denied = requireSection(Astro, ADMIN.links);
+if (denied) return denied;
+const all = await listLinks();
+const query = (Astro.url.searchParams.get('q') ?? '').trim().toLocaleLowerCase('en');
+const county = Astro.url.searchParams.get('county') ?? '';
+const status = Astro.url.searchParams.get('status') ?? '';
+const links = all.filter((link) => (!county || link.county === county) && (!status || link.status === status) &&
+  (!query || `${link.name} ${link.community} ${COUNTIES[link.county]} ${LINK_TYPES[link.category]}`.toLocaleLowerCase('en').includes(query)));
+---
+<AdminLayout title="Community links">
+  <div class="heading"><h1>Community links</h1><a href="/admin/links/new" class="button"><Plus aria-hidden="true" />New link</a></div>
+  <p>Official government, public service, library, and chamber websites. <a href="/links">View the public directory</a></p>
+  {Astro.url.searchParams.has('deleted') && <p class="message" role="status">Link deleted.</p>}
+  <form method="get" class="filters">
+    <input type="search" name="q" value={Astro.url.searchParams.get('q') ?? ''} aria-label="Search links" placeholder="Name, community, or type" />
+    <select name="county" aria-label="County"><option value="">All counties</option>{Object.entries(COUNTIES).map(([key, label]) => <option value={key} selected={county === key}>{label}</option>)}</select>
+    <select name="status" aria-label="Status"><option value="">All statuses</option><option value="draft" selected={status === 'draft'}>Draft</option><option value="published" selected={status === 'published'}>Published</option></select>
+    <button class="button secondary" type="submit">Filter</button><a href="/admin/links">Clear filters</a>
+  </form>
+  <p class="meta">{links.length} {links.length === 1 ? 'link' : 'links'}</p>
+  {links.length ? <ul class="link-list">{links.map((link) => <li>
+    <div><h2><a href={`/admin/links/${link.id}`}>{link.name}</a></h2><p class="meta">{COUNTIES[link.county]} · {link.community || 'Countywide'} · {LINK_TYPES[link.category]}</p><p class="meta">{link.status === 'published' ? 'Published' : 'Draft'} · {link.checked_on ? `Checked ${link.checked_on}` : 'Not yet checked'}</p></div>
+    <a class="button secondary small" href={`/admin/links/${link.id}`} aria-label={`Edit ${link.name}`}><Pencil aria-hidden="true" />Edit</a>
+  </li>)}</ul> : <p>{all.length ? 'No links match these filters.' : 'Add the first official community link to start the directory.'}</p>}
+</AdminLayout>
+<style>
+  .heading, .link-list li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+  .heading { flex-wrap: wrap; }
+  .link-list { list-style: none; padding: 0; }
+  .link-list li { padding: 1rem 0; border-top: 1px solid var(--line); }
+  .link-list h2 { font-size: 1.15rem; margin: 0; }
+  .link-list p { margin: .35rem 0 0; }
+  .link-list li > div { min-width: 0; overflow-wrap: anywhere; }
+</style>

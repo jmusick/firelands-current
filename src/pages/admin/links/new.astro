@@ -1,0 +1,31 @@
+---
+import { ArrowLeft } from '@lucide/astro';
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import LinkEditor from '../../../components/LinkEditor.astro';
+import { ADMIN, requireSection } from '../../../lib/admin';
+import { emptyLink, listLinks, saveLinkFromForm, type LinkValues } from '../../../lib/links';
+import { readForm } from '../../../lib/request-body';
+import { sameOrigin } from '../../../lib/forum';
+import { denyAdmin, recordDenied } from '../../../lib/audit';
+const denied = requireSection(Astro, ADMIN.links);
+if (denied) {
+  if (Astro.request.method === 'POST') await recordDenied(Astro.locals.user, Astro.request, 'link-save', 'role', Astro.locals.staffRole);
+  return denied;
+}
+let values: LinkValues = { ...emptyLink };
+let errors: string[] = [];
+if (Astro.request.method === 'POST') {
+  if (!sameOrigin(Astro.request)) return denyAdmin(Astro.locals, Astro.request, 'link-save', 'origin');
+  const form = await readForm(Astro.request);
+  if (form instanceof Response) return form;
+  const result = await saveLinkFromForm(form, null, Astro.locals.user!);
+  if (result.ok) return Astro.redirect(`/admin/links/${result.id}?saved=1`, 303);
+  ({ values, errors } = result);
+}
+const communities = [...new Set((await listLinks()).map((link) => link.community).filter(Boolean))].sort();
+---
+<AdminLayout title="New community link">
+  <a class="back" href="/admin/links"><ArrowLeft aria-hidden="true" />All links</a>
+  <h1>New community link</h1>
+  <LinkEditor values={values} errors={errors} communities={communities} />
+</AdminLayout>

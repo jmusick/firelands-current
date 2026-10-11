@@ -1,0 +1,43 @@
+---
+import { Save, Trash } from '@lucide/astro';
+import { COUNTIES, LINK_TYPES, type LinkValues } from '../lib/links';
+interface Props { values: LinkValues; errors: string[]; saved?: boolean; linkId?: string; communities?: string[] }
+const { values, errors, saved = false, linkId, communities = [] } = Astro.props;
+---
+{errors.length > 0 && <div class="message" role="alert"><strong>Couldn’t save the link.</strong><ul>{errors.map((error) => <li>{error}</li>)}</ul></div>}
+{saved && <p class="message" role="status">Link saved. <a href="/links">View community links</a></p>}
+<p>Use the organization’s official website. This directory is for public services and chambers of commerce; individual businesses are not included.</p>
+<form method="post" class="form link-editor">
+  <label>Name <input name="name" value={values.name} required minlength="2" maxlength="140" /></label>
+  <label>Website <input type="url" name="url" value={values.url} required maxlength="500" placeholder="https://" /></label>
+  <div class="row">
+    <label>County <select name="county" required><option value="">Choose a county</option>{Object.entries(COUNTIES).map(([key, label]) => <option value={key} selected={values.county === key}>{label}</option>)}</select></label>
+    <label>Type <select name="category" required><option value="">Choose a type</option>{Object.entries(LINK_TYPES).map(([key, label]) => <option value={key} selected={values.category === key}>{label}</option>)}</select></label>
+  </div>
+  <label>City, village, or township <span class="hint">Leave blank for countywide resources. Use the same spelling as existing communities.</span><input name="community" value={values.community} maxlength="80" list="link-communities" /></label>
+  <datalist id="link-communities">{communities.map((community) => <option value={community} />)}</datalist>
+  <label>Description <span class="hint">Optional short explanation of what readers can find.</span><textarea name="description" maxlength="300" rows="3">{values.description}</textarea></label>
+  <div class="row">
+    <label>Last checked <span class="hint">Date you verified the official destination. Required to publish.</span><input type="date" name="checked_on" value={values.checked_on} /></label>
+    <label>Status <select name="status"><option value="draft" selected={values.status === 'draft'}>Draft</option><option value="published" selected={values.status === 'published'}>Published</option></select></label>
+  </div>
+  <div><button class="button" type="submit"><Save aria-hidden="true" />Save link</button></div>
+</form>
+{linkId && <details class="delete-link"><summary>Delete this link</summary>
+  <p>Deleting removes the link from the directory. To hide it temporarily, change its status to Draft.</p>
+  <form method="post" action="/api/admin/links" class="form">
+    <input type="hidden" name="id" value={linkId} /><input type="hidden" name="action" value="delete" />
+    <label><span>Type DELETE to confirm</span><input name="confirm" required pattern="DELETE" autocomplete="off" /></label>
+    <div><button class="button danger" type="submit"><Trash aria-hidden="true" />Delete link</button></div>
+  </form>
+</details>}
+<style>
+  .link-editor, .delete-link { max-width: 720px; }
+  .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+  .link-editor textarea { min-height: 90px; }
+  .hint { font-weight: 400; color: var(--slate); font-size: .9rem; }
+  .delete-link { margin-top: 2rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+  summary { cursor: pointer; font-weight: 600; padding-block: .5rem; }
+  .danger { background: var(--alert); border-color: var(--alert); }
+  @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+</style>

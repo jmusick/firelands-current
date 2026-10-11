@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.29.0] - 2026-10-11
+
+### Added
+
+- Community links at `/links`, organized by county and then city, village, or township, with countywide resources first. The directory starts with 54 official government, chamber, police, fire, and library entries across the coverage area and excludes individual businesses. Editors and administrators can create, edit, publish, unpublish, and delete links at `/admin/links`, with safe website validation, last-checked dates, and an audit trail. Migrations `0032_community_links.sql` and `0033_community_links_initial.sql` create and populate the directory; navigation, sitemap, operator documentation, and the Privacy Policy are updated. Isolated CRUD and authorization regressions and automated accessibility checks cover the new pages (#94)
+
 ## [1.28.0] - 2026-10-11
 
 ### Added

@@ -149,6 +149,8 @@ database.prepare(`INSERT INTO news_articles (id, slug, headline, summary, body, 
   VALUES (?, 'fixture-story', 'Fixture story', 'Summary', 'Body', 'local', 'Sandusky', 'Staff', 'published', ?, ?, ?)`).run(fx.story, now, now, now);
 database.prepare(`INSERT INTO events (id, slug, title, summary, category, starts_on, venue, community, status, created_at, updated_at)
   VALUES (?, 'fixture-event', 'Fixture event', 'Summary', 'community', '2030-01-01', 'Hall', 'Sandusky', 'published', ?, ?)`).run(fx.event, now, now);
+database.prepare(`INSERT INTO community_links (id, name, url, county, category, status, checked_on, created_at, updated_at)
+  VALUES ('link-fixture-1', 'Fixture county', 'https://example.test/', 'erie', 'government', 'published', '2026-01-01', ?, ?)`).run(now, now);
 database.prepare(`INSERT INTO media (id, object_key, content_type, width, height, bytes, filename, credit, created_at, updated_at)
   VALUES (?, 'library/fixture.png', 'image/png', 10, 10, 100, 'fixture.png', 'Fixture credit', ?, ?)`).run(fx.media, now, now);
 database.prepare(`INSERT INTO news_submissions (id, name, email, subject, body, status, created_at, updated_at)
@@ -229,7 +231,7 @@ function snapshot() {
 const SECTION_ROLES = {
   dashboard: ['admin', 'editor', 'moderator'],
   news: ['admin', 'editor'], facebook: ['admin', 'editor'], submissions: ['admin', 'editor'], corrections: ['admin', 'editor'],
-  events: ['admin', 'editor'], media: ['admin', 'editor'],
+  events: ['admin', 'editor'], links: ['admin', 'editor'], media: ['admin', 'editor'],
   talk: ['admin', 'moderator'],
   users: ['admin'], businesses: ['admin'], ads: ['admin'],
 };
@@ -257,6 +259,9 @@ const ROUTES = [
     probe: { fields: { id: 'short', action: 'corrected' } }, answer: { status: 400 } },
   { file: 'src/pages/api/admin/events.ts', path: '/api/admin/events', kind: 'staff', roles: ADMIN_ONLY, guard: 'admin-only', audit: 'event-delete',
     attacks: [{ fields: { action: 'delete', id: fx.event } }],
+    probe: { fields: { action: 'bogus' } }, answer: { status: 400 } },
+  { file: 'src/pages/api/admin/links.ts', path: '/api/admin/links', kind: 'staff', roles: SECTION_ROLES.links, guard: 'links', audit: 'link-delete',
+    attacks: [{ fields: { action: 'delete', id: 'link-fixture-1', confirm: 'DELETE' } }],
     probe: { fields: { action: 'bogus' } }, answer: { status: 400 } },
   { file: 'src/pages/api/admin/facebook/resolve.ts', path: '/api/admin/facebook/resolve', kind: 'staff', roles: SECTION_ROLES.facebook, guard: 'facebook', audit: 'facebook-resolve',
     attacks: [{ fields: { id: fx.story, action: 'record', post_id: '1_2', checked_page: '1' } }],
@@ -395,7 +400,7 @@ test('member and open endpoints check the account and the request origin before 
 });
 
 test('every admin page checks its section before touching the database or the form', () => {
-  const sectionOf = { '': 'dashboard', ads: 'ads', businesses: 'businesses', corrections: 'corrections', events: 'events', facebook: 'facebook', media: 'media', news: 'news', submissions: 'submissions', talk: 'talk', users: 'users' };
+  const sectionOf = { '': 'dashboard', ads: 'ads', businesses: 'businesses', corrections: 'corrections', events: 'events', links: 'links', facebook: 'facebook', media: 'media', news: 'news', submissions: 'submissions', talk: 'talk', users: 'users' };
   const pages = walk('src/pages/admin').filter((path) => path.endsWith('.astro'));
   assert.ok(pages.length >= 25);
   for (const path of pages) {
@@ -616,6 +621,50 @@ test('author bios: staff set their own, only the Users section sets anyone elseâ
 });
 
 // ---- Suspended accounts, and roles that change under a live session ----
+
+test('community link pages enforce roles, suspension and origin before saving; permitted staff can create and edit', async () => {
+  const { getLink } = await import(load('src/lib/links.ts'));
+  const render = async (file, actor, method = 'GET', fields = {}, id = '', source = origin) => {
+    const path = file.endsWith('new.astro') ? '/admin/links/new' : id ? `/admin/links/${id}` : '/admin/links';
+    const request = new Request(new URL(path, origin), {
+      method, headers: { cookie: actor.cookie, ...(source ? { origin: source } : {}) },
+      ...(method === 'POST' ? { body: new URLSearchParams(fields) } : {}),
+    });
+    const context = { request, url: new URL(path, origin), params: { id }, locals: {}, redirect };
+    const page = await import(load(file, true));
+    return onRequest(context, () => page.render(context));
+  };
+  const fields = { name: 'Community fixture', url: 'https://example.test/official', county: 'erie', community: 'Sandusky',
+    category: 'library', description: '', checked_on: '2026-01-01', status: 'published' };
+  for (const file of ['src/pages/admin/links/index.astro', 'src/pages/admin/links/new.astro', 'src/pages/admin/links/[id].astro']) {
+    for (const actor of Object.values(ACTORS)) {
+      if (['admin', 'editor'].includes(actor.effective)) continue;
+      for (const method of file.endsWith('index.astro') ? ['GET'] : ['GET', 'POST']) {
+        const before = snapshot();
+        const response = await render(file, actor, method, fields, 'link-fixture-1');
+        assert.equal(response.status, actor.signedIn ? 403 : 302);
+        assert.deepEqual(snapshot(), before);
+      }
+    }
+  }
+  for (const actor of [ACTORS.editor, ACTORS.admin]) {
+    for (const file of ['src/pages/admin/links/new.astro', 'src/pages/admin/links/[id].astro']) {
+      for (const source of ['https://other.example', null]) {
+        const before = snapshot();
+        assert.equal((await render(file, actor, 'POST', fields, 'link-fixture-1', source)).status, 403);
+        assert.deepEqual(snapshot(), before);
+      }
+    }
+    const response = await render('src/pages/admin/links/new.astro', actor, 'POST', fields);
+    assert.equal(response.status, 303);
+    const id = location(response).split('/').at(-1).split('?')[0];
+    assert.equal((await getLink(id)).status, 'published');
+    assert.equal((await render('src/pages/admin/links/[id].astro', actor, 'POST', { ...fields, status: 'draft', name: 'Edited fixture' }, id)).status, 303);
+    assert.equal((await getLink(id)).name, 'Edited fixture');
+    assert.equal((await getLink(id)).status, 'draft');
+    assert.equal((await render('src/pages/admin/links/index.astro', actor)).status, 200);
+  }
+});
 
 const seen = async (cookie) => {
   const context = { url: new URL('/', origin), request: new Request(origin, { headers: { cookie } }), locals: {}, redirect };

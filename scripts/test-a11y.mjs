@@ -132,6 +132,7 @@ function pagesToScan({ ids, businessId }) {
     ['public', '/news'],
     ['public', '/news?section=government'],
     ['public', '/events'],
+    ['public', '/links'],
     ['public', '/talk'],
     ['public', '/about'],
     ['public', '/accessibility'],
@@ -161,6 +162,8 @@ function pagesToScan({ ids, businessId }) {
     ['admin', '/admin/corrections'],
     ['admin', '/admin/events'],
     ['admin', '/admin/events/new'],
+    ['admin', '/admin/links'],
+    ['admin', '/admin/links/new'],
     ['admin', '/admin/media'],
     ['admin', '/admin/talk'],
     ['admin', '/admin/users'],
@@ -171,6 +174,8 @@ function pagesToScan({ ids, businessId }) {
   );
   if (anyArticle) pages.push(['admin', `/admin/news/${anyArticle.id}`]);
   if (anyEvent) pages.push(['admin', `/admin/events/${anyEvent.id}`]);
+  const anyLink = firstRow('SELECT id FROM community_links ORDER BY updated_at DESC LIMIT 1');
+  if (anyLink) pages.push(['admin', `/admin/links/${anyLink.id}`]);
   return pages;
 }
 
