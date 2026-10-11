@@ -1,0 +1,77 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const description = 'How Firelands Current covers Sandusky and the Firelands: our coverage area, sourcing rules, bylines, corrections, and how advertising is kept apart from news.';
+
+// schema.org AboutPage for the publisher, matching the Organization data on story pages. Only facts printed on this page are included.
+const origin = Astro.url.origin;
+const jsonLd = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'AboutPage',
+  name: 'About Firelands Current',
+  description,
+  url: new URL('/about', origin).href,
+  mainEntity: {
+    '@type': 'Organization',
+    name: 'Firelands Current',
+    url: new URL('/', origin).href,
+    sameAs: ['https://www.facebook.com/people/Firelands-Current/61594659460586/', 'https://x.com/FirelandCurrent'],
+  },
+  // Keeps "</script>" in any field from closing the tag it's written into.
+}).replace(/</g, '\\u003c');
+---
+<BaseLayout title="About and editorial standards" description={description}>
+  <script slot="head" type="application/ld+json" set:html={jsonLd} />
+  <article class="policy">
+    <h1>About Firelands Current</h1>
+    <p class="lede">Firelands Current is an independent local newspaper for Sandusky, Ohio, and the communities around Sandusky Bay. We publish news, a local events calendar, and Talk of the Town, a place for readers to discuss both. This page explains how we work.</p>
+    <p>The paper is owned and operated by <a href="https://stonedragonmedia.com/">Stone Dragon Media, LLC</a>. For questions about anything on this page, use our <a href="/contact">contact form</a> or write to <a href="mailto:contact@firelandscurrent.com">contact@firelandscurrent.com</a>.</p>
+
+    <h2 id="coverage">Where we report</h2>
+    <p>Our coverage area runs from Port Clinton and Fremont east to Vermilion and Oberlin, and south to Norwalk. We give the most attention to the places closest to Sandusky.</p>
+    <ul>
+      <li><strong>Core.</strong> Sandusky, Perkins Township, Huron, Vermilion, Milan, Castalia, Berlin Heights, Bay View, Kelleys Island, and the rest of Erie County. We cover government, schools, business, public safety, and events there.</li>
+      <li><strong>Regular.</strong> Ottawa County (including Port Clinton, Oak Harbor, and Marblehead), Sandusky County (including Fremont, Clyde, and Bellevue), Huron County (including Norwalk and Monroeville), and western Lorain County (including Amherst and Oberlin). We cover significant news, county government, and events that draw people from across the area.</li>
+      <li><strong>Edge.</strong> Lorain, Elyria, and the rest of eastern Lorain County, plus northern Seneca County. We report from these places only when a story affects the Sandusky area, such as a regional employer, a road, Lake Erie, or a county-wide or state decision.</li>
+    </ul>
+    <p>Places outside these areas, including Toledo and Cleveland, appear only when the story lands here.</p>
+
+    <h2 id="reporting">How we report</h2>
+    <ul>
+      <li><strong>Original reporting from primary sources.</strong> We take facts from the source: a city, school district, county office, or agency, or the document itself. We write the story in our own words and do not reword another outlet's article. Public headlines from paywalled newspapers can point us to a topic, but we do not reuse their reporting.</li>
+      <li><strong>Links to the source.</strong> Stories link to the primary source when one is online, so readers can check it.</li>
+      <li><strong>Dates are checked on the source page.</strong> Search-engine summaries and older pages often carry the wrong year, so reporters confirm each date against the page that published it.</li>
+      <li><strong>Attribution.</strong> Claims made in an announcement are attributed to whoever made them. An award announcement or a projection does not establish that jobs were filled or work was finished.</li>
+      <li><strong>Gaps are stated.</strong> When an announcement leaves out figures or terms, the story reports the claim and says what is missing. When two official sources disagree, we report the difference.</li>
+      <li><strong>Social media and chatter are leads.</strong> Official accounts of local governments, agencies, and schools can serve as sources, and we link the agency's website or document when one exists. Posts in community groups, anonymous comments, and forum threads are leads that we confirm with an official source before reporting. We do not quote private individuals from them.</li>
+      <li><strong>Events.</strong> Anyone can create an event on social media, so we confirm the date, time, and place on the organizer's own page before listing it.</li>
+      <li><strong>Photos.</strong> Every image on the site is kept in our media library with a required credit, and we run only images that we made or have permission to use.</li>
+    </ul>
+
+    <h2 id="bylines">Bylines and authors</h2>
+    <p>Stories carry a byline. When the author has an account on the site, the byline links to a public profile listing that person's published stories, discussion topics, and replies. Contributors without an account are credited by name in text. A profile never shows an email address.</p>
+
+    <h2 id="corrections">Corrections</h2>
+    <p>Every story and event page has a "Report an inaccuracy" link. It opens a form for your name and email address, a description of what is wrong, and, if you have them, the wording you suggest and a link to a page that confirms the correct information. The form asks you to confirm you are human, and a reader can send a limited number of reports per hour.</p>
+    <p>Your report is stored and emailed to the newsroom. An editor reviews it, checks the facts, and marks it corrected or declined, with an optional note recording the decision. When a report holds up, an editor fixes the story or listing. We may email you if we need more information. Reports are not published, and our <a href="/privacy">Privacy Policy</a> explains how they are handled.</p>
+    <p>You can also reach us through the <a href="/contact">contact form</a> about a mistake you have seen anywhere on the site.</p>
+
+    <h2 id="advertising">Advertising and news</h2>
+    <p>Firelands Current sells display ads to local businesses. Ads are booked and managed in a separate part of our staff tools from the one where stories are written and edited, and only administrators can open it. Businesses that advertise do so under a separate agreement with us, described in our <a href="/terms">Terms of Service</a>.</p>
+    <p>Ads are labeled "Advertisement," or "Sponsored" with the advertiser's name for listings that sit among stories or discussions. When no ad is booked for a space, we may fill it with a notice from Firelands Current itself, labeled "From Firelands Current." Ads do not appear on forms, account pages, business dashboards, or the staff admin panel. Details for advertisers are on the <a href="/advertise">Advertise</a> page.</p>
+
+    <h2 id="discussion">Community discussion</h2>
+    <p>Every published story and event has a discussion thread in <a href="/talk">Talk of the Town</a>, and the comments under a story are the same comments shown there. Readers can also start their own discussions. You need an account to post, and comments reflect the views of their authors, not ours.</p>
+    <p>Signed-in readers can report a post to our moderators. Moderators can hide posts that break the <a href="/terms">community rules</a> in our Terms of Service and can suspend accounts. A hidden comment shows as "[removed by a moderator]," and replies to it stay visible.</p>
+
+    <h2 id="tips">Send us a tip</h2>
+    <p>Know something happening in Sandusky or the Firelands? Use <a href="/submit-news">Submit news</a> or write to <a href="mailto:news@firelandscurrent.com">news@firelandscurrent.com</a>. Tips go to the newsroom and are not published. We may use the facts in a tip to report a story, but we will not publish your name without asking you. You can ask for a byline if your tip becomes a story.</p>
+  </article>
+</BaseLayout>
+
+<style>
+  .policy { max-width: 760px; line-height: 1.7; }
+  .policy h2 { margin-top: 2.2rem; }
+  .policy ul { padding-left: 1.3rem; }
+  .policy li + li { margin-top: .35rem; }
+</style>

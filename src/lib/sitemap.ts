@@ -9,7 +9,7 @@ const MAX_URLS = 50000;
 const MAX_NEWS_URLS = 1000;
 const NEWS_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
 
-const STATIC_PATHS = ['/', '/news', ...Object.keys(SECTIONS).map((s) => `/news?section=${s}`), '/events', '/talk', '/submit-news', '/contact', '/advertise', '/privacy', '/terms'];
+const STATIC_PATHS = ['/', '/news', ...Object.keys(SECTIONS).map((s) => `/news?section=${s}`), '/events', '/talk', '/submit-news', '/contact', '/advertise', '/about', '/privacy', '/terms'];
 
 export async function sitemapEntries(): Promise<SitemapEntry[]> {
   const [articles, events, threads] = await env.DB.batch<{ path: string; lastmod: number }>([
