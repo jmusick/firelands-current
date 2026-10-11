@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.33] - 2026-10-11
+
+### Security
+
+- Signing in with Google, Facebook, Apple or Microsoft no longer leaves that service's access, refresh or ID tokens in the account table: they are dropped on every account write, and migration `0026_clear_oauth_tokens.sql` clears the ones earlier sign-ins stored. Better Auth's token encryption is also on as a second layer. Sign-in, linking and unlinking work as before. The Privacy Policy and README describe the change, including key rotation (#48)
+
 ## [1.22.32] - 2026-10-11
 
 ### Changed
