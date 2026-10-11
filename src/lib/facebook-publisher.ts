@@ -1,3 +1,5 @@
+import { campaignUrl, FACEBOOK_STORY_SHARE } from './campaign.ts';
+
 export type FacebookConfig = {
   DB: D1Database;
   SITE_URL: string;
@@ -102,8 +104,10 @@ export async function publishFacebookStories(config: FacebookConfig, options: { 
       await finish(config, claim, claimId, 'pending', null, clock());
       continue;
     }
-    const link = `${config.SITE_URL}/news/${encodeURIComponent(story.slug)}`;
-    await config.DB.prepare('UPDATE facebook_posts SET article_url = ? WHERE article_id = ? AND claim_id = ?').bind(link, claim.article_id, claimId).run();
+    const articleUrl = `${config.SITE_URL}/news/${encodeURIComponent(story.slug)}`;
+    // The ledger keeps the canonical URL; only the link sent to Facebook carries UTM tags.
+    const link = campaignUrl(articleUrl, FACEBOOK_STORY_SHARE);
+    await config.DB.prepare('UPDATE facebook_posts SET article_url = ? WHERE article_id = ? AND claim_id = ?').bind(articleUrl, claim.article_id, claimId).run();
     let response: Response;
     let result: GraphResult;
     try {
