@@ -72,6 +72,7 @@ const portalModule = 'data:text/javascript,export const portalBusinesses = async
 const pages = {
   '/account': await import(sourceModule('src/pages/account.astro', {
     '../lib/auth': authModule, '../lib/business-portal': portalModule,
+    '../lib/bios': 'data:text/javascript,export const BIO_MAX = 600; export const getStaffBio = async () => null;',
     '../lib/auth-errors': sourceModule('src/lib/auth-errors.ts'),
   }, true)),
   '/business': await import(sourceModule('src/pages/business/index.astro', { '../../lib/business-portal': portalModule }, true)),

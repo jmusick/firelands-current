@@ -1,7 +1,9 @@
 ---
 import { env } from 'cloudflare:workers';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import BioForm from '../components/BioForm.astro';
 import Turnstile from '../components/Turnstile.astro';
+import { BIO_MAX, getStaffBio } from '../lib/bios';
 import { enabledProviders } from '../lib/auth';
 import { PASSWORD_HINT, MAX_PASSWORD, MIN_PASSWORD } from '../lib/password-policy';
 import { PROVIDER_LABELS } from '../lib/users';
@@ -16,6 +18,9 @@ const linkedProviders = new Set(linked.results.map((entry) => entry.providerId))
 const available = enabledProviders().filter((provider) => !linkedProviders.has(provider));
 const businesses = await portalBusinesses(user.id);
 const errorMessage = authErrorMessage(Astro.url.searchParams.get('error'));
+const bio = Astro.locals.staffRole ? await getStaffBio(user.id) : null;
+const bioNotice = { saved: 'Author bio saved.', cleared: 'Author bio removed.', unchanged: 'Nothing changed.' }[Astro.url.searchParams.get('bio') ?? ''];
+const bioError = Astro.url.searchParams.get('bioError') === 'too-long' ? `Keep your author bio to ${BIO_MAX} characters or fewer. Nothing was saved.` : '';
 ---
 <BaseLayout title="Your account">
   <h1>Your account</h1>
@@ -33,6 +38,12 @@ const errorMessage = authErrorMessage(Astro.url.searchParams.get('error'));
       <button class="button small" type="submit">Update display name</button>
       <p id="name-message" class="message" role="status" hidden></p>
     </form>
+    {Astro.locals.staffRole && <section style="margin-top:1.3rem" aria-labelledby="bio-heading">
+      <h3 id="bio-heading" style="margin-bottom:.6rem">Author bio</h3>
+      {bioNotice && <p class="message ok" role="status">{bioNotice}</p>}
+      {bioError && <p class="message" role="alert">{bioError}</p>}
+      <BioForm bio={bio} />
+    </section>}
     <details style="margin-top:1.3rem"><summary>Change email address</summary>
       <form id="email-form" class="form" style="margin-top:1rem">
         <label>New email address <input name="email" type="email" required maxlength="254" autocomplete="email" /></label>

@@ -1,0 +1,18 @@
+---
+import { bioParagraphs } from '../lib/bios';
+
+// A staff member's bio as escaped plain-text paragraphs. Renders nothing without one.
+interface Props { name: string; bio: string | null; heading?: boolean; class?: string }
+const { name, bio, heading = false, class: className } = Astro.props;
+const paragraphs = bio ? bioParagraphs(bio) : [];
+---
+{paragraphs.length > 0 && <aside class:list={['author-bio', className]} aria-label={`About ${name}`}>
+  {heading && <h2>About {name}</h2>}
+  {paragraphs.map((p) => <p>{p}</p>)}
+</aside>}
+
+<style>
+  .author-bio { margin: 1rem 0 0; padding: .1rem 0 .1rem 1rem; border-left: 3px solid var(--channel); max-width: 36em; overflow-wrap: anywhere; }
+  .author-bio h2 { margin: .4rem 0 .3rem; font-size: 1.1rem; }
+  .author-bio p { margin: .5rem 0; font-family: var(--scan); font-size: .98rem; line-height: 1.5; color: #33474c; }
+</style>

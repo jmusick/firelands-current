@@ -1,5 +1,7 @@
 ---
+import AuthorBio from '../../components/AuthorBio.astro';
 import AuthorLink from '../../components/AuthorLink.astro';
+import { getStaffBio } from '../../lib/bios';
 import AdSlot from '../../components/AdSlot.astro';
 import ShareButtons from '../../components/ShareButtons.astro';
 import Comments from '../../components/Comments.astro';
@@ -15,6 +17,7 @@ if (!article) return new Response('Story not found', { status: 404 });
 await adPlanFor(Astro.request, Astro.locals, { section: article.section });
 const related = await relatedArticles(article);
 const thread = await getArticleThread(article.id, Astro.locals.user?.id ?? '');
+const authorBio = await getStaffBio(article.author_id);
 
 // Split the story into chunks with an ad between each. A break never lands right under a subheading.
 const lead = leadMedia(article);
@@ -37,6 +40,7 @@ chunks.push(blocks.slice(start).join(''));
     <h1 class="headline">{article.headline}</h1>
     <p class="lede" style="margin-top:0">{article.summary}</p>
     <p class="meta byline">By <strong><AuthorLink id={article.author_id} name={article.byline} /></strong><br />{new Date(article.published_at).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}</p>
+    <AuthorBio name={article.byline} bio={authorBio} />
     <ShareButtons url={new URL(`/news/${article.slug}`, Astro.url.origin).href} title={article.headline} />
     {lead && <Fragment set:html={figureHtml(lead, { className: 'story-figure lead', eager: true })} />}
     <div class="story">
