@@ -265,6 +265,7 @@ export const AUDIT_LABELS: Record<string, string> = {
   facebook_record: 'Recorded Facebook post',
   create: 'Created account',
   'update-profile': 'Edited profile',
+  'update-bio': 'Edited author bio',
   'set-role': 'Changed staff role',
   suspend: 'Suspended',
   unsuspend: 'Lifted suspension',

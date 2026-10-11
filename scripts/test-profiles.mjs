@@ -59,7 +59,9 @@ const { createAuth } = await loadSource('src/lib/auth.ts', {
   './reauth': modules.get('src/lib/reauth.ts'),
   './oauth-tokens': modules.get('src/lib/oauth-tokens.ts'),
 });
-function user(id, email = `${id}@example.test`) {
+await loadSource('src/lib/users.ts', { './auth': modules.get('src/lib/auth.ts'), './forum': modules.get('src/lib/forum.ts'), './password-policy': modules.get('src/lib/password-policy.ts') });
+const { getStaffBio, saveStaffBio, bioParagraphs, BIO_MAX } = await loadSource('src/lib/bios.ts', { './users': modules.get('src/lib/users.ts') });
+function user(id, email =`${id}@example.test`) {
   database.prepare('INSERT INTO user (id, name, email, emailVerified, createdAt, updatedAt) VALUES (?, ?, ?, 1, ?, ?)')
     .run(id, id, email, new Date().toISOString(), new Date().toISOString());
 }
@@ -198,6 +200,56 @@ test('account profiles, author assignment, and email verification', async (t) =>
       assert.equal(database.prepare("SELECT email FROM user WHERE id = 'jd'").get().email, 'new@example.test');
       assert.equal((await getProfile('jd')).id, 'jd');
     } finally { globalThis.fetch = originalFetch; }
+  });
+  await t.test('staff author bios are staff-only, bounded, escaped plain text, and audited when an admin edits them', async () => {
+    user('writer'); user('reader');
+    database.prepare("INSERT INTO staff_roles (user_id, role, created_at) VALUES ('writer', 'editor', 1000)").run();
+    const admin = { id: 'jd', name: 'JD' };
+    const self = { id: 'writer', name: 'writer' };
+    assert.equal(await getStaffBio('writer'), null);
+    assert.equal(await getStaffBio(null), null);
+
+    // Non-staff cannot have a bio, and nothing is stored or shown.
+    assert.equal(await saveStaffBio(admin, 'reader', 'Sneaky bio'), 'not-staff');
+    assert.equal(await saveStaffBio({ id: 'reader', name: 'reader' }, 'reader', 'Sneaky bio'), 'not-staff');
+    assert.equal(await saveStaffBio(admin, 'missing', 'Hello'), 'not-found');
+    assert.equal(database.prepare('SELECT COUNT(*) AS n FROM staff_bios').get().n, 0);
+    assert.equal(await getStaffBio('reader'), null);
+
+    // Length limit counts the normalized text; a long bio is refused, not truncated.
+    assert.equal(await saveStaffBio(self, 'writer', 'x'.repeat(BIO_MAX + 1)), 'too-long');
+    assert.equal(await getStaffBio('writer'), null);
+    assert.equal(await saveStaffBio(self, 'writer', `  ${'x'.repeat(BIO_MAX)}  `), 'saved');
+    assert.equal((await getStaffBio('writer')).length, BIO_MAX);
+    assert.throws(() => database.prepare("UPDATE staff_bios SET bio = ? WHERE user_id = 'writer'").run('x'.repeat(BIO_MAX + 1)));
+
+    // The staff member's own edits are not audited; the markup is stored as typed and split into paragraphs for escaped rendering.
+    const markup = '<script>alert(1)</script> **bold** <b>x</b>\r\n\r\n\r\n\r\nSecond\u0000 paragraph';
+    assert.equal(await saveStaffBio(self, 'writer', markup), 'saved');
+    assert.equal(database.prepare(`SELECT COUNT(*) AS n FROM admin_audit_log WHERE action = 'update-bio'`).get().n, 0);
+    const stored = await getStaffBio('writer');
+    assert.equal(stored, '<script>alert(1)</script> **bold** <b>x</b>\n\nSecond paragraph');
+    assert.deepEqual(bioParagraphs(stored), ['<script>alert(1)</script> **bold** <b>x</b>', 'Second paragraph']);
+    assert.equal(await saveStaffBio(self, 'writer', stored), 'unchanged');
+
+    // An administrator's edit is audited without the text; clearing removes the row.
+    assert.equal(await saveStaffBio(admin, 'writer', 'Covers Sandusky city hall.'), 'saved');
+    let audit = database.prepare("SELECT action, detail, target_user_id FROM admin_audit_log WHERE action = 'update-bio'").all();
+    assert.equal(audit.length, 1);
+    assert.equal(audit[0].target_user_id, 'writer');
+    assert.ok(!audit[0].detail.includes('city hall'));
+    assert.equal(await saveStaffBio(admin, 'writer', ''), 'cleared');
+    assert.equal(await getStaffBio('writer'), null);
+    assert.equal(database.prepare('SELECT COUNT(*) AS n FROM staff_bios').get().n, 0);
+
+    // A bio stops showing when the staff role is removed, and goes with the account.
+    await saveStaffBio(self, 'writer', 'Back again.');
+    database.prepare("DELETE FROM staff_roles WHERE user_id = 'writer'").run();
+    assert.equal(await getStaffBio('writer'), null);
+    database.prepare("INSERT INTO staff_roles (user_id, role, created_at) VALUES ('writer', 'editor', 1000)").run();
+    assert.equal(await getStaffBio('writer'), 'Back again.');
+    database.prepare("DELETE FROM user WHERE id = 'writer'").run();
+    assert.equal(database.prepare('SELECT COUNT(*) AS n FROM staff_bios').get().n, 0);
   });
   database.close();
 });

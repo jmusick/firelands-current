@@ -1,0 +1,14 @@
+---
+import { BIO_MAX } from '../lib/bios';
+
+// Staff author bio editor, used on /account (own bio) and /admin/users/<id> (an administrator editing a colleague's).
+interface Props { bio: string | null; userId?: string }
+const { bio, userId } = Astro.props;
+const hintId = `bio-hint-${userId ?? 'self'}`;
+---
+<form class="form" method="post" action="/api/bio">
+  {userId && <input type="hidden" name="userId" value={userId} />}
+  <label>Author bio <textarea name="bio" rows="5" maxlength={BIO_MAX} aria-describedby={hintId} style="min-height:7rem">{bio ?? ''}</textarea></label>
+  <p id={hintId} class="muted" style="margin:0">Shown publicly on the profile and under the byline on stories. Plain text, up to {BIO_MAX} characters: local experience and what you cover. Leave blank to show no bio.</p>
+  <div><button class="button small" type="submit">Save bio</button></div>
+</form>
