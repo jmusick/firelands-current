@@ -167,7 +167,7 @@ Staff accounts and your own account can't be suspended or deleted; remove the ro
 
 Privileged actions need the signed-in person to have proved who they are within the last **15 minutes** (`REAUTH_WINDOW_MS` in `src/lib/reauth.ts`): typing their password, or finishing a provider sign-in. A session's age is not enough, because it never moves and also covers sessions opened by an emailed link. Signing in with a password, finishing a provider sign-in, and changing your password all open the window, so someone who has just signed in is never asked twice. It does not slide: every privileged action inside the window uses the same confirmation, and the window ends 15 minutes after the proof.
 
-The proof is a row in `session_reauth` (migration `0025_session_reauth.sql`: `session_id` and `reauthenticated_at`, deleted with the session). A session with no row is stale. The sign-in hooks in `src/lib/auth.ts` write it, as does `POST /api/reauth`. **Apply migration `0025` to production with `npx wrangler d1 migrations apply DB --remote` before deploying this code**; without the table every sign-in fails.
+The proof is a row in `session_reauth` (migration `0025_session_reauth.sql`: `session_id` and `reauthenticated_at`, deleted with the session). A session with no row is stale. The sign-in hooks in `src/lib/auth.ts` write it, as does `POST /api/reauth`. **Apply migration `0025` to production with `npx wrangler d1 migrations apply DB --remote` before deploying this code**; without the table nobody can confirm a password, and the admin user pages and endpoints that check freshness return errors.
 
 These need it, and a stale session is redirected to `/reauth?next=<page>&reason=<action>` with nothing changed:
 
