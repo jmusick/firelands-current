@@ -50,6 +50,8 @@ async function mount(box: HTMLElement): Promise<void> {
   try { api = await loadApi(); } catch { say(MESSAGES.load); return; }
   const id = api.render(widget, {
     sitekey: box.dataset.sitekey,
+    // The normal widget is a fixed 300px wide, which overflows a 320px screen (or 400% zoom) once page and card padding are counted.
+    size: window.matchMedia('(max-width: 400px)').matches ? 'compact' : 'normal',
     action: box.dataset.action || undefined,
     callback: () => say(''),
     'expired-callback': () => say(MESSAGES.expired),
