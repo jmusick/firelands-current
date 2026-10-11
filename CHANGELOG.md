@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.29] - 2026-10-11
+
+### Security
+
+- Every HTML page now sends a Content Security Policy in report-only mode, so browsers report anything outside it without blocking it. Scripts run only with a per-response nonce plus `'strict-dynamic'` (no inline-script or eval allowance); images, fonts, connections, and frames are limited to this site, Google Analytics and Fonts, Cloudflare Web Analytics, and Turnstile; `object-src`, `base-uri`, `form-action`, and `frame-ancestors` are locked down. Violations go to `/api/csp-report`, which stores nothing and writes one redacted, rate-limited log line per distinct violation (directive, blocked origin, page path). Astro no longer inlines scripts or stylesheets. The Privacy Policy describes the reports, and the README explains how to read them and when to enforce (#7)
+
 ## [1.22.28] - 2026-10-11
 
 ### Security
