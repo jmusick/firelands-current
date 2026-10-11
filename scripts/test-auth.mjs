@@ -57,6 +57,7 @@ const authModule = sourceModule('src/lib/auth.ts', {
   './auth-rate-limit': rateLimitModule,
   './password-policy': passwordPolicyModule,
   './reauth': reauthModule,
+  './oauth-tokens': sourceModule('src/lib/oauth-tokens.ts'),
 });
 const { pruneAuthRateLimits, RATE_LIMIT_RETENTION_MS } = await import(rateLimitModule);
 const { createAuth } = await import(authModule);
