@@ -1,12 +1,21 @@
 import { readForm } from '../../../lib/request-body';
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
-import { ADMIN, canAccess } from '../../../lib/admin';
+import { ADMIN, canAccess, gainsAccess } from '../../../lib/admin';
 import { cleanText, sameOrigin } from '../../../lib/forum';
+import { passwordProblem } from '../../../lib/password-policy';
+import { isFresh, reauthPath } from '../../../lib/reauth';
 import { ROLE_LABELS, isStaffRole } from '../../../lib/staff';
-import { EMAIL, MAX_PASSWORD, MIN_PASSWORD, auditStatement, createPasswordUser, hashPassword } from '../../../lib/users';
+import { EMAIL, auditStatement, createPasswordUser, hashPassword } from '../../../lib/users';
 
 const DURATIONS: Record<string, number | null> = { '1': 1, '7': 7, '30': 30, permanent: null };
+
+// Actions that change who can do what, or who can sign in to an account. They need a password confirmed
+// within REAUTH_WINDOW_MS, so a borrowed or forgotten session can't make them. The value is the reason /reauth shows.
+const NEEDS_REAUTH: Record<string, string> = { create: 'create', 'set-role': 'role', 'set-password': 'password', delete: 'delete' };
+
+/** The error code for a password the policy refuses; 'password' is the length message the forms already have. */
+const passwordError = (problem: NonNullable<Awaited<ReturnType<typeof passwordProblem>>>) => (problem === 'length' ? 'password' : `password-${problem}`);
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const actor = locals.user;
@@ -22,14 +31,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
     for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
     return Response.redirect(url, 303);
   };
+  // A stale session is sent to confirm its password and then back to the page the action came from, where
+  // nothing has been changed yet.
+  const fresh = await isFresh(locals.session?.id);
+  const reauth = (back: string, reason: string) => Response.redirect(new URL(reauthPath(back, reason), request.url), 303);
 
   if (action === 'create') {
+    if (!fresh) return reauth('/admin/users/new', NEEDS_REAUTH.create);
     const name = cleanText(form.get('name'));
     const email = cleanText(form.get('email')).toLowerCase();
     const password = typeof form.get('password') === 'string' ? String(form.get('password')) : '';
     const role = cleanText(form.get('role'));
     if (!name || name.length > 80 || !EMAIL.test(email) || email.length > 254) return go('/admin/users/new', { error: 'profile' });
-    if (password.length < MIN_PASSWORD || password.length > MAX_PASSWORD) return go('/admin/users/new', { error: 'password' });
+    const problem = await passwordProblem(password, { email, name });
+    if (problem) return go('/admin/users/new', { error: passwordError(problem) });
     if (role && !isStaffRole(role)) return go('/admin/users/new', { error: 'role' });
     if (await env.DB.prepare('SELECT 1 FROM "user" WHERE email = ?').bind(email).first()) return go('/admin/users/new', { error: 'email-taken' });
 
@@ -56,6 +71,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const self = target.id === actor.id;
   const now = Date.now();
   const audit = (name: string, detail?: string) => auditStatement(actor, { user: target }, name, detail);
+  if (Object.hasOwn(NEEDS_REAUTH, action) && !fresh) return reauth(page, NEEDS_REAUTH[action]);
 
   switch (action) {
     case 'update-profile': {
@@ -72,6 +88,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
         verified !== target.emailVerified && `Email verified: ${verified ? 'yes' : 'no'}`,
       ].filter(Boolean);
       if (!changes.length) return go(page, { notice: 'unchanged' });
+      // A new address, or marking one verified, is a way to take over an account through password reset.
+      if ((email !== target.email || verified !== target.emailVerified) && !fresh) return reauth(page, 'profile');
       await env.DB.batch([
         env.DB.prepare('UPDATE "user" SET name = ?, email = ?, emailVerified = ?, updatedAt = ? WHERE id = ?')
           .bind(name, email, verified, new Date(now).toISOString(), target.id),
@@ -88,11 +106,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const label = (r: string | null) => (r && isStaffRole(r) ? ROLE_LABELS[r] : 'None');
       const suspended = await env.DB.prepare('SELECT 1 FROM user_suspensions WHERE user_id = ? AND (expires_at IS NULL OR expires_at > ?)').bind(target.id, now).first();
       if (role && suspended) return go(page, { error: 'suspended-role' });
+      // Anyone who gains access to more of the admin panel signs in again, so no session opened before the
+      // change carries on with new authority. Taking access away needs no sign-out: the role is read from
+      // the database on every request (src/middleware.ts), so it ends at once.
+      const elevated = gainsAccess(target.role && isStaffRole(target.role) ? target.role : null, role && isStaffRole(role) ? role : null);
+      const open = elevated
+        ? (await env.DB.prepare('SELECT COUNT(*) AS n FROM session WHERE userId = ?').bind(target.id).first<{ n: number }>())?.n ?? 0
+        : 0;
       await env.DB.batch([
         role
           ? env.DB.prepare('INSERT INTO staff_roles (user_id, role, created_at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET role = excluded.role').bind(target.id, role, now)
           : env.DB.prepare('DELETE FROM staff_roles WHERE user_id = ?').bind(target.id),
-        audit('set-role', `${label(target.role)} → ${label(role || null)}`),
+        ...(elevated ? [env.DB.prepare('DELETE FROM session WHERE userId = ?').bind(target.id)] : []),
+        audit('set-role', `${label(target.role)} → ${label(role || null)}${elevated ? `; signed out ${open} session${open === 1 ? '' : 's'}` : ''}`),
       ]);
       return go(page, { notice: 'role' });
     }
@@ -146,7 +172,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     case 'set-password': {
       const password = typeof form.get('password') === 'string' ? String(form.get('password')) : '';
       if (self) return go(page, { error: 'self-password' });
-      if (password.length < MIN_PASSWORD || password.length > MAX_PASSWORD) return go(page, { error: 'password' });
+      const problem = await passwordProblem(password, { email: target.email, name: target.name });
+      if (problem) return go(page, { error: passwordError(problem) });
       const hash = await hashPassword(password);
       const iso = new Date(now).toISOString();
       const existing = await env.DB.prepare("SELECT id FROM account WHERE userId = ? AND providerId = 'credential'").bind(target.id).first<{ id: string }>();

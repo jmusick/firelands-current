@@ -50,9 +50,13 @@ function sourceModule(path, replacements = {}, page = false) {
   return `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
 }
 const rateLimitModule = sourceModule('src/lib/auth-rate-limit.ts');
+const passwordPolicyModule = sourceModule('src/lib/password-policy.ts');
+const reauthModule = sourceModule('src/lib/reauth.ts');
 const authModule = sourceModule('src/lib/auth.ts', {
   './mail': 'data:text/javascript,export const sendPasswordResetMail = async (user, url) => globalThis.__authTestMail.push({ user, url }); export const sendVerificationMail = async () => {};',
   './auth-rate-limit': rateLimitModule,
+  './password-policy': passwordPolicyModule,
+  './reauth': reauthModule,
 });
 const { pruneAuthRateLimits, RATE_LIMIT_RETENTION_MS } = await import(rateLimitModule);
 const { createAuth } = await import(authModule);
@@ -108,6 +112,8 @@ async function resetToken() {
 }
 const originalFetch = globalThis.fetch;
 globalThis.fetch = async (url) => {
+  // The password blocklist range lookup: nothing in these fixtures is breached.
+  if (String(url).startsWith('https://api.pwnedpasswords.com/range/')) return new Response('');
   assert.equal(String(url), 'https://challenges.cloudflare.com/turnstile/v0/siteverify');
   return Response.json({ success: true });
 };

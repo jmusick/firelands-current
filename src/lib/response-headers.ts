@@ -14,7 +14,7 @@ export const PRIVATE_CACHE_CONTROL = 'private, no-store';
  * Personal pages, staff tools, every API result (including Better Auth's), and the auth forms, whose
  * HTML can carry a password-reset token or a return address.
  */
-const PRIVATE_PATHS = ['/account', '/admin', '/business', '/api', '/sign-in', '/register', '/forgot-password', '/reset-password'];
+const PRIVATE_PATHS = ['/account', '/admin', '/business', '/api', '/sign-in', '/register', '/forgot-password', '/reset-password', '/reauth'];
 
 export const isPrivatePath = (pathname: string) =>
   PRIVATE_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));

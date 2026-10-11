@@ -5,6 +5,8 @@ import { captcha } from 'better-auth/plugins';
 import { importPKCS8, SignJWT } from 'jose';
 import { d1RateLimitStorage } from './auth-rate-limit';
 import { sendPasswordResetMail, sendVerificationMail } from './mail';
+import { MAX_PASSWORD, MIN_PASSWORD, PASSWORD_MESSAGES, passwordProblem } from './password-policy';
+import { REAUTH_WINDOW_MINUTES, isFresh, recordReauth } from './reauth';
 
 async function appleClientSecret(clientId: string, teamId: string, keyId: string, privateKey: string): Promise<string> {
   const key = await importPKCS8(privateKey.replace(/\\n/g, '\n'), 'ES256');
@@ -41,6 +43,21 @@ async function refuseSuspended(session: { userId: string }): Promise<void> {
   throw new APIError('FORBIDDEN', { message: `This account is suspended${until}.`, code: 'ACCOUNT_SUSPENDED' });
 }
 
+/**
+ * Endpoints that change how an account can be signed in to or whether it exists. They need a recent
+ * password confirmation (src/lib/reauth.ts), on top of Better Auth's own 24-hour session-age check for
+ * unlinking. Better Auth has deleteUser switched off, so self-service deletion is not offered; the entry
+ * keeps it gated should that change.
+ */
+const REAUTH_PATHS = ['/link-social', '/unlink-account', '/delete-user'];
+
+/** Endpoints that choose a password, and the request-body field that carries it. */
+const PASSWORD_FIELDS: Record<string, string> = {
+  '/sign-up/email': 'password',
+  '/change-password': 'newPassword',
+  '/reset-password': 'newPassword',
+};
+
 export function createAuth() {
   if (!env.BETTER_AUTH_SECRET || !env.SITE_URL) {
     throw new Error('BETTER_AUTH_SECRET and SITE_URL must be configured');
@@ -63,17 +80,61 @@ export function createAuth() {
     baseURL: env.SITE_URL,
     secret: env.BETTER_AUTH_SECRET,
     user: { changeEmail: { enabled: true } },
-    hooks: { before: createAuthMiddleware(async (ctx) => {
-      if (ctx.path !== '/change-email') return;
-      const current = await getAuthoritativeSessionFromCtx(ctx);
-      if (!current) throw new APIError('UNAUTHORIZED', { message: 'Sign in before changing your email address.' });
-      if (Date.now() - new Date(current.session.createdAt).getTime() >= 24 * 60 * 60 * 1000) {
-        throw new APIError('FORBIDDEN', { message: 'Sign out and sign in again before changing your email address.', code: 'SESSION_NOT_FRESH' });
-      }
-    }) },
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path === '/change-email') {
+          const current = await getAuthoritativeSessionFromCtx(ctx);
+          if (!current) throw new APIError('UNAUTHORIZED', { message: 'Sign in before changing your email address.' });
+          if (Date.now() - new Date(current.session.createdAt).getTime() >= 24 * 60 * 60 * 1000) {
+            throw new APIError('FORBIDDEN', { message: 'Sign out and sign in again before changing your email address.', code: 'SESSION_NOT_FRESH' });
+          }
+        }
+        if (REAUTH_PATHS.includes(ctx.path)) {
+          // No session: the endpoint itself answers 401.
+          const current = await getAuthoritativeSessionFromCtx(ctx);
+          if (current && !(await isFresh(current.session.id))) {
+            throw new APIError('FORBIDDEN', {
+              message: `Confirm your password to continue. Your last confirmation was more than ${REAUTH_WINDOW_MINUTES} minutes ago.`,
+              code: 'REAUTH_REQUIRED',
+            });
+          }
+        }
+        if (Object.hasOwn(PASSWORD_FIELDS, ctx.path)) {
+          const body = (ctx.body ?? {}) as Record<string, unknown>;
+          const password = body[PASSWORD_FIELDS[ctx.path]];
+          // Length is Better Auth's own check (minPasswordLength, maxPasswordLength); this adds the blocklist.
+          if (typeof password !== 'string' || password.length < MIN_PASSWORD || password.length > MAX_PASSWORD) return;
+          const known = ctx.path === '/change-password' ? (await getAuthoritativeSessionFromCtx(ctx))?.user : undefined;
+          const problem = await passwordProblem(password, {
+            email: typeof body.email === 'string' ? body.email : known?.email,
+            name: typeof body.name === 'string' ? body.name : known?.name,
+          });
+          if (problem && problem !== 'length') {
+            throw new APIError('BAD_REQUEST', {
+              message: PASSWORD_MESSAGES[problem],
+              code: problem === 'breached' ? 'PASSWORD_COMPROMISED' : 'PASSWORD_TOO_PREDICTABLE',
+            });
+          }
+        }
+      }),
+      // Typing the password, or finishing a provider sign-in, opens the window for privileged actions
+      // (src/lib/reauth.ts). Sessions opened any other way, such as by an emailed link, start without it.
+      after: createAuthMiddleware(async (ctx) => {
+        if (!ctx.path.startsWith('/sign-in/') && !ctx.path.startsWith('/callback/') && ctx.path !== '/change-password') return;
+        const session = ctx.context.newSession?.session;
+        if (!session) return;
+        try {
+          await recordReauth(session.id);
+        } catch {
+          // The session simply stays stale and asks for the password before the next privileged action.
+          console.error(JSON.stringify({ event: 'reauth_record_failed' }));
+        }
+      }),
+    },
     emailAndPassword: {
       enabled: true,
-      minPasswordLength: 12,
+      minPasswordLength: MIN_PASSWORD,
+      maxPasswordLength: MAX_PASSWORD,
       // Nobody gets a session until they prove they own the address.
       requireEmailVerification: true,
       resetPasswordTokenExpiresIn: 60 * 60,
