@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.27] - 2026-10-11
+
+### Fixed
+
+- Small controls meet the WCAG 2.2 target-size minimum (24×24 CSS pixels): footer links, comment Reply/Report toggles and sort links, events month navigation and "Past events", the admin "View site" link, and a size floor on vote buttons. At 320 pixels wide (the equivalent of 400% zoom), the Turnstile check switches to its compact size so /account and the public forms no longer scroll sideways, and the media upload form and picker fit their containers. Text-only ads grow with enlarged text instead of clipping it, while image ads keep their reserved height (#25)
+
 ## [1.22.26] - 2026-10-11
 
 ### Fixed
