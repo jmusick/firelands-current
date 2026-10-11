@@ -21,6 +21,7 @@
     "test:events": "node --test scripts/test-events.mjs",
     "test:inbox": "node --test scripts/test-inbox.mjs",
     "test:corrections": "node --test scripts/test-corrections.mjs",
+    "test:quotas": "node --test scripts/test-quotas.mjs",
     "cf:types": "wrangler types",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:seed:demo": "wrangler d1 execute DB --local --file scripts/seed-demo.sql"

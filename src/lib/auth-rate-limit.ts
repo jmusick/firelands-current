@@ -4,7 +4,8 @@ type RateLimitStorage = NonNullable<NonNullable<BetterAuthOptions['rateLimit']>[
 
 /**
  * A counter whose window began this long ago has expired under every rule Better Auth applies (the
- * longest is 60 seconds), so the scheduled Worker deletes it. The privacy policy quotes this retention.
+ * longest is 60 seconds) and every public-write quota in quotas.ts (the longest is one hour), so the
+ * scheduled Worker deletes it. The privacy policy quotes this retention.
  */
 export const RATE_LIMIT_RETENTION_MS = 60 * 60 * 1000;
 
@@ -22,17 +23,27 @@ export function d1RateLimitStorage(db: D1Database): RateLimitStorage {
     async consume(key, rule) {
       const now = Date.now();
       const windowMs = rule.window * 1000;
-      const row = await db.prepare(`INSERT INTO auth_rate_limits (key, count, window_start) VALUES (?, 1, ?)
-        ON CONFLICT (key) DO UPDATE SET
-          count = CASE WHEN excluded.window_start - auth_rate_limits.window_start >= ? THEN 1 ELSE auth_rate_limits.count + 1 END,
-          window_start = CASE WHEN excluded.window_start - auth_rate_limits.window_start >= ? THEN excluded.window_start ELSE auth_rate_limits.window_start END
-        RETURNING count, window_start`)
-        .bind(key, now, windowMs, windowMs).first<{ count: number; window_start: number }>();
-      if (!row) throw new Error('Rate-limit upsert returned no row');
+      const row = await consumeRateWindow(db, key, windowMs, now);
       if (row.count <= rule.max) return { allowed: true, retryAfter: null };
-      return { allowed: false, retryAfter: Math.max(1, Math.ceil((row.window_start + windowMs - now) / 1000)) };
+      return { allowed: false, retryAfter: Math.max(1, Math.ceil((row.windowStart + windowMs - now) / 1000)) };
     },
   };
+}
+
+/**
+ * Counts one hit against `key` in a fixed window of `windowMs` and returns the running count. One upsert
+ * starts, resets, or increments the window, so concurrent callers are serialized by the database. The
+ * public-write quotas in quotas.ts count in the same table with this same statement.
+ */
+export async function consumeRateWindow(db: D1Database, key: string, windowMs: number, now = Date.now()): Promise<{ count: number; windowStart: number }> {
+  const row = await db.prepare(`INSERT INTO auth_rate_limits (key, count, window_start) VALUES (?, 1, ?)
+    ON CONFLICT (key) DO UPDATE SET
+      count = CASE WHEN excluded.window_start - auth_rate_limits.window_start >= ? THEN 1 ELSE auth_rate_limits.count + 1 END,
+      window_start = CASE WHEN excluded.window_start - auth_rate_limits.window_start >= ? THEN excluded.window_start ELSE auth_rate_limits.window_start END
+    RETURNING count, window_start`)
+    .bind(key, now, windowMs, windowMs).first<{ count: number; window_start: number }>();
+  if (!row) throw new Error('Rate-limit upsert returned no row');
+  return { count: row.count, windowStart: row.window_start };
 }
 
 /** Deletes counters too old to matter, so client IPs aren't kept longer than throttling needs them. */

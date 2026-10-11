@@ -2,6 +2,7 @@ import { readForm } from '../../lib/request-body';
 import type { APIRoute } from 'astro';
 import { cleanText, sameOrigin } from '../../lib/forum';
 import { INBOXES, isInboxKind, sendToInbox, verifyTurnstile } from '../../lib/inbox';
+import { quotaResponse, takeQuota } from '../../lib/quotas';
 import { env } from 'cloudflare:workers';
 
 const EMAIL = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
@@ -30,6 +31,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       subject.length < 3 || subject.length > 120 || body.length < 20 || body.length > 10000) {
     return back('error=invalid');
   }
+
+  const retryAfter = await takeQuota('inbox', request, locals.user?.id);
+  if (retryAfter !== null) return quotaResponse(retryAfter);
 
   const senderName = name.replace(/[\r\n]+/g, ' ');
   if (kind === 'news') {
