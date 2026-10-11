@@ -55,7 +55,7 @@ const newHref = filters.business ? `/admin/ads/new?business=${filters.business}`
     <thead><tr><th>Ad</th><th>Status</th><th>Runs</th><th>Where</th><th class="num">Impressions</th><th class="num">Clicks</th><th class="num">CTR</th></tr></thead>
     <tbody>
       {ads.map((a) => <tr>
-        <td><a class="name" href={`/admin/ads/${a.id}`}>{a.name}</a><div class="meta"><a href={`/admin/businesses/${a.business_id}`}>{a.business_name}</a>{a.business_status === 'archived' && ' (archived, not showing)'}</div></td>
+        <td><a class="name" href={`/admin/ads/${a.id}`}>{a.name}</a><div class="meta"><a class="biz" href={`/admin/businesses/${a.business_id}`}>{a.business_name}</a>{a.business_status === 'archived' && ' (archived, not showing)'}</div></td>
         <td><span class={`pill state-${a.state}`}>{STATE_LABELS[a.state]}</span></td>
         <td class="meta">{describeRun(a.starts_on, a.ends_on)}{a.impression_cap && <div>Cap {fmtNum(a.impression_cap)}</div>}</td>
         <td class="meta">{placementSummary(a.placements)}</td>
@@ -80,7 +80,8 @@ const newHref = filters.business ? `/admin/ads/new?business=${filters.business}`
   th { text-align: left; font-size: .88rem; color: var(--slate); padding: .8rem .6rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
   td { padding: .85rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
   .num { text-align: right; font-variant-numeric: tabular-nums; }
-  .name { font-weight: 700; color: var(--deep); text-decoration: none; }
+  .name { display: inline-block; padding-block: .25rem; font-weight: 700; color: var(--deep); text-decoration: none; }
+  .biz { display: inline-block; padding-block: .3rem; }
   .name:hover { color: var(--channel); text-decoration: underline; }
   .pill { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap; background: var(--shoal-2); color: var(--slate); }
   .pill.state-running { background: var(--ok-bg); color: var(--ok); }
