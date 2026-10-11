@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.24.1] - 2026-10-11
+
+### Security
+
+- Commits and pushes are now scanned for secrets with a pinned, checksum-verified Gitleaks 8.30.1. `npm run hooks:install` enables `pre-commit` and `pre-push` hooks that block on findings and fail closed when the scanner is missing, and a `Secret scan` GitHub Actions workflow scans full history on pull requests and pushes to `main`. Reports are redacted and never written to tracked files; the only allowlist entry covers made-up test-fixture secrets. Dependabot now also keeps the SHA-pinned Actions current. The README covers setup, the `--no-verify` emergency bypass, and why the build itself doesn't run the scan (#49)
+
 ## [1.24.0] - 2026-10-11
 
 ### Added
