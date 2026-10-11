@@ -163,7 +163,7 @@ const title = past ? 'Past events' : category ? `${CATEGORIES[category]} events`
   {(page > 1 || hasMore) && <nav aria-label="Event pages" class="pages"><span>{page > 1 && <a href={href({ page: page - 1 })}>← {past ? 'More recent' : 'Sooner'}</a>}</span><span>{hasMore && <a href={href({ page: page + 1 })}>{past ? 'Older' : 'Later'} →</a>}</span></nav>}
 </BaseLayout>
 
-<script is:inline>
+<script is:inline nonce={Astro.locals.cspNonce}>
   document.getElementById('community')?.addEventListener('change', function () { this.form.submit(); });
   // On a phone the month is a plain list of days, with room for every event.
   if (matchMedia('(max-width: 760px)').matches) document.querySelectorAll('details.more').forEach((d) => { d.open = true; });

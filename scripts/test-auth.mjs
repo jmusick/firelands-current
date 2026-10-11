@@ -162,7 +162,9 @@ test('password-reset recovery revokes sessions at the shared page boundary', asy
         const result = await page(path, cookie);
         assert.equal(result.response.status, 302);
         assert.match(result.response.headers.get('Location'), /^\/sign-in\?next=/);
-        assert.deepEqual(result.locals, { user: null, session: null, staffRole: null });
+        const { cspNonce, ...signedOut } = result.locals;
+        assert.deepEqual(signedOut, { user: null, session: null, staffRole: null });
+        assert.match(cspNonce, /^[A-Za-z0-9+/]{22}==$/);
       }
     }
     assert.equal((await page('/account', otherCookie)).response.status, 200);

@@ -8,6 +8,8 @@ declare namespace App {
     user: import('better-auth').User | null;
     session: import('better-auth').Session | null;
     staffRole: import('./lib/staff').StaffRole | null;
+    /** This response's Content Security Policy nonce; every `is:inline` script carries it. */
+    cspNonce: string;
   }
 }
 

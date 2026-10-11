@@ -41,10 +41,10 @@ const gaConfig = staffRole ? { traffic_type: 'internal' } : {};
     {(noindex || accountPage) && <meta name="robots" content="noindex" />}
     {!noindex && !accountPage && <link rel="canonical" href={pageUrl} />}
     <!-- Without JavaScript the phone menu can't open, so the nav stays expanded unless this runs. -->
-    <script is:inline>document.documentElement.classList.add('js');</script>
+    <script is:inline nonce={Astro.locals.cspNonce}>document.documentElement.classList.add('js');</script>
     {gaId && <>
-      <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}></script>
-      <script is:inline define:vars={{ gaId, gaConfig }}>
+      <script is:inline nonce={Astro.locals.cspNonce} async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}></script>
+      <script is:inline nonce={Astro.locals.cspNonce} define:vars={{ gaId, gaConfig }}>
         // define:vars wraps this script in a function, so gtag is set on window explicitly for later event calls.
         window.dataLayer = window.dataLayer || [];
         window.gtag = function () { dataLayer.push(arguments); };
