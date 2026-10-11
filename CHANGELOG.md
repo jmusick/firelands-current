@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.24.0] - 2026-10-11
+
+### Added
+
+- An Accessibility page at `/accessibility` gives readers a way to report barriers (the contact form or email), states WCAG 2.2 AA as a goal without claiming conformance, says what has and hasn't been tested, and lists known limitations such as the Turnstile human check and ad image descriptions. It is linked from the footer and listed in the sitemap. New newsroom guidance in `docs/accessible-publishing.md` covers image descriptions, headings, link text, tables, charts, and captions for any future audio or video (#27)
+
 ## [1.23.1] - 2026-10-11
 
 ### Changed
