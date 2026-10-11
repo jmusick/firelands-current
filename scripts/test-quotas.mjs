@@ -65,6 +65,7 @@ const quotasModule = sourceModule('src/lib/quotas.ts', { './auth-rate-limit': ra
 const forumModule = sourceModule('src/lib/forum.ts');
 const bodyModule = sourceModule('src/lib/request-body.ts');
 const inboxModule = sourceModule('src/lib/inbox.ts');
+const formErrorsModule = sourceModule('src/lib/form-errors.ts');
 // The corrections lookup needs a published story; the quota logic under test doesn't, so a fixed target stands in.
 const correctionsModule = 'data:text/javascript,' + encodeURIComponent(`
   export const correctionKind = (value) => value === 'news' || value === 'event' ? value : null;
@@ -73,7 +74,7 @@ const correctionsModule = 'data:text/javascript,' + encodeURIComponent(`
 const endpoint = (path, depth) => import(sourceModule(`src/pages/api/${path}.ts`, {
   [`${'../'.repeat(depth)}lib/request-body`]: bodyModule, [`${'../'.repeat(depth)}lib/forum`]: forumModule,
   [`${'../'.repeat(depth)}lib/quotas`]: quotasModule, [`${'../'.repeat(depth)}lib/inbox`]: inboxModule,
-  [`${'../'.repeat(depth)}lib/corrections`]: correctionsModule,
+  [`${'../'.repeat(depth)}lib/corrections`]: correctionsModule, [`${'../'.repeat(depth)}lib/form-errors`]: formErrorsModule,
 }));
 const inbox = await endpoint('inbox', 2);
 const corrections = await endpoint('corrections', 2);
@@ -260,7 +261,7 @@ test('submissions that would not be sent never use the allowance', async () => {
   const ip = freshIp();
   for (let i = 0; i < QUOTAS.inbox.max + 3; i++) {
     assert.match((await post(inbox, '/api/inbox', { ...inboxFields, website: 'spam' }, { ip })).headers.get('Location'), /sent=1$/);
-    assert.match((await post(inbox, '/api/inbox', { ...inboxFields, email: 'bad' }, { ip })).headers.get('Location'), /error=invalid$/);
+    assert.match((await post(inbox, '/api/inbox', { ...inboxFields, email: 'bad' }, { ip })).headers.get('Location'), /error=invalid&fields=email$/);
   }
   assert.equal(emails.length, 0);
   assert.equal((await post(inbox, '/api/inbox', inboxFields, { ip })).status, 303);

@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.24] - 2026-10-11
+
+### Fixed
+
+- The Contact, Submit news, Advertise, and Report an inaccuracy forms now name each problem: an error summary at the top of the form takes focus and links to each invalid field, and each field gets its own message with `aria-invalid` and `aria-describedby`. The same summary appears without JavaScript after a server-side check. What a reader typed is kept in the browser tab's session storage and restored if the form comes back with an error; it never goes into a URL, a log, or our database. Turnstile now announces when the human check expires, times out, fails, or can't load, and the sign-in, registration, password, and account forms recover from network failures with a clear message instead of a stuck button. The Privacy Policy describes the browser-side drafts (#23)
+
 ## [1.22.23] - 2026-10-11
 
 ### Security
