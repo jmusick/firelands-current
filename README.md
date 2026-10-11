@@ -29,7 +29,7 @@ For the October artist campaigns, `node scripts/ad-creatives/2026-10-artists/pre
 - Publicly readable Talk of the Town discussions; signed-in readers can start threads and reply
 - Every published story and every published or cancelled event automatically gets a Talk of the Town discussion (created when it is first published, and for existing ones by migrations `0010` and `0012`). Talk of the Town can be filtered to Stories, Events, or Community (reader-started) discussions with `/talk?type=story|event|community`. Its comments appear at the bottom of the story and on the discussion's own page; they are the same comments. The discussion is started by a sign-in-less `newsroom` account, takes its title and summary from the story, and is hidden while the story is unpublished or the event is a draft or a moderator hides it. Deleting a story or event deletes its discussion
 - Upvotes and downvotes on discussions and comments (click again to take a vote back), and comments sorted by Top, Newest, or Oldest. Comments are nested: readers reply to any comment, up to five levels deep, and each page shows 50 top-level comments with all their replies. A comment a moderator hides stays as "[removed by a moderator]" while visible replies sit below it
-- Rate limits on threads, replies, and reports
+- Rate limits on threads, replies, reports, and votes (see Public-write quotas)
 - Member reports, reviewed in the admin panel with hide/dismiss actions
 - News: section pages, story pages, and the latest stories on the homepage; story text is Markdown, with lead images and captioned photos from the media library. The coverage area, trusted sources, and editorial rules are in [docs/news-sources.md](docs/news-sources.md)
 - Local events calendar at `/events`, as a day-by-day list or a month calendar, with an upcoming-events block on the front page, event pages with an add-to-calendar file, and search-engine event data
@@ -101,6 +101,23 @@ Readers update their display name (1–80 characters), request an email change, 
 Password-reset links expire after one hour and can be used once. A successful reset signs the account out everywhere, including existing account, business, and admin sessions; the person must sign in again with the new password. Requesting a link or submitting an invalid or expired link does not sign anyone out.
 
 Better Auth throttles `/api/auth/*` by client IP address and endpoint: three sign-in, registration, password-change, or email-change requests per 10 seconds, three password-reset or verification emails per minute, and 100 requests per 10 seconds elsewhere; IPv6 addresses count per /64 network. A throttled request gets `429` and the reader sees "Too many requests"; the window does not extend while a client keeps retrying. Counts are kept per address rather than per account, so failing sign-ins against someone's email address cannot lock them out, though people sharing one address (an office or a mobile carrier) share its allowance. The address comes from Cloudflare's `CF-Connecting-IP` header, which visitors cannot set; `X-Forwarded-For` is ignored. Counters live in the D1 table `auth_rate_limits` (migration `0022_auth_rate_limits.sql`), so every Worker isolate enforces the same limit, and each request is counted and decided in one atomic upsert so concurrent requests cannot slip past it. The five-minute cron deletes counters an hour after their window starts. Limits also apply in local development. **Apply migration `0022` to production with `npx wrangler d1 migrations apply DB --remote` before deploying this code**; without the table every auth request fails.
+
+### Public-write quotas
+
+Public writes carry per-client application quotas on top of Turnstile and the honeypot. Every limit is a fixed window, and a client counts as the signed-in account when there is one, otherwise the connecting address from `CF-Connecting-IP` (IPv6 grouped by /64).
+
+| Write | Limit | Over the limit |
+| --- | --- | --- |
+| Contact, Submit news, and Advertise (shared) | 5 per hour | Plain-text `429` with `Retry-After`; nothing is stored or emailed |
+| Report an inaccuracy | 10 per hour | Same |
+| Talk votes (including changing or taking back a vote) | 60 per minute | Same |
+| New Talk discussions | 5 per hour | Back to the form with the existing "rate" message |
+| Talk replies | 3 per minute | Back to the discussion with the existing "rate" message |
+| Talk reports | 10 per hour | Plain-text `429` |
+
+The first three are counted in the `auth_rate_limits` table (keys `quota:<name>:<client>`) with the same single-statement upsert Better Auth uses, so every Worker isolate shares one count; `src/lib/quotas.ts` holds the limits. Signed-out clients are keyed by a keyed hash of the address, never the raw address. Submissions that are not sent (honeypot hits, failed human checks, invalid fields) do not use an allowance. If the counter cannot be read, the request is allowed and a `quota_unavailable` event is logged, so a database hiccup does not discard a news tip. Discussions, replies, and reports count the author's recent rows inside the `INSERT` that stores them (`INSERT ... SELECT ... WHERE (SELECT COUNT(*) ...) < limit`, then `meta.changes` is checked), so concurrent requests cannot all pass a stale count. Migration `0024_report_rate_index.sql` adds the index that keeps the report count cheap. These limits are application controls only; Cloudflare WAF and rate-limiting rules are configured outside this repository and have not been reviewed here.
+
+Run `npm run test:quotas` for the limits against an isolated in-memory database with the real migrations and endpoints, including concurrent requests for every limit, per-client separation, IPv6 grouping, forged forwarding headers, window reset, and the unavailable-counter case. No real mail is sent and the working database is untouched.
 
 Run `npm run test:auth` for password-reset and throttling regressions using the real Better Auth handlers and site middleware against an isolated in-memory database. The throttling tests send concurrent requests through separate auth instances, spoofed forwarding headers, and IPv6 addresses. The tests capture reset mail and simulate Turnstile; they do not send real mail or modify the working database.
 

@@ -41,8 +41,10 @@ const stubEnv = 'data:text/javascript,export const env = globalThis.__inboxEnv;'
 const forumModule = sourceModule('src/lib/forum.ts', { 'cloudflare:workers': stubEnv });
 const bodyModule = sourceModule('src/lib/request-body.ts');
 const inboxModule = sourceModule('src/lib/inbox.ts', { 'cloudflare:workers': stubEnv });
+// Quota counting has its own tests (test-quotas.mjs); these fixtures only model the form flow.
+const quotasStub = 'data:text/javascript,export const takeQuota = async () => null; export const quotaResponse = () => new Response(null, { status: 429 });';
 const { POST } = await import(sourceModule('src/pages/api/inbox.ts', {
-  'cloudflare:workers': stubEnv, '../../lib/forum': forumModule, '../../lib/request-body': bodyModule, '../../lib/inbox': inboxModule,
+  'cloudflare:workers': stubEnv, '../../lib/forum': forumModule, '../../lib/request-body': bodyModule, '../../lib/inbox': inboxModule, '../../lib/quotas': quotasStub,
 }));
 const newsModule = sourceModule('src/lib/news.ts', { 'cloudflare:workers': stubEnv });
 const mediaModule = sourceModule('src/lib/media.ts', { 'cloudflare:workers': stubEnv, './forum': forumModule });

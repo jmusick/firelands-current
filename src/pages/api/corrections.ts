@@ -3,6 +3,7 @@ import type { APIRoute } from 'astro';
 import { correctionKind, correctionTarget, createCorrection } from '../../lib/corrections';
 import { cleanText, sameOrigin } from '../../lib/forum';
 import { sendToInbox, verifyTurnstile } from '../../lib/inbox';
+import { quotaResponse, takeQuota } from '../../lib/quotas';
 
 const EMAIL = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
 
@@ -37,6 +38,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const target = await correctionTarget(kind, slug);
   if (!target) return new Response('Story or event not found', { status: 404 });
+
+  const retryAfter = await takeQuota('corrections', request, locals.user?.id);
+  if (retryAfter !== null) return quotaResponse(retryAfter);
 
   const id = await createCorrection({ kind, targetId: target.id, title: target.title, slug: target.slug, userId: locals.user?.id ?? null,
     name, email, details, suggestedFix, sourceUrl });

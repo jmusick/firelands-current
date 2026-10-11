@@ -2,6 +2,7 @@ import { readForm } from '../../../lib/request-body';
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { cleanText, getThread, returnPathFor, sameOrigin } from '../../../lib/forum';
+import { quotaResponse, takeQuota } from '../../../lib/quotas';
 
 export const POST: APIRoute = async ({ request, locals }) => {
   if (!locals.user) return Response.redirect(new URL('/sign-in', request.url), 303);
@@ -16,6 +17,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if ((kind !== 'thread' && kind !== 'reply') || !/^[0-9a-f-]{36}$/i.test(id) || (vote !== 'up' && vote !== 'down')) {
     return new Response('Invalid vote', { status: 400 });
   }
+
+  const retryAfter = await takeQuota('vote', request, locals.user.id);
+  if (retryAfter !== null) return quotaResponse(retryAfter);
 
   const threadId = kind === 'thread'
     ? id
