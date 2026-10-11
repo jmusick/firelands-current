@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.34] - 2026-10-11
+
+### Security
+
+- Image uploads now have their metadata stripped on the server for every accepted format, including GIFs and direct API uploads that skip the browser's redraw: EXIF, XMP, IPTC, comments, text chunks and trailing data are removed from JPEG, PNG, WebP and GIF files while pixels and colour profiles stay intact. Malformed or truncated files are refused instead of stored. If saving an upload's library record fails after the file reaches storage, the new file is removed once checks confirm nothing refers to it, so failed uploads no longer leave orphaned files. The README documents the policy per format (#54)
+
 ## [1.22.33] - 2026-10-11
 
 ### Security
