@@ -62,6 +62,8 @@ const run = (fixture, graph, now = NOW) => publishFacebookStories(fixture.config
 test('publisher request options work in the Cloudflare runtime without following redirects', async () => {
   const publisher = ts.transpileModule(readFileSync(new URL('../src/lib/facebook-publisher.ts', import.meta.url), 'utf8'),
     { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
+  const campaign = ts.transpileModule(readFileSync(new URL('../src/lib/campaign.ts', import.meta.url), 'utf8'),
+    { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
   const script = `import { publishFacebookStories } from './publisher.js';
     export default { async fetch() {
       let claimed = false;
@@ -81,7 +83,7 @@ test('publisher request options work in the Cloudflare runtime without following
       return Response.json({ ...result, requests });
     } };`;
   const runtime = new Miniflare({ workers: [{ config: { name: 'facebook-test', compatibilityDate: '2026-09-26',
-    manifest: { mainModule: 'test.js', modules: { 'test.js': { type: 'esm', contents: script }, 'publisher.js': { type: 'esm', contents: publisher } } } } }] });
+    manifest: { mainModule: 'test.js', modules: { 'test.js': { type: 'esm', contents: script }, 'publisher.js': { type: 'esm', contents: publisher }, 'campaign.ts': { type: 'esm', contents: campaign } } } } }] });
   try {
     assert.deepEqual(await (await runtime.dispatchFetch('http://localhost/')).json(), { posted: 1, paused: false, requests: 2 });
   } finally { await runtime.dispose(); }
@@ -103,7 +105,8 @@ test('success records the correct Page post; edits and republishing do not repos
   assert.equal((await run(f, graph)).posted, 1);
   const request = graph.calls[0];
   assert.equal(request.url, `https://graph.facebook.com/v26.0/${PAGE}/feed`);
-  assert.equal(request.options.body.get('link'), 'https://firelandscurrent.com/news/one');
+  assert.equal(request.options.body.get('link'), 'https://firelandscurrent.com/news/one?utm_source=facebook&utm_medium=social&utm_campaign=story_share');
+  assert.equal(f.post('one').article_url, 'https://firelandscurrent.com/news/one');
   assert.equal(request.options.body.get('message'), 'Headline one\n\nA summary for readers.');
   assert.equal(request.options.headers.Authorization, 'Bearer fake-secret');
   assert.equal(request.url.includes('fake-secret'), false);
@@ -280,4 +283,12 @@ test('resolution endpoints reject unsigned users, moderators, cross-origin reque
   assert.equal((await POST({ request: request('https://other.example'), locals })).status, 403);
   assert.equal((await POST({ request: request(null), locals })).status, 403);
   assert.equal((await POST({ request: request('https://firelandscurrent.com', false), locals })).status, 400);
+});
+
+test("campaignUrl tags links and replaces existing UTM parameters", async () => {
+  const { campaignUrl } = await import("../src/lib/campaign.ts");
+  assert.equal(campaignUrl("https://firelandscurrent.com/news/a", { source: "newsletter", medium: "email", campaign: "weekly" }),
+    "https://firelandscurrent.com/news/a?utm_source=newsletter&utm_medium=email&utm_campaign=weekly");
+  assert.equal(campaignUrl("https://firelandscurrent.com/news/a?page=2&utm_source=old", { source: "facebook", medium: "social", campaign: "story_share" }),
+    "https://firelandscurrent.com/news/a?page=2&utm_source=facebook&utm_medium=social&utm_campaign=story_share");
 });
