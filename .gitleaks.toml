@@ -1,0 +1,20 @@
+# Gitleaks configuration for Firelands Current (scanner version pinned in
+# scripts/secret-scan.mjs). Everything below is on top of the default rules.
+#
+# Exceptions must stay narrow: name the rule, the path, and the exact value
+# pattern, and say why it is safe. Never allowlist a whole directory or rule
+# to silence one finding. A real credential that was committed is rotated,
+# not allowlisted. See "Secret scanning" in README.md.
+title = "Firelands Current"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Fixture-only Better Auth secrets in the isolated Node test scripts"
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''^scripts/test-[a-z-]+\.mjs$''']
+# The tests build a throwaway env object in memory; these strings sign nothing
+# that exists outside the test process.
+regexes = ['''^[a-z-]+-regression-secret-at-least-32-characters$''']

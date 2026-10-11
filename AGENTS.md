@@ -20,6 +20,8 @@ Guidance for AI coding agents working on Firelands Current, an independent local
 | `npm run test:body` | Isolated tests for the bounded request-body readers |
 | `npm run test:preview` | Isolated regression tests for safe story previews and their endpoint |
 | `npm run test:media-metadata` | Isolated tests for upload metadata stripping and failed-upload cleanup |
+| `npm run hooks:install` | Once per clone: enable the secret-scanning pre-commit and pre-push hooks and fetch the pinned Gitleaks (bypass and details: "Secret scanning" in README.md) |
+| `npm run test:secret-scan` | Isolated tests for the secret-scanning hooks and their fail-closed paths |
 | `npm run db:migrate:local` | Apply D1 migrations to the local database under `.wrangler/` |
 | `npm run db:seed:demo` | Load fictional demo stories and discussions; only for a throwaway database (see below) |
 | `npm run cf:types` | Regenerate `worker-configuration.d.ts` from `wrangler.jsonc` |

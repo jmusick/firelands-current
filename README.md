@@ -63,6 +63,7 @@ Requires Node.js 24 or later.
 2. Copy `.dev.vars.example` to `.dev.vars` and replace `BETTER_AUTH_SECRET` with a unique, long random value. `.dev.vars` is ignored by Git.
 3. Run `npm run db:migrate:local`.
 4. Run `npm run dev` and open `http://127.0.0.1:4321`.
+5. Run `npm run hooks:install` to turn on the secret-scanning Git hooks (see [Secret scanning](#secret-scanning)).
 
 The local D1 database persists under `.wrangler/` and is separate from production. The working local database is kept matching production content, so don't load the demo seeds into it; `npm run db:seed:demo` (fictional stories and discussions) and `scripts/seed-ads-demo.sql` are only for a throwaway database. `npm run check` and `npm run build` verify the code.
 
@@ -384,6 +385,33 @@ If a security fix cannot wait, make the exception explicit and reviewed:
 2. Install once with `npm install <pkg>@<version> --ignore-scripts --min-release-age-exclude=<pkg>`. Transitive dependencies are filtered too, so also exclude any young ones the error names. Don't put exclusions in `.npmrc`.
 3. Read the `package-lock.json` diff, then run `npm run check`, `npm run build`, and the relevant `npm run test:*` scripts. The lockfile pin outlives the exception, so `.npmrc` stays unchanged.
 4. Record the package, version, and review in the pull request, and get a second look before merging.
+
+### Secret scanning
+
+Commits and pushes are scanned for committed credentials with [Gitleaks](https://github.com/gitleaks/gitleaks), pinned to one exact release (`GITLEAKS_VERSION` in `scripts/secret-scan.mjs`, chosen at least two weeks after publication). The same script serves the Git hooks, the CI workflow, and the npm scripts, and it is plain Node, so it behaves the same in PowerShell, cmd, Git Bash, and Linux.
+
+**Setup (once per clone).** Run `npm run hooks:install`. It sets `core.hooksPath` to `.githooks` (the repository's checked-in hooks) and downloads the pinned scanner. The download is checked against a SHA-256 value pinned in `scripts/secret-scan.mjs`, copied from the release's official `gitleaks_<version>_checksums.txt` file, and is only unpacked if it matches; there is no `curl | sh`. The binary is kept in the clone's git directory (`.git/gitleaks/<version>/`), untracked and shared by every worktree of that clone. `npm run secrets:install` repeats the download on its own. If `core.hooksPath` already points somewhere else, the command stops instead of replacing it.
+
+- `pre-commit` scans the staged changes.
+- `pre-push` scans the commits the push would add (the remote's tip to the pushed commit, or everything not yet on that remote for a new branch or tag).
+- `npm run secrets:staged` and `npm run secrets:scan` run the staged and the full-history scans by hand.
+
+**Fails closed.** If Node, the scanner, or its config is missing, is the wrong version, or crashes, the commit or push is blocked with a message that says why, never waved through. Findings print the rule, file, line, and commit with the value redacted (`--redact=100`); no report file is ever written, and `gitleaks-report*` and `*.sarif` are ignored by Git in case one is made by hand. A finding means the value is exposed: remove it, **rotate it** (deleting it from the next commit does not un-leak it), and, only if it is a false positive, add a narrow exception.
+
+**Emergency bypass.** `git commit --no-verify` or `git push --no-verify` skips the hooks. Use it only when the scanner itself cannot run and the change cannot wait; CI scans the same commits afterward, so the finding still surfaces. Fix the scanner, then run `npm run secrets:scan` to confirm nothing slipped through. `GITLEAKS_BIN` can point at an operator-managed binary, but it must report exactly the pinned version.
+
+**Exceptions** live only in `.gitleaks.toml`, where they are reviewed in the diff. Each one names the rule, the path pattern, and the exact value pattern, and says why it is safe (today: the made-up `...-regression-secret-at-least-32-characters` values in `scripts/test-*.mjs`). Inline `gitleaks:allow` comments are ignored on purpose. `.dev.vars.example` needs no exception because it holds only placeholders and Cloudflare's published Turnstile test keys. A `.gitleaksignore` fingerprint file is honored by Gitleaks but should be used only for one specific, already-rotated historical finding.
+
+**CI.** `.github/workflows/secret-scan.yml` (check name `Secret scan`) runs on every pull request and every push to `main`: it checks out the full history, installs the same pinned scanner with the same checksum verification, scans every commit on every ref, and then runs `npm run test:secret-scan`. Its actions are pinned to commit SHAs, and Dependabot proposes updates to them weekly after a 14-day cooldown. Changing Gitleaks itself is a manual edit: choose a release at least two weeks old, copy the six SHA-256 values from its checksums file, and update `scripts/secret-scan.mjs`.
+
+**Deployment limit.** Cloudflare Workers Builds deploys every push to `main` on its own, without waiting for GitHub Actions, so the workflow cannot stop a deploy of a commit that is already on `main`. Two things make the scan binding:
+
+1. The pre-push hook stops the secret before it leaves the machine.
+2. A GitHub rule on `main` that requires a pull request and the `Secret scan` status check (Settings, Rules, Rulesets, or branch protection with "Do not allow bypassing the above settings") means nothing reaches `main`, and so nothing deploys, until the check has passed. This is a repository setting the owner must turn on; the workflow alone does not enforce it.
+
+The scan is deliberately not part of `npm run build`. The Workers Builds environment does not provide the scanner, so the build would need a network download on every deploy (a new way for deploys to fail), and its checkout is not guaranteed to hold the full history. A build-time scan would also run only after the secret is already on `main`, and then a failed build merely leaves the previous deploy live while the secret stays in the repository. Prevention belongs before the push and before the merge.
+
+`npm run test:secret-scan` proves the behavior in throwaway repositories under the OS temp directory: a made-up AWS-style key is blocked by both hooks without being printed, a clean change passes, and a missing, wrong-version, or crashing scanner blocks.
 
 ## Versioning
 
