@@ -2,24 +2,37 @@
 import { ArrowLeft } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
+import { tipRetentionDates } from '../../../lib/tip-retention';
 import { env } from 'cloudflare:workers';
 
 const denied = requireSection(Astro, ADMIN.submissions);
 if (denied) return denied;
 const tip = await env.DB.prepare(`SELECT s.*, u.name AS account_name FROM news_submissions s LEFT JOIN "user" u ON u.id = s.submitter_user_id WHERE s.id = ?`).bind(Astro.params.id).first<any>();
 if (!tip) return new Response('News tip not found', { status: 404 });
+const { deletesAt, anonymizesAt } = tipRetentionDates(tip);
+const day = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateStyle: 'medium' });
 ---
 <AdminLayout title={`Tip: ${tip.subject}`}>
   <a class="back" href="/admin/submissions"><ArrowLeft />All submissions</a>
   <span class="eyebrow" style="display:block;margin-top:1.5rem">News tip · {tip.status}</span><h1>{tip.subject}</h1>
-  <div class="card details"><p><strong>From:</strong> {tip.name} · <a href={`mailto:${tip.email}`}>{tip.email}</a></p><p><strong>Submitted:</strong> {new Date(tip.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p><p><strong>Account:</strong> {tip.account_name ? `${tip.account_name} (signed in)` : 'Guest'}</p><p><strong>Credit:</strong> {tip.credit_requested ? 'Requested if used' : 'Not requested'}</p><hr/><p class="body">{tip.body}</p></div>
+  <div class="card details">{tip.anonymized_at
+    ? <p><strong>From:</strong> Submitter details removed {day(tip.anonymized_at)}</p>
+    : <p><strong>From:</strong> {tip.name} · <a href={`mailto:${tip.email}`}>{tip.email}</a></p>}<p><strong>Submitted:</strong> {new Date(tip.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p>{!tip.anonymized_at && <p><strong>Account:</strong> {tip.account_name ? `${tip.account_name} (signed in)` : 'Guest'}</p>}<p><strong>Credit:</strong> {tip.credit_requested ? 'Requested if used' : 'Not requested'}</p><hr/><p class="body">{tip.body}</p></div>
   {tip.article_id && <p>This tip became <a href={`/admin/news/${tip.article_id}`}>a story</a>.</p>}
+  {deletesAt && <p class="meta">This declined tip will be deleted on or after {day(deletesAt)}.</p>}
+  {anonymizesAt && <p class="meta">The submitter’s name and email will be removed on or after {day(anonymizesAt)}; the tip itself stays as part of the reporting record.</p>}
   <div class="actions">
     {tip.status !== 'converted' && <>
       {tip.status === 'unread' && <form method="post" action="/api/admin/submissions"><input type="hidden" name="id" value={tip.id}/><input type="hidden" name="status" value="reviewed"/><button class="button secondary">Mark reviewed</button></form>}
       <form method="post" action="/api/admin/submissions"><input type="hidden" name="id" value={tip.id}/><input type="hidden" name="status" value="declined"/><button class="button secondary">Decline</button></form>
       <a class="button" href={`/admin/news/new?submission=${tip.id}`}>Convert to story</a>
     </>}
+    {!tip.anonymized_at && <form method="post" action="/api/admin/submissions" data-confirm="Remove the submitter’s name, email and account link from this tip now? The tip text stays. This can’t be undone."><input type="hidden" name="id" value={tip.id}/><input type="hidden" name="action" value="anonymize"/><button class="button secondary">Remove submitter details</button></form>}
   </div>
 </AdminLayout>
+<script is:inline nonce={Astro.locals.cspNonce}>
+  document.querySelectorAll('form[data-confirm]').forEach(function (form) {
+    form.addEventListener('submit', function (event) { if (!confirm(form.dataset.confirm)) event.preventDefault(); });
+  });
+</script>
 <style>.details { max-width:850px; margin:1rem 0; } .details p { line-height:1.6; } .body { white-space:pre-wrap; } .actions { display:flex; gap:.6rem; flex-wrap:wrap; } .actions form { margin:0; }</style>

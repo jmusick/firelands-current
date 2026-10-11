@@ -61,7 +61,7 @@ export type UserDetail = {
   providers: { providerId: string; createdAt: string }[];
   sessions: UserSession[];
   posts: UserPost[];
-  counts: { threads: number; replies: number; hidden: number; reports_filed: number; reports_against: number };
+  counts: { threads: number; replies: number; hidden: number; reports_filed: number; reports_against: number; tips_removed: number; tips_kept: number };
   audit: AuditEntry[];
 };
 
@@ -170,7 +170,9 @@ export async function getUserDetail(id: string): Promise<UserDetail | null> {
              (SELECT COUNT(*) FROM forum_reports rep
                 LEFT JOIN forum_threads t ON t.id = rep.thread_id
                 LEFT JOIN forum_replies r ON r.id = rep.reply_id
-              WHERE t.author_id = ?1 OR r.author_id = ?1) AS reports_against
+              WHERE t.author_id = ?1 OR r.author_id = ?1) AS reports_against,
+             (SELECT COUNT(*) FROM news_submissions WHERE submitter_user_id = ?1 AND status IN ('unread', 'declined')) AS tips_removed,
+             (SELECT COUNT(*) FROM news_submissions WHERE submitter_user_id = ?1 AND status IN ('reviewed', 'converted')) AS tips_kept
     `).bind(id),
     env.DB.prepare('SELECT * FROM admin_audit_log WHERE target_user_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 25').bind(id),
   ]);
@@ -314,6 +316,8 @@ export const AUDIT_LABELS: Record<string, string> = {
   'tip-reviewed': 'Marked news tip reviewed',
   'tip-declined': 'Declined news tip',
   'tip-converted': 'Converted news tip to a story',
+  'tip-anonymized': 'Removed news tip submitter details',
+  'tip-retention': 'Applied news tip retention',
   'tip-review': 'Reviewed a news tip',
   'user-admin': 'Changed a user account',
   'business-admin': 'Changed a business',

@@ -7,6 +7,7 @@ import { cleanText, sameOrigin } from '../../../lib/forum';
 import { passwordProblem } from '../../../lib/password-policy';
 import { isFresh, reauthPath } from '../../../lib/reauth';
 import { ROLE_LABELS, isStaffRole } from '../../../lib/staff';
+import { deletedAccountTipStatements } from '../../../lib/tip-retention';
 import { EMAIL, auditStatement, createPasswordUser, hashPassword } from '../../../lib/users';
 
 const DURATIONS: Record<string, number | null> = { '1': 1, '7': 7, '30': 30, permanent: null };
@@ -198,9 +199,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (self) return go(page, { error: 'self' });
       if (target.role) return go(page, { error: 'staff' });
       if (cleanText(form.get('confirm')).toLowerCase() !== target.email) return go(page, { error: 'confirm' });
-      // Threads, replies, reports, sessions and sign-in methods cascade with the user row.
+      // Threads, replies, reports, sessions and sign-in methods cascade with the user row. News tips follow
+      // the retention policy: unused ones are deleted, reviewed and converted ones stay unlinked.
+      const tips = await env.DB.prepare(`SELECT COUNT(*) AS total, COUNT(CASE WHEN status IN ('unread', 'declined') THEN 1 END) AS removed
+        FROM news_submissions WHERE submitter_user_id = ?`).bind(target.id).first<{ total: number; removed: number }>();
+      const tipDetail = tips?.total ? `News tips: ${tips.removed} deleted, ${tips.total - tips.removed} kept as reporting record` : undefined;
       await env.DB.batch([
-        audit('delete'),
+        audit('delete', tipDetail),
+        ...deletedAccountTipStatements(env.DB, target.id),
         env.DB.prepare('DELETE FROM "user" WHERE id = ?').bind(target.id),
       ]);
       return go('/admin/users', { deleted: target.email });

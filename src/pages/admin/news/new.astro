@@ -20,7 +20,9 @@ let errors: string[] = [];
 const submissionId = Astro.url.searchParams.get('submission') ?? '';
 if (submissionId && /^[\w-]{8,64}$/.test(submissionId)) {
   const tip = await env.DB.prepare("SELECT * FROM news_submissions WHERE id = ? AND status != 'converted'").bind(submissionId).first<{ id: string; name: string; subject: string; body: string; credit_requested: number }>();
-  if (tip) values = { ...values, headline: tip.subject.slice(0, 160), summary: tip.body.replace(/\s+/g, ' ').slice(0, 400), body: tip.body.slice(0, 50000), author_id: tip.credit_requested ? '' : Astro.locals.user!.id, byline: tip.credit_requested ? tip.name.slice(0, 80) : Astro.locals.user!.name };
+  // A tip whose submitter details were removed has no name left to credit.
+  const credit = Boolean(tip?.credit_requested && tip.name);
+  if (tip) values = { ...values, headline: tip.subject.slice(0, 160), summary: tip.body.replace(/\s+/g, ' ').slice(0, 400), body: tip.body.slice(0, 50000), author_id: credit ? '' : Astro.locals.user!.id, byline: credit ? tip.name.slice(0, 80) : Astro.locals.user!.name };
 }
 if (Astro.request.method === 'POST') {
   if (!sameOrigin(Astro.request)) return denyAdmin(Astro.locals, Astro.request, 'story-save', 'origin');
@@ -33,7 +35,7 @@ if (Astro.request.method === 'POST') {
     // The audit entry is written only while the tip is still unconverted, in the same batch as the conversion. No tip text or contact details.
     if (/^[\w-]{8,64}$/.test(linkedSubmission)) await env.DB.batch([
       auditRecord(Astro.locals.user!, 'tip', linkedSubmission, 'tip-converted', `Story ${result.id}`, { sql: "status != 'converted'", binds: [] }),
-      env.DB.prepare("UPDATE news_submissions SET status = 'converted', article_id = ?, updated_at = ? WHERE id = ? AND status != 'converted'").bind(result.id, Date.now(), linkedSubmission),
+      env.DB.prepare("UPDATE news_submissions SET status = 'converted', article_id = ?1, updated_at = ?2, decided_at = ?2 WHERE id = ?3 AND status != 'converted'").bind(result.id, Date.now(), linkedSubmission),
     ]);
     return Astro.redirect(`/admin/news/${result.id}?saved=1`, 303);
   }

@@ -33,6 +33,7 @@
     "test:corrections": "node --test scripts/test-corrections.mjs",
     "test:quotas": "node --test scripts/test-quotas.mjs",
     "test:secret-scan": "node --test scripts/test-secret-scan.mjs",
+    "test:tip-retention": "node --test scripts/test-tip-retention.mjs",
     "cf:types": "wrangler types",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:seed:demo": "wrangler d1 execute DB --local --file scripts/seed-demo.sql"

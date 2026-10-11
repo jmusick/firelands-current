@@ -147,6 +147,7 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
             {p.kind === 'reply' && <p>{p.excerpt}{p.excerpt.length >= 200 && '…'}</p>}
           </li>)}
         </ul>}
+        <p class="meta" style="margin-bottom:0">{counts.tips_removed + counts.tips_kept ? <><a href={`/admin/submissions?account=${user.id}`}>{counts.tips_removed + counts.tips_kept} news {counts.tips_removed + counts.tips_kept === 1 ? 'tip' : 'tips'}</a> sent while signed in.</> : 'No news tips sent while signed in.'}</p>
       </section>
 
       <section class="card">
@@ -217,7 +218,7 @@ const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];
           <summary>Delete account</summary>
           <form class="form" method="post" action="/api/admin/users" style="margin-top:.8rem">
             <input type="hidden" name="userId" value={user.id} />
-            <p class="meta" style="margin:0">Permanently deletes the account with all of its discussions, replies, reports and sign-in methods. This can’t be undone. The admin activity log keeps a record.</p>
+            <p class="meta" style="margin:0">Permanently deletes the account with all of its discussions, replies, reports and sign-in methods, and its unread and declined news tips ({counts.tips_removed}). Reviewed and converted tips ({counts.tips_kept}) stay as part of the reporting record, unlinked from the account, until their submitter details are removed a year after the decision. This can’t be undone. The admin activity log keeps a record.</p>
             <label>Type <code>{user.email}</code> to confirm <input name="confirm" required autocomplete="off" spellcheck="false" /></label>
             <div><button class="button small warn" name="action" value="delete" type="submit"><Trash />Delete permanently</button></div>
           </form>
