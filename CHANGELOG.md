@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.28.0] - 2026-10-11
+
+### Added
+
+- Security alerts for account activity. Failed sign-ins, throttled requests, password changes and account deletions add to small five-minute counters in D1 that hold only the keyed hashes already written to Workers Logs. The existing five-minute scheduled run emails the owner when a pattern crosses its threshold: 10 failed sign-ins for one account or 20 from one client in 30 minutes, 50 throttled requests in 15 minutes, 5 password changes or 3 account deletions in an hour, or 3 refused admin actions in an hour. Each alert fires at most once an hour, the email names only the pattern, counts and truncated hashes, and counters are deleted after a day. The recipient is the `SECURITY_ALERT_EMAIL` secret; without it, alerts are logged as a `security_alert` line instead. Migration `0031_auth_alerts.sql` adds the counter and alert-state tables, and the Privacy Policy describes the counts (#82)
+
 ## [1.27.4] - 2026-10-11
 
 ### Changed
