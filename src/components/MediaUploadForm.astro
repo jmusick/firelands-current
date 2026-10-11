@@ -75,11 +75,13 @@ const { submitLabel = 'Upload' } = Astro.props;
 </script>
 
 <style>
-  .media-upload { gap: .9rem; }
-  .drop { display: grid; gap: .6rem; }
+  /* minmax(0, 1fr) lets the file input and long hints shrink to a 320px dialog instead of widening it. */
+  .media-upload { gap: .9rem; grid-template-columns: minmax(0, 1fr); }
+  .drop { display: grid; gap: .6rem; grid-template-columns: minmax(0, 1fr); }
   .upload-preview { max-width: 100%; max-height: 220px; object-fit: contain; object-position: left; border: 1px solid var(--line-soft); background: #fff; }
   .check { display: flex; gap: .6rem; align-items: start; }
   .check input { margin-top: .3rem; }
   .hint { font-weight: 400; color: var(--slate); font-size: .8rem; }
-  .media-upload input[type='file'] { padding: .5rem; }
+  .media-upload label { grid-template-columns: minmax(0, 1fr); }
+  .media-upload input[type='file'] { padding: .5rem; width: 100%; min-width: 0; }
 </style>

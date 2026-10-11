@@ -78,6 +78,7 @@ const fmt = (ms: number) => new Date(ms).toLocaleString('en-US', { dateStyle: 'm
   .head h2 { margin: 0; }
   .sorts { display: flex; gap: 1rem; font-size: .95rem; }
   .sorts strong { color: var(--deep); }
+  .sorts a { padding: .25rem 0; }
   .compose { margin: 1.2rem 0 1.8rem; }
   .compose .card { background: var(--shoal); border: 0; }
   /* Replies step in from their parent; the left rule shows which conversation they belong to. */
@@ -92,6 +93,6 @@ const fmt = (ms: number) => new Date(ms).toLocaleString('en-US', { dateStyle: 'm
   .content .meta { margin: .1rem 0 .35rem; }
   .content .meta strong { color: var(--ink); font-weight: 650; }
   .text { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--read); font-size: 1.1rem; line-height: 1.55; margin: 0 0 .5rem; }
-  summary { cursor: pointer; font-size: .9rem; color: var(--slate); }
+  summary { cursor: pointer; font-size: .9rem; color: var(--slate); padding: .3rem 0; }
   .pages { display: flex; justify-content: space-between; align-items: center; margin: 1.4rem 0; }
 </style>

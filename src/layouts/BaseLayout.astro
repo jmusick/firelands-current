@@ -143,8 +143,9 @@ const gaConfig = staffRole ? { traffic_type: 'internal' } : {};
       .site-footer-inner { max-width: var(--wrap); margin: auto; padding: 0 1.25rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1.5rem 3rem; font-size: .92rem; }
       .site-footer p { margin: 0; }
       .site-footer .foot-brand { margin: 0 0 .35rem; font: 800 1.6rem/1 var(--scan); font-stretch: 68%; color: var(--deep); }
-      .site-footer nav { display: grid; grid-template-columns: repeat(3, auto); gap: .45rem 2.2rem; align-content: start; }
-      .site-footer nav a { color: var(--deep); text-decoration: none; font-weight: 600; }
+      .site-footer nav { display: grid; grid-template-columns: repeat(3, auto); gap: 0 2.2rem; align-content: start; }
+      /* Padding gives each footer link a 24px-tall target (WCAG 2.5.8) without changing the rhythm of the list. */
+      .site-footer nav a { padding: .3rem 0; color: var(--deep); text-decoration: none; font-weight: 600; }
       .site-footer nav a:hover { text-decoration: underline; }
       .site-footer .fine { grid-column: 1 / -1; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--slate); font-size: .85rem; }
       @media (max-width: 700px) {

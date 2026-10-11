@@ -72,7 +72,8 @@ const isActive = (href: string) => href === '/admin' ? path === '/admin' : path 
       .muted { color: var(--slate); }
       .meta { color: var(--slate); font-size: .88rem; }
       .form { display: grid; gap: 1rem; }
-      .form label { display: grid; gap: .4rem; font-weight: 600; font-size: .95rem; }
+      .form label { display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; font-weight: 600; font-size: .95rem; }
+      .form input[type='file'] { width: 100%; min-width: 0; }
       .form input:not([type='hidden']):not([type='checkbox']):not([type='radio']):not([type='file']), .form textarea, .form select { width: 100%; }
       .form textarea { min-height: 180px; resize: vertical; line-height: 1.5; }
       .filters input, .filters select { min-height: 2.25rem; }
@@ -86,7 +87,7 @@ const isActive = (href: string) => href === '/admin' ? path === '/admin' : path 
       .admin-brand { display: inline-flex; align-items: center; gap: .6rem; color: #fff; text-decoration: none; font: 800 1.45rem/1 var(--scan); font-stretch: 68%; }
       .admin-brand img { width: 1.8rem; height: auto; }
       .admin-brand small { margin-left: .3rem; font-size: .95rem; font-weight: 600; font-stretch: 90%; color: var(--sunset); }
-      .admin-top a.plain { display: inline-flex; align-items: center; gap: .35rem; color: #e6eff0; font-size: .9rem; white-space: nowrap; }
+      .admin-top a.plain { display: inline-flex; align-items: center; gap: .35rem; padding: .3rem 0; color: #e6eff0; font-size: .9rem; white-space: nowrap; }
       .admin-top a.plain .lucide { width: .95rem; height: .95rem; }
       .admin-top .who { margin-left: auto; display: flex; gap: 1.2rem; align-items: center; font-size: .9rem; }
       .admin-top .role { color: #a9c3c8; }
