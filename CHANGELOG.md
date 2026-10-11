@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.26] - 2026-10-11
+
+### Fixed
+
+- A Contact, Submit news, Advertise, or Report an inaccuracy submission over its hourly allowance now returns to the form with an explanation and the reader's text restored, instead of a bare "Too many requests" page. Talk votes and reports still answer `429` (follow-up to #11)
+
 ## [1.22.25] - 2026-10-11
 
 ### Fixed

@@ -219,41 +219,41 @@ test('invalid votes are rejected before they use any allowance', async () => {
   assert.equal((await post(votes, '/api/talk/votes', { kind: 'thread', id: thread, vote: 'up' }, { user: voter })).status, 303);
 });
 
+/** A form submission over its allowance is sent back to the form with error=rate, so the reader's draft is restored. */
+const outcome = (r) => (/[?&]error=rate$/.test(r.headers.get('Location') ?? '') ? 'rate' : r.status);
+
 test('concurrent inbox submissions from one address stop at the limit and send nothing extra', async () => {
   const ip = freshIp();
   const responses = await all(QUOTAS.inbox.max + 4, () => post(inbox, '/api/inbox', inboxFields, { ip }));
-  assert.deepEqual(tally(responses, (r) => r.status), { 303: QUOTAS.inbox.max, 429: 4 });
+  assert.deepEqual(tally(responses, outcome), { 303: QUOTAS.inbox.max, rate: 4 });
   assert.equal(emails.length, QUOTAS.inbox.max);
-  const limited = responses.find((r) => r.status === 429);
-  assert.match(limited.headers.get('Retry-After'), /^\d+$/);
-  assert.equal(limited.headers.get('Cache-Control'), 'no-store');
   // The window doesn't extend while a client keeps retrying: ending it frees the address.
   database.prepare("UPDATE auth_rate_limits SET window_start = window_start - ? WHERE key LIKE 'quota:inbox:%'").run(QUOTAS.inbox.windowMs + 1000);
-  assert.equal((await post(inbox, '/api/inbox', inboxFields, { ip })).status, 303);
+  assert.equal(outcome(await post(inbox, '/api/inbox', inboxFields, { ip })), 303);
 });
 
 test('inbox allowances are per client: other addresses, signed-in readers, and IPv6 /64 networks', async () => {
   const ip = freshIp();
   await all(QUOTAS.inbox.max, () => post(inbox, '/api/inbox', inboxFields, { ip }));
-  assert.equal((await post(inbox, '/api/inbox', inboxFields, { ip })).status, 429);
+  assert.equal(outcome(await post(inbox, '/api/inbox', inboxFields, { ip })), 'rate');
   // A forged forwarding header changes nothing; only Cloudflare's connecting address counts.
-  assert.equal((await post(inbox, '/api/inbox', inboxFields, { ip, headers: { 'X-Forwarded-For': '198.51.100.7' } })).status, 429);
-  assert.equal((await post(inbox, '/api/inbox', inboxFields, { ip: freshIp() })).status, 303);
+  assert.equal(outcome(await post(inbox, '/api/inbox', inboxFields, { ip, headers: { 'X-Forwarded-For': '198.51.100.7' } })), 'rate');
+  assert.equal(outcome(await post(inbox, '/api/inbox', inboxFields, { ip: freshIp() })), 303);
   // Signed-in readers count by account, so the shared address's exhausted allowance doesn't block them.
   const reader = newUser();
-  assert.equal((await post(inbox, '/api/inbox', inboxFields, { ip, user: reader })).status, 303);
+  assert.equal(outcome(await post(inbox, '/api/inbox', inboxFields, { ip, user: reader })), 303);
 
   const prefix = '2001:db8:abcd:12';
   await all(QUOTAS.inbox.max, (index) => post(inbox, '/api/inbox', inboxFields, { ip: `${prefix}::${index + 1}` }));
-  assert.equal((await post(inbox, '/api/inbox', inboxFields, { ip: `${prefix}:ffff:1:2:3:4` })).status, 429);
-  assert.equal((await post(inbox, '/api/inbox', inboxFields, { ip: '2001:db8:abcd:13::1' })).status, 303);
+  assert.equal(outcome(await post(inbox, '/api/inbox', inboxFields, { ip: `${prefix}:ffff:1:2:3:4` })), 'rate');
+  assert.equal(outcome(await post(inbox, '/api/inbox', inboxFields, { ip: '2001:db8:abcd:13::1' })), 303);
 });
 
 test('contact, news tip, and advertising forms share one inbox allowance', async () => {
   const ip = freshIp();
   const kinds = Array.from({ length: QUOTAS.inbox.max }, (_, index) => ['contact', 'ads', 'news', 'contact', 'ads'][index % 5]);
-  for (const kind of kinds) assert.equal((await post(inbox, '/api/inbox', { ...inboxFields, kind }, { ip })).status, 303);
-  assert.equal((await post(inbox, '/api/inbox', { ...inboxFields, kind: 'news' }, { ip })).status, 429);
+  for (const kind of kinds) assert.equal(outcome(await post(inbox, '/api/inbox', { ...inboxFields, kind }, { ip })), 303);
+  assert.equal(outcome(await post(inbox, '/api/inbox', { ...inboxFields, kind: 'news' }, { ip })), 'rate');
   assert.equal(count('SELECT COUNT(*) AS count FROM news_submissions'), kinds.filter((kind) => kind === 'news').length, 'a limited tip is not stored');
 });
 
@@ -264,14 +264,14 @@ test('submissions that would not be sent never use the allowance', async () => {
     assert.match((await post(inbox, '/api/inbox', { ...inboxFields, email: 'bad' }, { ip })).headers.get('Location'), /error=invalid&fields=email$/);
   }
   assert.equal(emails.length, 0);
-  assert.equal((await post(inbox, '/api/inbox', inboxFields, { ip })).status, 303);
+  assert.equal(outcome(await post(inbox, '/api/inbox', inboxFields, { ip })), 303);
 });
 
 test('concurrent correction reports stop at their own limit, separate from the inbox allowance', async () => {
   const ip = freshIp();
   await all(QUOTAS.inbox.max, () => post(inbox, '/api/inbox', inboxFields, { ip }));
   const responses = await all(QUOTAS.corrections.max + 3, () => post(corrections, '/api/corrections', correctionFields, { ip }));
-  assert.deepEqual(tally(responses, (r) => r.status), { 303: QUOTAS.corrections.max, 429: 3 });
+  assert.deepEqual(tally(responses, outcome), { 303: QUOTAS.corrections.max, rate: 3 });
   assert.equal(emails.filter((message) => message.subject.startsWith('Correction request')).length, QUOTAS.corrections.max);
 });
 
@@ -303,7 +303,7 @@ test('if the counter table is unavailable, a form submission is still accepted a
   console.error = (message) => logged.push(message);
   database.exec('ALTER TABLE auth_rate_limits RENAME TO auth_rate_limits_hidden');
   try {
-    assert.equal((await post(inbox, '/api/inbox', inboxFields)).status, 303);
+    assert.equal(outcome(await post(inbox, '/api/inbox', inboxFields)), 303);
   } finally {
     database.exec('ALTER TABLE auth_rate_limits_hidden RENAME TO auth_rate_limits');
     console.error = originalError;

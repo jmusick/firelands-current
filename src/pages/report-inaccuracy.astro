@@ -23,6 +23,7 @@ const fieldError = (field: Field) => invalid.includes(field) ? CORRECTION_FIELD_
 const problem = (field: Field) => invalid.includes(field) ? { 'aria-invalid': 'true' as const, 'aria-describedby': `correction-${field}-error` } : {};
 const summaryItems = error === 'captcha' ? [{ href: '#correction-captcha', text: 'Complete the human check and try again.' }]
   : error === 'captcha_unavailable' ? [{ text: 'We could not run the human check right now. Please try again in a moment.' }]
+  : error === 'rate' ? [{ text: 'You have sent several reports in the last hour. Please wait a while and try again; what you wrote is still below.' }]
   : error === 'invalid' && invalid.length ? invalid.map((field) => ({ href: `#correction-${field}`, text: summaryText(labels[field], CORRECTION_FIELD_ERRORS[field]) }))
   : error ? [{ text: 'Please enter your name, a valid email, and a description of the problem (10–5,000 characters). A source link, if given, must start with http:// or https://.' }]
   : [];

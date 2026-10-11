@@ -4,7 +4,7 @@ import { correctionKind, correctionTarget, createCorrection } from '../../lib/co
 import { invalidFieldsQuery } from '../../lib/form-errors';
 import { cleanText, sameOrigin } from '../../lib/forum';
 import { sendToInbox, verifyTurnstile } from '../../lib/inbox';
-import { quotaResponse, takeQuota } from '../../lib/quotas';
+import { takeQuota } from '../../lib/quotas';
 
 const EMAIL = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
 
@@ -44,8 +44,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const target = await correctionTarget(kind, slug);
   if (!target) return new Response('Story or event not found', { status: 404 });
 
-  const retryAfter = await takeQuota('corrections', request, locals.user?.id);
-  if (retryAfter !== null) return quotaResponse(retryAfter);
+  // Back to the form rather than a bare 429 page, so the reader's draft is restored with the explanation.
+  if (await takeQuota('corrections', request, locals.user?.id) !== null) return back('error=rate');
 
   const id = await createCorrection({ kind, targetId: target.id, title: target.title, slug: target.slug, userId: locals.user?.id ?? null,
     name, email, details, suggestedFix, sourceUrl });

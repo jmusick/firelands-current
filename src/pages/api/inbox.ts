@@ -3,7 +3,7 @@ import type { APIRoute } from 'astro';
 import { cleanText, sameOrigin } from '../../lib/forum';
 import { invalidFieldsQuery } from '../../lib/form-errors';
 import { INBOXES, isInboxKind, sendToInbox, verifyTurnstile } from '../../lib/inbox';
-import { quotaResponse, takeQuota } from '../../lib/quotas';
+import { takeQuota } from '../../lib/quotas';
 import { env } from 'cloudflare:workers';
 
 const EMAIL = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
@@ -36,8 +36,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   ];
   if (invalid.length) return back(invalidFieldsQuery(invalid));
 
-  const retryAfter = await takeQuota('inbox', request, locals.user?.id);
-  if (retryAfter !== null) return quotaResponse(retryAfter);
+  // Back to the form rather than a bare 429 page, so the reader's draft is restored with the explanation.
+  if (await takeQuota('inbox', request, locals.user?.id) !== null) return back('error=rate');
 
   const senderName = name.replace(/[\r\n]+/g, ' ');
   if (kind === 'news') {
