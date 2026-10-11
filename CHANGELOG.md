@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.32] - 2026-10-11
+
+### Changed
+
+- Story links posted to the Facebook Page now carry `utm_source=facebook`, `utm_medium=social` and `utm_campaign=story_share`, so Google Analytics can attribute those visits instead of counting them as Direct. The Facebook ledger and the page's canonical URL stay free of tracking parameters, and a shared `campaignUrl` helper holds the convention for future newsletter links (#58)
+
 ## [1.22.31] - 2026-10-11
 
 ### Security
