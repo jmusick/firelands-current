@@ -2,6 +2,16 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.27.2] - 2026-10-11
+
+### Fixed
+
+- Raised the contrast of the "Advertisement" and "Sponsored" labels on ads, and of Markdown links, quotes and the word count in the story editor, to meet WCAG AA. Ad and business links in the admin ads list now have larger click targets (#26)
+
+### Added
+
+- `npm run test:a11y` runs axe-core (WCAG 2.0–2.2 A and AA) with Playwright and Chromium over the main public, account, business and staff pages of a local server. It also checks phone-width layout, forced-colors and reduced-motion modes, and keyboard Tab order on the contact form, and removes the test accounts it creates. The accessibility statement now describes this scan; the screen-reader pass is still to come (#26)
+
 ## [1.27.1] - 2026-10-11
 
 ### Security
