@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.25.0] - 2026-10-11
+
+### Added
+
+- News tips now follow a retention schedule, applied once a day by the existing scheduled Worker: declined tips are deleted 90 days after they were declined, and tips the newsroom reviewed or turned into a story keep their text but lose the submitter's name, email and account link a year after the decision. Unread tips are never deleted for age; the inbox flags ones older than 90 days. Deleting an account deletes its unread and declined tips. Each tip has a new "Remove submitter details" action, and the inbox can be filtered by account or submitter email to answer data requests. Runs and removals are recorded in the activity log with counts only. Migration `0028_tip_retention.sql` adds `decided_at`, `anonymized_at` and a `scheduled_jobs` table. The Privacy Policy and README state the periods and the newsroom mailbox procedure (#52)
+
 ## [1.24.1] - 2026-10-11
 
 ### Security
