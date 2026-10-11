@@ -32,6 +32,7 @@
     "test:audit": "node --test scripts/test-audit.mjs",
     "test:corrections": "node --test scripts/test-corrections.mjs",
     "test:quotas": "node --test scripts/test-quotas.mjs",
+    "test:authorization": "node --test scripts/test-authorization.mjs",
     "test:secret-scan": "node --test scripts/test-secret-scan.mjs",
     "test:tip-retention": "node --test scripts/test-tip-retention.mjs",
     "cf:types": "wrangler types",

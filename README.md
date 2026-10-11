@@ -102,6 +102,8 @@ npx wrangler d1 execute DB --local --command "INSERT OR REPLACE INTO staff_roles
 
 Production promotion must be done deliberately against the production D1 database (`--remote`).
 
+Run `npm run test:authorization` for the access rules against the real middleware, Better Auth sessions, endpoints, and migrations in an isolated in-memory database. It lists every endpoint in one table and fails when a route exists that the table does not name, so a new endpoint must choose its guard there. It then sends each endpoint's data-changing requests as a signed-out visitor, a suspended staff account, a reader, a business owner, and each staff role, and checks that refusals change nothing (and are audited for signed-in accounts only), that cross-origin and origin-less posts are refused, that a suspension or a removed role takes effect on the next request, that a business member gets the same 404 for another business's dashboard and ads as for IDs that do not exist, that forged ad tokens count for nothing, and that the session cookie is `HttpOnly`, `SameSite=Lax`, host-only, and `Secure` (with the `__Secure-` prefix) on the production origin. The section-to-role table in that script is written out separately from `src/lib/admin.ts`, so changing who can reach a section takes two reviewed edits.
+
 ## Account profiles and authors
 
 Readers update their display name (1–80 characters), request an email change, and change their password at `/account`. Email changes require a recent session and a Turnstile check; Better Auth sends a one-hour link to the new address and keeps the current address until verification. An address already in use receives no link. Names may be shared; profile URLs use stable account IDs, so changing a name or email does not break links.
