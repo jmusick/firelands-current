@@ -17,7 +17,6 @@ const ERRORS: Record<string, string> = {
   'email-taken': 'An account with that email address already exists.',
   password: PASSWORD_MESSAGES.length,
   'password-predictable': PASSWORD_MESSAGES.predictable,
-  'password-breached': PASSWORD_MESSAGES.breached,
   role: 'Choose a valid role.',
 };
 const error = ERRORS[Astro.url.searchParams.get('error') ?? ''];

@@ -112,7 +112,7 @@ export function createAuth() {
           if (problem && problem !== 'length') {
             throw new APIError('BAD_REQUEST', {
               message: PASSWORD_MESSAGES[problem],
-              code: problem === 'breached' ? 'PASSWORD_COMPROMISED' : 'PASSWORD_TOO_PREDICTABLE',
+              code: 'PASSWORD_TOO_PREDICTABLE',
             });
           }
         }

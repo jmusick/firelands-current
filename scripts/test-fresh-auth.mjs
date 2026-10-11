@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
@@ -7,7 +6,7 @@ import ts from 'typescript';
 import { hashPassword } from 'better-auth/crypto';
 
 // Recent reauthentication for privileged actions, session revocation when a staff role gains access, and
-// the password policy (length, predictable values, breached values), through the real Better Auth handlers,
+// the password policy (length and predictable values), through the real Better Auth handlers,
 // the site middleware, and the admin endpoints against an isolated in-memory database.
 
 const database = new DatabaseSync(':memory:');
@@ -63,7 +62,7 @@ const usersModule = sourceModule('src/lib/users.ts', { './auth': authModule, './
 const quotasModule = sourceModule('src/lib/quotas.ts', { './auth-rate-limit': rateLimit });
 const { createAuth } = await import(authModule);
 const { isFresh, recordReauth, safeNext, reauthPath, REAUTH_WINDOW_MS } = await import(reauthModule);
-const { isPredictable, passwordProblem, isBreached, MIN_PASSWORD } = await import(policyModule);
+const { isPredictable, passwordProblem, MIN_PASSWORD } = await import(policyModule);
 const { gainsAccess } = await import(adminModule);
 const usersApi = await import(sourceModule('src/pages/api/admin/users.ts', {
   '../../../lib/request-body': bodyModule, '../../../lib/admin': adminModule, '../../../lib/forum': forumModule,
@@ -83,24 +82,12 @@ const { onRequest } = await import(sourceModule('src/middleware.ts', {
   './lib/auth': authModule, './lib/staff': staffModule, './lib/response-headers': sourceModule('src/lib/response-headers.ts'),
 }));
 
-// The password blocklist stands in for api.pwnedpasswords.com: it records each lookup and answers from `breached`.
-const lookups = [];
-const breached = new Set();
-const zeroCount = new Set();
-let blocklistDown = false;
-const sha1 = (value) => createHash('sha1').update(value).digest('hex').toUpperCase();
+// Only Turnstile is reached over the network; the password blocklist is local.
 const originalFetch = globalThis.fetch;
-globalThis.fetch = async (url, init) => {
+globalThis.fetch = async (url) => {
   const target = String(url);
-  if (target === 'https://challenges.cloudflare.com/turnstile/v0/siteverify') return Response.json({ success: true });
-  const range = target.match(/^https:\/\/api\.pwnedpasswords\.com\/range\/(.*)$/);
-  assert.ok(range, `unexpected request to ${target}`);
-  lookups.push({ url: target, headers: new Headers(init?.headers) });
-  if (blocklistDown) return new Response('unavailable', { status: 503 });
-  const rows = ['0018A45C4D1DEF81644B54AB7F969B88D65:0'];
-  for (const password of breached) if (sha1(password).startsWith(range[1])) rows.push(`${sha1(password).slice(5)}:1234`);
-  for (const password of zeroCount) if (sha1(password).startsWith(range[1])) rows.push(`${sha1(password).slice(5)}:0`);
-  return new Response(rows.join('\r\n'));
+  assert.equal(target, 'https://challenges.cloudflare.com/turnstile/v0/siteverify', `unexpected request to ${target}`);
+  return Response.json({ success: true });
 };
 test.after(() => {
   globalThis.fetch = originalFetch;
@@ -411,9 +398,9 @@ test('password policy', async (t) => {
   const quiet = console.error;
   t.after(() => { console.error = quiet; });
 
-  await t.test('length: 15 to 128 characters, nothing else required', async () => {
-    assert.equal(MIN_PASSWORD, 15);
-    assert.equal(await passwordProblem('x'.repeat(14)), 'length');
+  await t.test('length: 12 to 128 characters, nothing else required', async () => {
+    assert.equal(MIN_PASSWORD, 12);
+    assert.equal(await passwordProblem('x'.repeat(11)), 'length');
     assert.equal(await passwordProblem('Hq7!'.repeat(33)), 'length');
     assert.equal(await passwordProblem('only lowercase words here'), null);
     assert.equal(await passwordProblem('correct horse battery staple'), null);
@@ -431,41 +418,18 @@ test('password policy', async (t) => {
     }
   });
 
-  await t.test('breached values are found by a five-character hash prefix, never by sending the password', async () => {
-    breached.add('this-leaked-passphrase-is-long');
-    lookups.length = 0;
-    assert.equal(await isBreached('this-leaked-passphrase-is-long'), true);
-    assert.equal(await isBreached('never-seen-in-any-breach-xyz'), false);
-    assert.equal(lookups.length, 2);
-    for (const { url, headers } of lookups) {
-      assert.match(url, /^https:\/\/api\.pwnedpasswords\.com\/range\/[0-9A-F]{5}$/);
-      assert.equal(headers.get('Add-Padding'), 'true');
-    }
-    const full = sha1('this-leaked-passphrase-is-long');
-    assert.equal(lookups[0].url.endsWith(full.slice(0, 5)), true);
-    assert.ok(!lookups.some(({ url }) => url.includes(full.slice(5)) || url.includes('leaked')));
-    assert.equal(await passwordProblem('this-leaked-passphrase-is-long'), 'breached');
-    // Padding rows carry a count of zero and must not match.
-    zeroCount.add('padding-row-lookalike-pass');
-    assert.equal(await isBreached('padding-row-lookalike-pass'), false);
-  });
-
-  await t.test('an outage of the breach service skips that check instead of blocking sign-ups and recovery', async () => {
-    const logged = [];
-    console.error = (line) => logged.push(line);
-    blocklistDown = true;
-    try {
-      assert.equal(await isBreached('this-leaked-passphrase-is-long'), null);
-      assert.equal(await passwordProblem('this-leaked-passphrase-is-long'), null);
-      assert.equal(await passwordProblem('aaaaaaaaaaaaaaaaaaaa'), 'predictable');
-    } finally { blocklistDown = false; console.error = quiet; }
-    assert.match(logged[0], /password_blocklist_unavailable/);
+  await t.test('no password, or any part of its hash, leaves the Worker', async () => {
+    const seen = [];
+    const before = globalThis.fetch;
+    globalThis.fetch = async (url) => { seen.push(String(url)); return before(url); };
+    try { assert.equal(await passwordProblem('the harbor smells like lake erie today'), null); } finally { globalThis.fetch = before; }
+    assert.deepEqual(seen, []);
   });
 
   await t.test('sign-up, change, and reset go through the same rules at the Better Auth boundary', async () => {
     const register = (email, password) => post('sign-up/email', { name: 'Pat Reader', email, password }, '', true);
     for (const [password, status, code] of [
-      ['short-pass-14c', 400, 'PASSWORD_TOO_SHORT'], ['this-leaked-passphrase-is-long', 400, 'PASSWORD_COMPROMISED'],
+      ['short-pas11', 400, 'PASSWORD_TOO_SHORT'],
       ['pat-reader-pat-reader-1', 400, 'PASSWORD_TOO_PREDICTABLE'], ['x'.repeat(129), 400, 'PASSWORD_TOO_LONG'],
     ]) {
       const response = await register('pat@example.test', password);
@@ -479,8 +443,8 @@ test('password policy', async (t) => {
     const cookie = await signIn('changing@example.test', 'changing-long-passphrase-for-tests');
     const hash = () => database.prepare("SELECT password FROM account WHERE userId = 'changing'").get().password;
     const before = hash();
-    const weak = await post('change-password', { currentPassword: 'changing-long-passphrase-for-tests', newPassword: 'this-leaked-passphrase-is-long' }, cookie);
-    assert.equal((await weak.json()).code, 'PASSWORD_COMPROMISED');
+    const weak = await post('change-password', { currentPassword: 'changing-long-passphrase-for-tests', newPassword: 'qwertyuiopasdfghjkl' }, cookie);
+    assert.equal((await weak.json()).code, 'PASSWORD_TOO_PREDICTABLE');
     const mine = await post('change-password', { currentPassword: 'changing-long-passphrase-for-tests', newPassword: 'Person changing changing' }, cookie);
     assert.equal((await mine.json()).code, 'PASSWORD_TOO_PREDICTABLE');
     assert.equal(hash(), before);
@@ -488,16 +452,16 @@ test('password policy', async (t) => {
     const asked = await post('request-password-reset', { email: 'changing@example.test', redirectTo: '/reset-password' }, '', true);
     assert.equal(asked.status, 200);
     const token = new URL(mail.at(-1).url).pathname.split('/').at(-1);
-    const refused = await post('reset-password', { token, newPassword: 'this-leaked-passphrase-is-long' });
-    assert.equal((await refused.json()).code, 'PASSWORD_COMPROMISED');
+    const refused = await post('reset-password', { token, newPassword: 'passwordpassword12345' });
+    assert.equal((await refused.json()).code, 'PASSWORD_TOO_PREDICTABLE');
     assert.equal(hash(), before);
     assert.equal((await post('reset-password', { token, newPassword: 'a fresh and unusual passphrase' })).status, 200);
     assert.notEqual(hash(), before);
   });
 
   await t.test('existing shorter passwords keep working: signing in is never re-checked', async () => {
-    await account('veteran', { password: 'short-pass-12' });
-    assert.equal((await post('sign-in/email', { email: 'veteran@example.test', password: 'short-pass-12' })).status, 200);
+    await account('veteran', { password: 'short-p1' });
+    assert.equal((await post('sign-in/email', { email: 'veteran@example.test', password: 'short-p1' })).status, 200);
   });
 
   await t.test('admin-created and admin-set passwords follow the same rules', async () => {
@@ -506,7 +470,7 @@ test('password policy', async (t) => {
     const cookie = await signIn('admin-two@example.test', 'admin-two-long-passphrase-for-tests');
     const before = database.prepare("SELECT password FROM account WHERE userId = 'subject'").get().password;
     const attempts = [
-      ['short-pass-14c', 'password'], ['this-leaked-passphrase-is-long', 'password-breached'], ['passwordpassword12345', 'password-predictable'],
+      ['short-pas11', 'password'], ['passwordpassword12345', 'password-predictable'],
     ];
     for (const [password, error] of attempts) {
       const reset = await adminPost(cookie, { action: 'set-password', userId: 'subject', password });

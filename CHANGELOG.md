@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.22.28] - 2026-10-11
+
+### Security
+
+- Privileged changes now need a password confirmed in the last 15 minutes: changing a staff role, adding an account, setting someone's password, deleting an account, changing another user's email or verified status, and linking or unlinking a sign-in method. A stale session is sent to the new `/reauth` page (password, or a linked provider for password-less accounts) and then back to the page, with nothing changed. Signing in with a password or provider counts as a confirmation. When a role change opens admin sections a person didn't have, all of their sessions are signed out, and the audit log records it; removing access takes effect on the next request. Choosing a password (registration, reset, change, or admin set/create) now refuses easily guessed values such as repeats, keyboard or number runs, and passwords built from the site name or the person's name or email; the 12-character minimum is unchanged and existing passwords keep working. Migration `0025_session_reauth.sql` stores the confirmation time per session. `npm run test:fresh-auth` covers it (#46)
+
 ## [1.22.27] - 2026-10-11
 
 ### Fixed
