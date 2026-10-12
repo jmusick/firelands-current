@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.29.2] - 2026-10-11
+
+### Fixed
+
+- Author bios now appear only on the author's profile, accessible by clicking the story byline. News stories retain the linked author name without repeating the bio; editor guidance and the Privacy Policy reflect the change.
+
 ## [1.29.1] - 2026-10-11
 
 ### Fixed
