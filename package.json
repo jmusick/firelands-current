@@ -1,6 +1,6 @@
 {
   "name": "firelands-current",
-  "version": "1.29.2",
+  "version": "1.29.3",
   "private": true,
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
@@ -10,6 +10,7 @@
     "preview": "astro preview --host 127.0.0.1 --port 4321",
     "check": "astro check",
     "audit": "npm audit --audit-level=moderate",
+    "sbom": "npm sbom --sbom-format cyclonedx --omit dev",
     "hooks:install": "node scripts/secret-scan.mjs setup",
     "secrets:install": "node scripts/secret-scan.mjs install",
     "secrets:scan": "node scripts/secret-scan.mjs history",
@@ -19,6 +20,7 @@
     "test:fresh-auth": "node --test scripts/test-fresh-auth.mjs",
     "test:password-hash": "node --test scripts/test-password-hash.mjs",
     "test:oauth-tokens": "node --test scripts/test-oauth-tokens.mjs",
+    "test:social-sign-in": "node --test scripts/test-social-sign-in.mjs",
     "test:facebook": "node --test scripts/test-facebook.mjs",
     "test:preview": "node --test scripts/test-preview.mjs",
     "test:media-alt": "node --test scripts/test-media-alt.mjs",

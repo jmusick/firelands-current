@@ -2,6 +2,17 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.29.3] - 2026-10-12
+
+### Fixed
+
+- Provider sign-ins (Facebook, Google, and others) are now recorded in the security event log. Every provider callback had been skipped, so finished sign-ins, completed links, and refused callbacks such as a forged OAuth state never appeared. Starting a link is now logged as `link_account_start` (#16)
+
+### Added
+
+- `npm run test:social-sign-in` checks that provider sign-in and linking never merge or hand over accounts, enforce the OAuth state, refuse suspended accounts, keep the last sign-in method, and log each outcome without personal details (#16)
+- A Dependency review workflow fails pull requests that add runtime dependencies with known advisories and verifies npm registry signatures and provenance on every push. `npm run sbom` writes a CycloneDX inventory of the packages the site runs. The README documents dependency provenance and records that these checks report rather than gate deploys (#16)
+
 ## [1.29.2] - 2026-10-11
 
 ### Fixed

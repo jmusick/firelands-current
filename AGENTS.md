@@ -23,6 +23,7 @@ Guidance for AI coding agents working on Firelands Current, an independent local
 | `npm run test:media-metadata` | Isolated tests for upload metadata stripping and failed-upload cleanup |
 | `npm run test:a11y` | axe-core, forced-colors, reduced-motion, and Tab-order checks against a dev server you start yourself (port 4399 by default); uses throwaway users in the local database (see "Accessibility testing" in README.md) |
 | `npm run test:password-hash` | Isolated tests for password hashing, legacy-hash verification, and the upgrade on sign-in |
+| `npm run test:social-sign-in` | Isolated tests that provider sign-in and linking never merge or hand over accounts, enforce OAuth state, and log each callback outcome |
 | `npm run test:auth-alerts` | Isolated tests for the authentication alert counters, thresholds, cooldown, and the scheduled Worker running them (README "Security alerts") |
 | `npm run hooks:install` | Once per clone: enable the secret-scanning pre-commit and pre-push hooks and fetch the pinned Gitleaks (bypass and details: "Secret scanning" in README.md) |
 | `npm run test:secret-scan` | Isolated tests for the secret-scanning hooks and their fail-closed paths |

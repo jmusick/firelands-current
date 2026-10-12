@@ -30,7 +30,8 @@ export const AUTH_EVENT_TYPES: Record<string, string> = {
   '/change-email': 'email_change_request',
   '/send-verification-email': 'verification_resend',
   '/verify-email': 'email_verify',
-  '/link-social': 'link_account',
+  // Starting a link; whether it finished is the callback's link_account or social_callback event.
+  '/link-social': 'link_account_start',
   '/unlink-account': 'unlink_account',
   '/delete-user': 'account_delete',
   '/revoke-session': 'session_revoke',
@@ -80,6 +81,7 @@ const clientIp = (headers: Headers | undefined) => headers?.get('cf-connecting-i
  */
 export async function recordAuthSuccess(ctx: HookContext): Promise<void> {
   try {
+    if (ctx.path === '/callback/:id') return await recordProviderCallback(ctx);
     const type = ctx.path ? AUTH_EVENT_TYPES[ctx.path] : undefined;
     const returned = ctx.context.returned;
     const refused = returned instanceof Error || (typeof returned === 'object' && returned !== null && 'statusCode' in returned);
@@ -87,11 +89,26 @@ export async function recordAuthSuccess(ctx: HookContext): Promise<void> {
     const returnedUser = (returned as { user?: { id?: unknown } } | null)?.user?.id;
     const user = ctx.context.newSession?.user.id ?? ctx.context.session?.user.id ?? (typeof returnedUser === 'string' ? returnedUser : undefined);
     if (type) await emit({ type, outcome: 'success', user, email: emailIn(ctx.body), ip: clientIp(ctx.headers ?? ctx.request?.headers) });
-    // A finished sign-in with another provider (the callback has no fixed path to list above).
-    else if (ctx.path?.startsWith('/callback/') && ctx.context.newSession) await emit({ type: 'social_sign_in', outcome: 'success', user: ctx.context.newSession.user.id, ip: clientIp(ctx.headers ?? ctx.request?.headers) });
   } catch {
     console.error(JSON.stringify({ event: 'auth_event_failed' }));
   }
+}
+
+/**
+ * The provider callback always ends in a redirect, which Better Auth hands the hook as a thrown 302, so
+ * the outcome is read from where it sends the browser: a new session is a finished sign-in, an `error`
+ * code (state mismatch, an address that matches another account, a suspended account, a refused link) is
+ * a failure, and anything else finished linking a provider to the signed-in account.
+ */
+async function recordProviderCallback(ctx: HookContext): Promise<void> {
+  const ip = clientIp(ctx.headers ?? ctx.request?.headers);
+  if (ctx.context.newSession) return emit({ type: 'social_sign_in', outcome: 'success', user: ctx.context.newSession.user.id, ip });
+  const location = (ctx.context.returned as { headers?: Headers } | null)?.headers?.get?.('location');
+  if (!location) return;
+  const error = new URL(location, 'https://callback.invalid').searchParams.get('error');
+  // The codes are Better Auth's own; anything unexpected is logged as "other" rather than echoed.
+  if (error) return emit({ type: 'social_callback', outcome: 'failure', status: 302, code: /^[A-Za-z_]{1,64}$/.test(error) ? error : 'other', ip });
+  await emit({ type: 'link_account', outcome: 'success', user: ctx.context.session?.user.id, ip });
 }
 
 /** The most of a request body read for the email fingerprint; sign-in forms are far smaller. */
