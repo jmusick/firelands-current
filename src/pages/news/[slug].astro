@@ -29,7 +29,7 @@ for (let at of inlineAdBreaks(blocks.length)) {
 }
 chunks.push(blocks.slice(start).join(''));
 ---
-<BaseLayout title={article.headline} description={article.summary.slice(0, 155)} type="article" image={lead && { url: `/media/${lead.object_key}`, width: lead.width, height: lead.height, alt: lead.alt }}>
+<BaseLayout title={article.headline} description={article.summary} type="article" image={lead && { url: `/media/${lead.object_key}`, width: lead.width, height: lead.height, alt: lead.alt }}>
   <script slot="head" type="application/ld+json" set:html={newsArticleJsonLd(article, Astro.url.origin)} />
   <div class="story-layout">
   <article style="max-width:760px;min-width:0">

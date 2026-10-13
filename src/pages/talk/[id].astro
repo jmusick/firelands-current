@@ -10,7 +10,7 @@ const thread = await getThread(Astro.params.id ?? '', user?.id ?? '');
 if (!thread) return new Response('Discussion not found', { status: 404 });
 const path = `/talk/${thread.id}`;
 ---
-<BaseLayout title={thread.title} description={thread.body.slice(0, 155)}>
+<BaseLayout title={thread.title} description={thread.body}>
   <article id="discussion" class="discussion">
     <span class="eyebrow"><a href="/talk">Talk of the Town</a><span class="section">{KIND_LABELS[thread.kind]}</span></span>
     <h1>{thread.title}</h1>

@@ -21,7 +21,7 @@ const imageUrl = image ? new URL(`/media/${image.object_key}`, Astro.url.origin)
 const cancelled = event.status === 'cancelled';
 const over = isPast(event);
 ---
-<BaseLayout title={event.title} description={event.summary.slice(0, 155)} image={image && { url: `/media/${image.object_key}`, width: image.width, height: image.height, alt: image.alt }}>
+<BaseLayout title={event.title} description={event.summary} image={image && { url: `/media/${image.object_key}`, width: image.width, height: image.height, alt: image.alt }}>
   <script slot="head" type="application/ld+json" set:html={eventJsonLd(event, pageUrl, imageUrl)} />
   <article class="event">
     <span class="eyebrow">{event.community}<a class="section" href={`/events?category=${event.category}`}>{CATEGORIES[event.category]}</a></span>

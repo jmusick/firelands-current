@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.29.5] - 2026-10-12
+
+### Fixed
+
+- Search and social descriptions for stories, events, and discussions no longer stop mid-word. Past 160 characters they now end at the last whole word with "…"; Search Console showed the most-seen story's snippet ending "paperwork has to b". Discussion descriptions also collapse line breaks (#28)
+
 ## [1.29.4] - 2026-10-12
 
 ### Added
