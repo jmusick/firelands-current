@@ -1,6 +1,6 @@
 {
   "name": "firelands-current",
-  "version": "1.29.3",
+  "version": "1.29.4",
   "private": true,
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
@@ -43,6 +43,7 @@
     "cf:types": "wrangler types",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:seed:demo": "wrangler d1 execute DB --local --file scripts/seed-demo.sql",
+    "db:restore-drill": "node scripts/restore-drill.mjs",
     "test:a11y": "node scripts/test-a11y.mjs"
   },
   "dependencies": {

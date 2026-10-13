@@ -2,6 +2,15 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.29.4] - 2026-10-12
+
+### Added
+
+- `docs/operations.md`, an operations runbook: what is backed up (D1 Time Travel, 7 days on the Workers Free plan; R2 images have no backup), restoring the database and undoing what a restore brings back, recovering images, rolling back a deploy, rotating each secret, incident response, and a checklist of Cloudflare, GitHub, and registrar settings outside the repository (#15)
+- `npm run db:restore-drill` exports the database, loads it into a throwaway local copy, and checks every table, row, trigger, migration, and media object, then deletes the copy. It restores schema, rows, and triggers separately, because a single full D1 export does not load back as written (#15)
+- The October 12 deployment controls review and restore drill are recorded in `docs/operations-history.md`, including a clean full-history secret scan (#15)
+- Newsroom source notes for Firelands Health, the Erie County Community Foundation, and the Huron County Growth Partnership, with the October 12 editorial utilities
+
 ## [1.29.3] - 2026-10-12
 
 ### Fixed

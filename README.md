@@ -2,7 +2,7 @@
 
 An independent local newspaper for Sandusky, Ohio and the Firelands, built with Astro on Cloudflare Workers and live at [firelandscurrent.com](https://firelandscurrent.com). It publishes news and a local events calendar, hosts reader discussions in **Talk of the Town**, and sells display ads to local businesses.
 
-Historical external-service checks and unresolved setup observations are recorded in [docs/operations-history.md](docs/operations-history.md); dated observations there do not certify current settings.
+Historical external-service checks and unresolved setup observations are recorded in [docs/operations-history.md](docs/operations-history.md); dated observations there do not certify current settings. Recovery, incident response, and the settings to recheck are in [docs/operations.md](docs/operations.md).
 
 Outstanding work is tracked in [GitHub Issues](https://github.com/jmusick/firelands-current/issues). The [October 10 backlog migration](https://github.com/jmusick/firelands-current/issues/1) preserves the former TODO.md audit context and links to each migrated item. Ask Codex to review, create, update, or implement an issue by number; the source documentation remains the reference for current behavior and implementation guidance.
 
@@ -423,6 +423,10 @@ Key rotation and recovery: because no tokens are kept, rotating or losing `BETTE
 ## Cloudflare deployment
 
 Astro 7's Cloudflare adapter targets Workers. The `main` branch is connected to Cloudflare Workers Builds with `npm run build` and `npx wrangler deploy`; Cloudflare pulls and deploys each push. The production custom domains, D1 binding, and `SITE_URL=https://firelandscurrent.com` are in `wrangler.jsonc`; `BETTER_AUTH_SECRET` is a Cloudflare secret. Namecheap delegates `firelandscurrent.com` to Cloudflare nameservers. Apply migrations to the production database with `npx wrangler d1 migrations apply DB --remote` when schema changes are deployed.
+
+### Backups, recovery, and incidents
+
+[docs/operations.md](docs/operations.md) is the runbook: what is backed up (D1 Time Travel, 7 days on the Workers Free plan; R2 images have no backup), how to restore the database or roll back a deploy, how to rotate each secret, what to do in an incident, and a checklist of the Cloudflare, GitHub, and registrar settings that live outside this repository. `npm run db:restore-drill` exports the local database, loads it into a throwaway copy, and checks that every table, row, trigger, migration, and media object came back; `npm run db:restore-drill -- --remote` does the same with a read-only export of production and deletes the copy when it finishes. A single full `wrangler d1 export` does not load back as written (tables are created out of dependency order), so restore schema, rows, and triggers separately, as the drill does.
 
 ### HTTPS and HSTS
 

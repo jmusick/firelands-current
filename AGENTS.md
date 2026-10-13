@@ -29,6 +29,7 @@ Guidance for AI coding agents working on Firelands Current, an independent local
 | `npm run test:secret-scan` | Isolated tests for the secret-scanning hooks and their fail-closed paths |
 | `npm run db:migrate:local` | Apply D1 migrations to the local database under `.wrangler/` |
 | `npm run db:seed:demo` | Load fictional demo stories and discussions; only for a throwaway database (see below) |
+| `npm run db:restore-drill` | Export the local database and restore it into a throwaway copy to prove backups load (`-- --remote` exports production read-only; owner's go-ahead only). See [docs/operations.md](docs/operations.md) |
 | `npm run cf:types` | Regenerate `worker-configuration.d.ts` from `wrangler.jsonc` |
 
 Run `npm run check` and `npm run build` before considering a change done. **Running `npm run check` while the dev server is up breaks the dev server** (client scripts start returning 404); restart `npm run dev` afterwards.
@@ -49,7 +50,7 @@ src/
   pages/             Routes; pages/api/** are form-post endpoints
 migrations/          Numbered D1 migrations (0001_auth.sql …)
 scripts/             Demo seed SQL; auth-schema.ts only generated the initial auth migration
-docs/                Newsroom guides (news-sources.md)
+docs/                Newsroom guides (news-sources.md), operations runbook (operations.md)
 ```
 
 ## Conventions
@@ -85,6 +86,8 @@ docs/                Newsroom guides (news-sources.md)
 ## Deployment
 
 The `main` branch is connected to Cloudflare Workers Builds: **every push to `main` builds and deploys to production** at `https://firelandscurrent.com`. Confirm with the user before pushing, and make sure any new migrations are applied to the production database before or alongside the deploy.
+
+Backups, restores, rolling back a deploy, rotating secrets, and incident response are in [docs/operations.md](docs/operations.md). A Time Travel restore overwrites production in place; never run one, or export production data, without the user's explicit go-ahead. A schema change that adds a table or a reference between tables should keep `npm run db:restore-drill` passing.
 
 ## Versioning
 

@@ -12,6 +12,21 @@ Search Console's events report, last updated October 1, showed 11 valid events a
 
 Production checks covered the calendar and four event pages (HTTP 200 and parseable Event JSON-LD), the signed-in editor's event fields, signed-out admin redirection, an `.ics` download, and the privacy notice. No event records were changed during those checks. Meta approval and current Facebook token access were not independently verified.
 
+## October 12, 2026
+
+Deployment controls review for issue #15, against the checklist in [operations.md](operations.md). Wrangler's token could not read zone settings or DNSSEC through the API, so those were observed from outside.
+
+- **TLS and redirects.** Handshakes with TLS 1.0, 1.1, 1.2 and 1.3 all succeeded (Node/OpenSSL client), so the zone's minimum TLS version was still 1.0. `http://` and `www` redirected to `https://firelandscurrent.com/` with a 308, and `Strict-Transport-Security: max-age=31536000` was present.
+- **DNS.** No DS record for `firelandscurrent.com` (DNSSEC off) and no CAA records.
+- **Worker.** Secrets set: `BETTER_AUTH_SECRET`, `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET`, `FACEBOOK_PAGE_ACCESS_TOKEN`, `TURNSTILE_SECRET_KEY`; `SECURITY_ALERT_EMAIL` not set. `wrangler deployments list` showed recent versions available for rollback.
+- **D1.** Production database on the current storage backend (889 kB, 33 tables), so Time Travel applies; on Workers Free its window is 7 days.
+- **R2.** `firelands-current-media`: `r2.dev` public access disabled, no custom domain, no CORS configuration.
+- **GitHub.** Public repository; `jmusick` is the only collaborator (admin); no deploy keys; no branch protection or rulesets (by choice); secret scanning and push protection on with no open alerts; Dependabot security updates off; Actions default token read-only, any action allowed, SHA pinning not required.
+- **Secret history.** `npm run secrets:scan` (Gitleaks, every ref, redacted): 142 commits, no leaks.
+- **Restore drill.** `node scripts/restore-drill.mjs` against the local database passed: 33 tables, 855 rows, 2 triggers, 33 migrations, 59 published stories, 48 media objects with matching sizes; export 2.0 s, restore 1.7 s. The first attempt, loading a single full export, failed with "no such table: main.events", which is why the drill restores schema, rows, and triggers separately.
+
+Not checked (owner, dashboard only): WAF and cache rules, API token scopes, Workers Builds token, two-factor sign-in on Cloudflare, GitHub, Namecheap, Google and Meta, registrar lock, email routing destinations.
+
 ## Earlier completed service checks
 
 The following dated observations were preserved from the October 4 backlog snapshot during the October 10 cleanup. They have not been reverified as current service settings.
