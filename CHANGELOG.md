@@ -2,6 +2,13 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.29.6] - 2026-10-15
+
+### Changed
+
+- Newsroom source guidance now covers additional local institutions, Monroeville service notices, airport authority meetings, nursing application deadlines and vendor applications, with checks for stale dates, conflicting schedules and image permissions.
+- Added the Oct. 13–15 editorial research, local import and production sync utilities. The Oct. 15 sync preserves existing event details, verifies the published stories and licensed photo, records content changes in the audit log and holds Facebook delivery until the live pages have been checked.
+
 ## [1.29.5] - 2026-10-12
 
 ### Fixed
