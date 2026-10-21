@@ -2,6 +2,14 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.29.7] - 2026-10-21
+
+### Changed
+
+- Expanded newsroom source guidance for libraries, local businesses, township meetings, early voting, road work and Lake Erie research, with checks for conflicting dates, access terms, fees and older information.
+- Added the Oct. 17–21 editorial preparation, local import and production sync utilities. They preserve reviewed copy, account-linked bylines and discussions, record audited changes and verify live pages before releasing new Facebook deliveries.
+- Editorial imports validate new licensed photos or reuse verified library images. Publication records stay in the separate project library, with checks for duplicate imports, schema differences and changed source packages.
+
 ## [1.29.6] - 2026-10-15
 
 ### Changed
