@@ -2,6 +2,14 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.29.8] - 2026-10-23
+
+### Changed
+
+- Updated newsroom source guidance for library closures, oral-history participation, pharmacy services, preschool screenings and public voting, with additional hospital, library and community-award sources.
+- Added the Oct. 22–23 editorial preparation, local import and production sync utilities. They preserve reviewed copy, account-linked bylines and discussions, audit publication changes and verify live pages before queuing Facebook delivery.
+- The Oct. 23 utility publishes only the reviewed stories, leaving calendar candidates for later review, and validates the licensed library photo through the media library before uploading it to production.
+
 ## [1.29.7] - 2026-10-21
 
 ### Changed
