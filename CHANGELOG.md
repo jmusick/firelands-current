@@ -2,6 +2,13 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.29.9] - 2026-10-24
+
+### Changed
+
+- Expanded newsroom source guidance for Sandusky leaf collection, early-learning ratings, Amherst road-comment deadlines and Bellevue library programs, including date and eligibility checks.
+- Added the Oct. 24 editorial source-capture, local import and production sync utilities for three stories and four events. They reuse a licensed library photo, preserve existing content and verify live pages and calendar exports before queuing Facebook posts.
+
 ## [1.29.8] - 2026-10-23
 
 ### Changed
