@@ -18,14 +18,16 @@ concurrency:
 jobs:
   baseline:
     name: Baseline
-    uses: jmusick/ci/.github/workflows/baseline.yml@1968ae3a8ad5ee80eb58ab168f5d71451a5e1d67 # v0.2.0
+    uses: jmusick/ci/.github/workflows/baseline.yml@09fd1dbd09257da5c226e23cfe1409d80e029067 # v0.2.1
     with:
       # Same threshold as `npm run audit`.
       audit-level: moderate
+      # Exceptions live only in .gitleaks.toml, as in the Git hooks (README "Secret scanning").
+      ignore-gitleaks-allow: true
 
   web-app:
     name: Web app
-    uses: jmusick/ci/.github/workflows/web-app.yml@1968ae3a8ad5ee80eb58ab168f5d71451a5e1d67 # v0.2.0
+    uses: jmusick/ci/.github/workflows/web-app.yml@09fd1dbd09257da5c226e23cfe1409d80e029067 # v0.2.1
     with:
       # worker-configuration.d.ts is generated rather than committed, and the secret-scan tests skip
       # their blocking cases unless the pinned Gitleaks is installed.
