@@ -12,6 +12,7 @@ All notable changes to Firelands Current are recorded here. The site follows [Se
 ### Fixed
 
 - Two built-in sample ads, shown only while no ads are booked, had text below WCAG AA contrast (3.51:1 and 3.69:1). Their accent colors are darker and now reach 4.6:1. The demo ad seed uses the same corrected colors.
+- On phones 460px wide or narrower, the masthead pushed the Menu button off screen whenever "Firelands Current" rendered in a wide fallback font instead of Archivo: on devices without Arial Narrow, such as Android, while the web font loads or if it is blocked. The name now wraps onto a second line in that case. With Archivo loaded it still fits on one line.
 
 ## [1.29.10] - 2026-10-26
 

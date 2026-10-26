@@ -166,7 +166,7 @@ const gaConfig = staffRole ? { traffic_type: 'internal' } : {};
         .site-footer-inner { grid-template-columns: minmax(0, 1fr); }
         .site-footer nav { grid-template-columns: repeat(2, auto); justify-content: start; }
       }
-      @media (max-width: 460px) { .masthead { gap: 1rem; } .brand { gap: .6rem; font-size: clamp(1.5rem, 7vw, 2rem); white-space: nowrap; } .brand-mark { width: clamp(2.1rem, 11vw, 2.6rem); } .dateline { display: none; } }
+      @media (max-width: 460px) { .masthead { gap: 1rem; } .brand { gap: .6rem; font-size: clamp(1.5rem, 7vw, 2rem); min-width: 0; } .brand-mark { width: clamp(2.1rem, 11vw, 2.6rem); } .dateline { display: none; } }
       @media (max-width: 360px) { .menu-toggle .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } }
     </style>
   </head>
