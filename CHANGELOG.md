@@ -2,6 +2,16 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.29.10] - 2026-10-26
+
+### Security
+
+- Cleared all 11 open Dependabot alerts; `npm audit` reports no vulnerabilities. Undici 8.12.3 (via Astro's font loader) and Zod 4.6.7 fix denial-of-service, memory-exhaustion and Subresource Integrity issues. Wrangler and the Cloudflare adapter's Miniflare pin Undici 7.29.1 exactly, so an `overrides` entry in `package.json` lifts every Undici 7 copy to 7.30.1; remove it once Miniflare ships a fixed Undici. fast-uri 3.1.9, used only by `astro check`, was installed under the README's cooldown exception: it was a few hours short of seven days, has npm provenance and no install scripts, and its diff only tightens URI scheme, host and relative-path handling.
+
+### Changed
+
+- Refreshed dependencies: Astro 7.4.0, @astrojs/cloudflare 14.4.0, Better Auth 1.7.10, @lucide/astro 1.59.0, marked 18.1.1, Wrangler 4.151.1, Playwright 1.64.1, axe-core and @axe-core/playwright 4.14.0. The CI workflows use actions/setup-node 7.1.0.
+
 ## [1.29.9] - 2026-10-24
 
 ### Changed
