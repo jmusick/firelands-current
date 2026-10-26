@@ -17,6 +17,7 @@ Guidance for AI coding agents working on Firelands Current, an independent local
 | `npm run dev` | Dev server at `http://127.0.0.1:4321` |
 | `npm run check` | Type-check with `astro check` |
 | `npm run build` | Production build into `dist/` |
+| `npm test` | Every `test:*` script below except `test:a11y`, in one run (what CI runs) |
 | `npm run test:body` | Isolated tests for the bounded request-body readers |
 | `npm run test:preview` | Isolated regression tests for safe story previews and their endpoint |
 | `npm run test:authorization` | Isolated access tests for every endpoint and role, suspended accounts, business isolation, and session cookies |
@@ -32,7 +33,7 @@ Guidance for AI coding agents working on Firelands Current, an independent local
 | `npm run db:restore-drill` | Export the local database and restore it into a throwaway copy to prove backups load (`-- --remote` exports production read-only; owner's go-ahead only). See [docs/operations.md](docs/operations.md) |
 | `npm run cf:types` | Regenerate `worker-configuration.d.ts` from `wrangler.jsonc` |
 
-Run `npm run check` and `npm run build` before considering a change done. **Running `npm run check` while the dev server is up breaks the dev server** (client scripts start returning 404); restart `npm run dev` afterwards.
+Run `npm run check` and `npm run build` before considering a change done. CI (`.github/workflows/ci.yml`, README "Continuous integration") also runs `npm test` and the accessibility audit on every pull request and push to `main`; a new `test:*` script must keep the `node --test <file>` form so `npm test` picks it up. **Running `npm run check` while the dev server is up breaks the dev server** (client scripts start returning 404); restart `npm run dev` afterwards.
 
 Local setup needs `.dev.vars` copied from `.dev.vars.example` with a real `BETTER_AUTH_SECRET`. `.dev.vars` is ignored by Git; never commit secrets.
 

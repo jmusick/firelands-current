@@ -88,7 +88,7 @@ const SAMPLE_ADS: Ad[] = [
   {
     id: 'sample-dental', businessId: null, advertiser: 'Lakeshore Family Dental', kind: 'sample', images: {},
     headline: 'New patients welcome', body: 'Evening and Saturday appointments for the whole family.', cta: 'Book a visit',
-    href: '/advertise', theme: { bg: '#e8f1f2', fg: '#173d4a', accent: '#2c8a9a' }, placements: [], sections: [], weight: 2,
+    href: '/advertise', theme: { bg: '#e8f1f2', fg: '#173d4a', accent: '#257583' }, placements: [], sections: [], weight: 2,
   },
   {
     id: 'sample-bakery', businessId: null, advertiser: 'Old Firehouse Bakery', kind: 'sample', images: {},
@@ -103,7 +103,7 @@ const SAMPLE_ADS: Ad[] = [
   {
     id: 'sample-tutoring', businessId: null, advertiser: 'Bright Harbor Tutoring', kind: 'sample', images: {},
     headline: 'Back-to-school help that sticks', body: 'Math and reading tutors for grades K–12.', cta: 'Meet our tutors',
-    href: '/advertise', theme: { bg: '#fbeee2', fg: '#5a2a18', accent: '#bc633e' }, placements: [], sections: ['schools'], weight: 2,
+    href: '/advertise', theme: { bg: '#fbeee2', fg: '#5a2a18', accent: '#a45636' }, placements: [], sections: ['schools'], weight: 2,
   },
 ];
 

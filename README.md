@@ -473,20 +473,33 @@ Cloudflare Web Analytics is injected by Cloudflare's edge (`static.cloudflareins
 
 The forms, verification links, and password-reset links send from `noreply@firelandscurrent.com` through the `send_email` binding (`EMAIL`) in `wrangler.jsonc`; no API token is needed. Onboard the domain once with `npx wrangler email sending enable firelandscurrent.com`, and make sure `news@` and `contact@` exist as real mailboxes or Email Routing addresses that deliver to staff. In `npm run dev`, verification and password-reset links are printed in the server console instead of sent.
 
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request and every push to `main`. It calls the shared workflows in [jmusick/ci](https://github.com/jmusick/ci), pinned to a release commit, so the owner's repositories run the same checks; Dependabot proposes newer releases through those pins.
+
+- **Baseline / Secret scan**: Gitleaks over the full history (see [Secret scanning](#secret-scanning)).
+- **Baseline / Dependency checks**: requires npm 11.19 or newer, because older npm ignores `min-release-age`; checks that every `package-lock.json` entry comes from the public registry over HTTPS with a sha512 hash; installs from the lockfile with scripts off; then runs `npm audit --audit-level=moderate` and `npm audit signatures`. Dependencies that run install scripts (today esbuild and workerd) show as warnings until they are listed in a `package.json` `allowScripts` field.
+- **Baseline / Dependency review** (pull requests only): see [Dependency review and provenance](#dependency-review-and-provenance).
+- **Web app / Lint, type check, test and build**: `npm run cf:types` and `npm run secrets:install`, then `npm run check`, `npm test` and `npm run build`. `npm test` runs every `test:*` script except `test:a11y`.
+- **Web app / Accessibility audit**: `npm run test:a11y` against a dev server (see [Accessibility testing](#accessibility-testing)).
+- **CI gate** passes only when every check above passed. It is the one check to require on `main`.
+
+A new `test:*` script must stay in the `node --test <file>` form, or `npm test` stops with a message saying which script to fix. To change what CI runs, edit the inputs in `ci.yml`; to change a check itself, change jmusick/ci, release it, and merge the Dependabot pull request that follows.
+
 ### Dependency audits
 
-`.github/dependabot.yml` opens one grouped pull request a week for minor and patch npm updates (majors come separately). Review it, run `npm run check`, `npm run build`, and the `npm run test:*` scripts, and merge to deploy. `npm run audit` runs `npm audit` against the lockfile on demand; it is not part of `npm run build`, so advisories never fail the Cloudflare build. Many advisories hit build-time tooling (Wrangler, Miniflare, Vite) rather than the deployed Worker, so check whether the vulnerable code is reachable before treating one as urgent.
+`.github/dependabot.yml` opens one grouped pull request a week for minor and patch npm updates (majors come separately). Review it, run `npm run check`, `npm test`, and `npm run build`, and merge to deploy. `npm run audit` runs `npm audit` against the lockfile on demand; it is not part of `npm run build`, so advisories never fail the Cloudflare build. Many advisories hit build-time tooling (Wrangler, Miniflare, Vite) rather than the deployed Worker, so check whether the vulnerable code is reachable before treating one as urgent.
 
 ### Dependency review and provenance
 
-`.github/workflows/dependency-review.yml` adds two checks to GitHub Actions:
+Two of the [CI](#continuous-integration) checks cover dependencies:
 
 - **Dependency review** (pull requests only) compares the lockfile with the base branch and fails when a pull request adds or upgrades to a runtime dependency with a known advisory of moderate severity or worse. Development tooling is listed but does not fail it, for the reason above.
-- **Registry signatures** (pull requests and every push to `main`) installs exactly what `package-lock.json` pins with install scripts off and runs `npm audit signatures`, which fails if any package lacks a valid npm registry signature or publishes a provenance attestation that does not verify. Run it locally the same way after `npm ci`.
+- **Dependency checks** (pull requests and every push to `main`) installs exactly what `package-lock.json` pins with install scripts off and runs `npm audit signatures`, which fails if any package lacks a valid npm registry signature or publishes a provenance attestation that does not verify. Run it locally the same way after `npm ci`. The same job runs `npm audit` at the `npm run audit` threshold, so unlike the Cloudflare build, CI does fail on a moderate advisory in development tooling.
 
 Provenance and inventory: every dependency comes from the public npm registry, pinned with its integrity hash in `package-lock.json`; nothing is vendored or loaded from a CDN (the editor's assets are bundled; see AGENTS.md). Gitleaks is the one binary fetched outside npm, pinned by version and SHA-256 in `scripts/secret-scan.mjs`, and the workflow actions are pinned to commit SHAs. `npm run sbom > sbom.json` writes a CycloneDX SBOM of the packages that ship in the Worker (`--omit dev`) from the lockfile; generate one when someone asks what the site runs, or before and after a large upgrade to compare. It is not committed, because the lockfile already records the same versions and hashes.
 
-**Accepted risk: these checks report but do not gate deploys.** Workers Builds deploys every push to `main` without waiting for GitHub Actions, and `main` has no ruleset requiring the checks (releases are pushed directly). The controls are the pre-push secret-scan hook, the seven-day cooldown, the review of each dependency pull request, and these checks on pull requests before merging. A failure on `main` means the commit is already live: fix forward or revert. If releases move to pull requests, require `Secret scan`, `Dependency review`, and `Registry signatures` with a ruleset on `main` to make them binding.
+**Accepted risk: these checks report but do not gate deploys.** Workers Builds deploys every push to `main` without waiting for GitHub Actions, and `main` has no ruleset requiring the checks (releases are pushed directly). The controls are the pre-push secret-scan hook, the seven-day cooldown, the review of each dependency pull request, and these checks on pull requests before merging. A failure on `main` means the commit is already live: fix forward or revert. If releases move to pull requests, require the `CI gate` check with a ruleset on `main` to make them binding.
 
 ### Dependency cooldown
 
@@ -501,7 +514,7 @@ If a security fix cannot wait, make the exception explicit and reviewed:
 
 ### Secret scanning
 
-Commits and pushes are scanned for committed credentials with [Gitleaks](https://github.com/gitleaks/gitleaks), pinned to one exact release (`GITLEAKS_VERSION` in `scripts/secret-scan.mjs`, chosen at least two weeks after publication). The same script serves the Git hooks, the CI workflow, and the npm scripts, and it is plain Node, so it behaves the same in PowerShell, cmd, Git Bash, and Linux.
+Commits and pushes are scanned for committed credentials with [Gitleaks](https://github.com/gitleaks/gitleaks), pinned to one exact release (`GITLEAKS_VERSION` in `scripts/secret-scan.mjs`, chosen at least two weeks after publication). The same script serves the Git hooks and the npm scripts, and it is plain Node, so it behaves the same in PowerShell, cmd, Git Bash, and Linux. CI runs the same Gitleaks release through the shared workflow (see **CI** below).
 
 **Setup (once per clone).** Run `npm run hooks:install`. It sets `core.hooksPath` to `.githooks` (the repository's checked-in hooks) and downloads the pinned scanner. The download is checked against a SHA-256 value pinned in `scripts/secret-scan.mjs`, copied from the release's official `gitleaks_<version>_checksums.txt` file, and is only unpacked if it matches; there is no `curl | sh`. The binary is kept in the clone's git directory (`.git/gitleaks/<version>/`), untracked and shared by every worktree of that clone. `npm run secrets:install` repeats the download on its own. If `core.hooksPath` already points somewhere else, the command stops instead of replacing it.
 
@@ -515,12 +528,12 @@ Commits and pushes are scanned for committed credentials with [Gitleaks](https:/
 
 **Exceptions** live only in `.gitleaks.toml`, where they are reviewed in the diff. Each one names the rule, the path pattern, and the exact value pattern, and says why it is safe (today: the made-up `...-regression-secret-at-least-32-characters` values in `scripts/test-*.mjs`). Inline `gitleaks:allow` comments are ignored on purpose. `.dev.vars.example` needs no exception because it holds only placeholders and Cloudflare's published Turnstile test keys. A `.gitleaksignore` fingerprint file is honored by Gitleaks but should be used only for one specific, already-rotated historical finding.
 
-**CI.** `.github/workflows/secret-scan.yml` (check name `Secret scan`) runs on every pull request and every push to `main`: it checks out the full history, installs the same pinned scanner with the same checksum verification, scans every commit on every ref, and then runs `npm run test:secret-scan`. Its actions are pinned to commit SHAs, and Dependabot proposes updates to them weekly after a 14-day cooldown. Changing Gitleaks itself is a manual edit: choose a release at least two weeks old, copy the six SHA-256 values from its checksums file, and update `scripts/secret-scan.mjs`.
+**CI.** The `Baseline / Secret scan` check (see [Continuous integration](#continuous-integration)) runs on every pull request and every push to `main`: it checks out the full history, installs Gitleaks with checksum verification, and scans every commit on every ref with `.gitleaks.toml`, ignoring inline `gitleaks:allow` comments as the hooks do. `npm run test:secret-scan` runs in the `Web app` check as part of `npm test`, after `npm run secrets:install`. The shared workflow pins its own copy of the Gitleaks version, so changing Gitleaks is two manual edits: choose a release at least two weeks old, copy the six SHA-256 values from its checksums file into `scripts/secret-scan.mjs`, and update the version and Linux checksum in jmusick/ci's `baseline.yml` to match.
 
 **Deployment limit.** Cloudflare Workers Builds deploys every push to `main` on its own, without waiting for GitHub Actions, so the workflow cannot stop a deploy of a commit that is already on `main`. Two things make the scan binding:
 
 1. The pre-push hook stops the secret before it leaves the machine.
-2. A GitHub rule on `main` that requires a pull request and the `Secret scan` status check (Settings, Rules, Rulesets, or branch protection with "Do not allow bypassing the above settings") means nothing reaches `main`, and so nothing deploys, until the check has passed. This is a repository setting the owner must turn on; the workflow alone does not enforce it.
+2. A GitHub rule on `main` that requires a pull request and the `CI gate` status check (Settings, Rules, Rulesets, or branch protection with "Do not allow bypassing the above settings") means nothing reaches `main`, and so nothing deploys, until the check has passed. This is a repository setting the owner must turn on; the workflow alone does not enforce it.
 
 The scan is deliberately not part of `npm run build`. The Workers Builds environment does not provide the scanner, so the build would need a network download on every deploy (a new way for deploys to fail), and its checkout is not guaranteed to hold the full history. A build-time scan would also run only after the secret is already on `main`, and then a failed build merely leaves the previous deploy live while the secret stays in the repository. Prevention belongs before the push and before the merge.
 
@@ -528,7 +541,9 @@ The scan is deliberately not part of `npm run build`. The Workers Builds environ
 
 ## Accessibility testing
 
-`npm run test:a11y` (issue #26) is the automated half of accessibility testing. It is a dev tool: Playwright and `@axe-core/playwright` are exact-pinned devDependencies, nothing from them reaches the site, and it is not part of `npm run build` or CI.
+`npm run test:a11y` (issue #26) is the automated half of accessibility testing. It is a dev tool: Playwright and `@axe-core/playwright` are exact-pinned devDependencies, nothing from them reaches the site, and it is not part of `npm run build`.
+
+CI runs it on every pull request and push to `main` (the `Web app / Accessibility audit` check), against a dev server whose throwaway local database is loaded with `scripts/seed-demo.sql` and `scripts/seed-ads-demo.sql` so story, event, discussion and booked-ad pages are scanned. Keep the demo seeds' ad colors at 4.5:1 contrast or better, like the built-in sample ads in `src/lib/ads.ts`, or the check fails.
 
 ```
 npx playwright install chromium          # once per machine (Chromium only)

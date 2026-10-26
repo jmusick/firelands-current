@@ -1,0 +1,70 @@
+# Checks for every pull request and every push to main, built from the shared workflows in jmusick/ci
+# (README "Continuous integration"). Dependabot proposes newer jmusick/ci releases through the pins below.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  baseline:
+    name: Baseline
+    uses: jmusick/ci/.github/workflows/baseline.yml@09fd1dbd09257da5c226e23cfe1409d80e029067 # v0.2.1
+    with:
+      # Same threshold as `npm run audit`.
+      audit-level: moderate
+      # Exceptions live only in .gitleaks.toml, as in the Git hooks (README "Secret scanning").
+      ignore-gitleaks-allow: true
+
+  web-app:
+    name: Web app
+    uses: jmusick/ci/.github/workflows/web-app.yml@09fd1dbd09257da5c226e23cfe1409d80e029067 # v0.2.1
+    with:
+      # worker-configuration.d.ts is generated rather than committed, and the secret-scan tests skip
+      # their blocking cases unless the pinned Gitleaks is installed.
+      setup-command: |
+        npm run cf:types
+        npm run secrets:install
+      typecheck-command: npm run check
+      test-command: npm test
+      build-command: npm run build
+      a11y-command: npm run test:a11y
+      # A throwaway local database with the demo content, so story, event, discussion and booked-ad
+      # pages are scanned too. CI is the one place the demo seeds may go into the local database.
+      a11y-setup-command: |
+        sed -e "s|^BETTER_AUTH_SECRET=.*|BETTER_AUTH_SECRET=$(openssl rand -hex 32)|" \
+            -e "s|^SITE_URL=.*|SITE_URL=http://127.0.0.1:4399|" .dev.vars.example > .dev.vars
+        npm run db:migrate:local
+        npm run db:seed:demo
+        npx wrangler d1 execute DB --local --file scripts/seed-ads-demo.sql
+      a11y-server-command: npx astro dev --host 127.0.0.1 --port 4399
+      a11y-url: http://127.0.0.1:4399
+
+  # The one check to require on main: it passes only when every job above passed.
+  gate:
+    name: CI gate
+    if: always()
+    needs: [baseline, web-app]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every job to have passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Job results: $RESULTS"
+          for result in $RESULTS; do
+            if [ "$result" != "success" ]; then
+              echo "::error::A required job did not succeed."
+              exit 1
+            fi
+          done
