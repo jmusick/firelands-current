@@ -2,6 +2,13 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.29.12] - 2026-10-26
+
+### Changed
+
+- Added the Oct. 25 and Oct. 26 editorial import and production sync utilities. Oct. 25 imports three approved stories and reuses two library photos; Oct. 26 covers the Clyde charter preview, Norwalk large-item pickup and Clyde buyer program, with one new licensed Clyde photo. Both verify live stories and image checksums before queuing Facebook posts, and leave events, proposed updates and featured selections unchanged.
+- Expanded newsroom source guidance with the Park District of Ottawa County, NOAA's Lake Erie bloom bulletin, the Sandusky Christmas Market, the Sandusky County Communities Foundation's 2026 awards, the City of Clyde and Welcome Home Clyde. Monroeville's entry now records its move to a .gov email address and the conflicting addresses on its employment page.
+
 ## [1.29.11] - 2026-10-26
 
 ### Changed
