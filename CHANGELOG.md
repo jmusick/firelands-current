@@ -2,6 +2,17 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [Unreleased]
+
+### Changed
+
+- CI now runs the shared workflows from [jmusick/ci](https://github.com/jmusick/ci) in one `ci.yml`, replacing `dependency-review.yml` and `secret-scan.yml`. Pull requests and pushes to `main` now also run the type check, all 356 isolated tests, the production build, the accessibility audit against the demo content, a lockfile integrity check and `npm audit`. One `CI gate` check summarizes them; the README's "Continuous integration" section lists every check.
+- `npm test` runs every `test:*` script except `test:a11y` in one run.
+
+### Fixed
+
+- Two built-in sample ads, shown only while no ads are booked, had text below WCAG AA contrast (3.51:1 and 3.69:1). Their accent colors are darker and now reach 4.6:1. The demo ad seed uses the same corrected colors.
+
 ## [1.29.10] - 2026-10-26
 
 ### Security
