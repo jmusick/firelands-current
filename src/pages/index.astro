@@ -2,6 +2,7 @@
 import AuthorLink from '../components/AuthorLink.astro';
 import AdSlot from '../components/AdSlot.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { fmtStoryDate as fmtDate, isoDateTime } from '../lib/dates';
 import { CATEGORIES, fmtDay, fmtHours, listEvents, today } from '../lib/events';
 import { SECTIONS, articlesBySection, frontPageArticles, leadMedia } from '../lib/news';
 
@@ -11,7 +12,6 @@ const sections = await articlesBySection(3, lead ? [lead.id] : []);
 const leadImage = lead ? leadMedia(lead) : null;
 const events = (await listEvents({}, 0, 4)).slice(0, 4);
 const now = today();
-const fmtDate = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateStyle: 'medium' });
 ---
 <BaseLayout title="Sandusky & Firelands Local News">
   {lead ? <section class="front">
@@ -23,14 +23,14 @@ const fmtDate = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateS
       <span class="eyebrow">{lead.community}<span class="section">{SECTIONS[lead.section]}</span></span>
       <h1><a href={`/news/${lead.slug}`}>{lead.headline}</a></h1>
       <p class="lede">{lead.summary}</p>
-      <p class="meta">By <AuthorLink id={lead.author_id} name={lead.byline} />, {fmtDate(lead.published_at)}</p>
+      <p class="meta">By <AuthorLink id={lead.author_id} name={lead.byline} />, <time datetime={isoDateTime(lead.published_at)}>{fmtDate(lead.published_at)}</time></p>
     </article>
     <div class="rail">
       <h2>Latest</h2>
       {more.map((article) => <article>
         <span class="eyebrow">{article.community}<span class="section">{SECTIONS[article.section]}</span></span>
         <h3><a href={`/news/${article.slug}`}>{article.headline}</a></h3>
-        <p class="meta">{fmtDate(article.published_at)}</p>
+        <p class="meta"><time datetime={isoDateTime(article.published_at)}>{fmtDate(article.published_at)}</time></p>
       </article>)}
       <p class="more"><a href="/news">All the latest news</a></p>
       <AdSlot placement="home-rail" class="home-rail" />
@@ -62,7 +62,7 @@ const fmtDate = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateS
       <div class="band-head"><h2 id={`sec-${section}`}>{SECTIONS[section]}</h2><a href={`/news?section=${section}`}>More {SECTIONS[section]}</a></div>
       {articles.map((a) => <article>
         <h3><a href={`/news/${a.slug}`}>{a.headline}</a></h3>
-        <p class="meta">{a.community}, {fmtDate(a.published_at)}</p>
+        <p class="meta">{a.community}, <time datetime={isoDateTime(a.published_at)}>{fmtDate(a.published_at)}</time></p>
       </article>)}
     </section>)}
   </div>}

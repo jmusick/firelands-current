@@ -47,7 +47,9 @@ const { emptyArticle, saveArticleFromForm, valuesFromArticle } = (await loadSour
   './news': news.url, './forum': forum.url, './audit': audit.url,
   './media': 'data:text/javascript,export const isMediaId = () => false;',
 })).module;
-const { frontPageArticles, getAdminArticle } = news.module;
+const { FEATURE_WINDOW_DAYS, frontPageArticles, getAdminArticle } = news.module;
+// The fixtures below use tiny timestamps, so the first suite reads the page as of a moment just after them.
+const front = (others, now = 1000) => frontPageArticles(others, now);
 const actor = { id: 'editor', name: 'Test editor' };
 const save = (data, existing) => saveArticleFromForm(data, existing, actor);
 const userSql = "INSERT INTO user (id, name, email, emailVerified, createdAt, updatedAt) VALUES ('editor', 'Test editor', 'editor@example.test', 1, '2026-10-01', '2026-10-01')";
@@ -69,7 +71,7 @@ const form = (article, featured) => {
 
 test('featured homepage stories', async (t) => {
   await t.test('empty database has no lead or latest stories', async () => {
-    assert.deepEqual(await frontPageArticles(), { lead: null, more: [] });
+    assert.deepEqual(await front(), { lead: null, more: [] });
   });
   for (let i = 1; i <= 7; i++) insert(`recent-${i}`, 100 + i);
   insert('old-feature-a', 1);
@@ -78,10 +80,10 @@ test('featured homepage stories', async (t) => {
   const queueBefore = database.prepare('SELECT * FROM facebook_posts ORDER BY article_id').all();
 
   await t.test('no published featured story falls back to newest, with no duplicate lead', async () => {
-    const page = await frontPageArticles();
+    const page = await front();
     assert.equal(page.lead.id, 'recent-7');
     assert.deepEqual(page.more.map((a) => a.id), ['recent-6', 'recent-5', 'recent-4', 'recent-3']);
-    assert.equal((await frontPageArticles(0)).more.length, 0);
+    assert.equal((await front(0)).more.length, 0);
   });
 
   await t.test('saving multiple featured stories preserves the others and original publication dates', async () => {
@@ -106,7 +108,7 @@ test('featured homepage stories', async (t) => {
       randomIndex = 0;
       randomValues = [1, 1, 1];
       randomValues[chosen] = -1;
-      const page = await frontPageArticles();
+      const page = await front();
       selected.add(page.lead.id);
       const newestOthers = database.prepare("SELECT id FROM news_articles WHERE status = 'published' AND id != ? ORDER BY published_at DESC LIMIT 4")
         .all(page.lead.id).map((a) => a.id);
@@ -123,7 +125,7 @@ test('featured homepage stories', async (t) => {
     data.set('status', 'draft');
     assert.equal((await save(data, second)).ok, true);
     database.function('random', () => 0);
-    assert.equal((await frontPageArticles()).lead.id, 'recent-7');
+    assert.equal((await front()).lead.id, 'recent-7');
     assert.equal((await getAdminArticle('recent-7')).featured, 1);
   });
 
@@ -257,4 +259,101 @@ test('related coverage', async (t) => {
     assert.deepEqual((await news.module.relatedArticles(self, 1)).map((a) => a.id), ['rel-same-old']);
     assert.deepEqual(await news.module.relatedArticles({ id: 'x', section: 'outdoors', community: 'Nowhere' }), []);
   });
+});
+
+test('featured stories lead only inside the feature window', async (t) => {
+  assert.equal(FEATURE_WINDOW_DAYS, 3);
+  const DAY = 24 * 60 * 60 * 1000;
+  const NOW = 100 * DAY;
+  const ids = [];
+  const add = (id, publishedAt, { featured = 0, status = 'published', photo = false } = {}) => {
+    insert(id, publishedAt, featured, status);
+    ids.push(id);
+    if (photo) {
+      database.prepare(`INSERT OR IGNORE INTO media (id, object_key, content_type, width, height, bytes, filename, credit, created_at, updated_at)
+        VALUES (?, ?, 'image/jpeg', 800, 600, 1, 'photo.jpg', 'Test credit', 1, 1)`).run(`media-${id}`, `media/${id}.jpg`);
+      database.prepare('UPDATE news_articles SET lead_media_id = ? WHERE id = ?').run(`media-${id}`, id);
+    }
+  };
+  const reset = () => {
+    for (const id of ids.splice(0)) {
+      database.prepare('DELETE FROM news_articles WHERE id = ?').run(id);
+      database.prepare('DELETE FROM media WHERE id = ?').run(`media-${id}`);
+    }
+  };
+  // Park every other story far in the past so these scenarios choose among their own rows.
+  database.exec('UPDATE news_articles SET published_at = 1');
+  const lead = async (others = 4) => frontPageArticles(others, NOW);
+
+  await t.test('an expired featured story never leads', async () => {
+    add('expired-feature', NOW - 3 * DAY - 1, { featured: 1 });
+    add('fresh', NOW - DAY);
+    for (const value of [-1, 0, 1]) {
+      database.function('random', () => value);
+      assert.equal((await lead()).lead.id, 'fresh');
+    }
+    assert.equal(database.prepare("SELECT featured FROM news_articles WHERE id = 'expired-feature'").get().featured, 1);
+    reset();
+  });
+
+  await t.test('an eligible featured story beats a newer unfeatured story, including at the window edge', async () => {
+    add('edge-feature', NOW - 3 * DAY, { featured: 1 });
+    add('newer', NOW - 1000, { photo: true });
+    add('expired-feature', NOW - 5 * DAY, { featured: 1 });
+    for (const value of [-1, 0, 1]) {
+      database.function('random', () => value);
+      const page = await lead();
+      assert.equal(page.lead.id, 'edge-feature');
+      assert.ok(!page.more.some((a) => a.id === page.lead.id));
+      assert.deepEqual(page.more.map((a) => a.id).slice(0, 2), ['newer', 'expired-feature']);
+    }
+    reset();
+  });
+
+  await t.test('eligible featured stories still rotate', async () => {
+    add('feature-a', NOW - DAY, { featured: 1 });
+    add('feature-b', NOW - 2 * DAY, { featured: 1 });
+    const seen = new Set();
+    for (const value of [-1, 1]) {
+      // random() runs once per eligible row, in scan order; the lowest value wins.
+      let calls = 0;
+      database.function('random', () => (calls++ === 0 ? value : -value));
+      seen.add((await lead()).lead.id);
+    }
+    assert.deepEqual([...seen].sort(), ['feature-a', 'feature-b']);
+    reset();
+  });
+
+  await t.test('with no eligible feature, the newest photo story in the window beats a newer story without one', async () => {
+    add('expired-feature', NOW - 4 * DAY, { featured: 1, photo: true });
+    add('old-photo', NOW - 2 * DAY, { photo: true });
+    add('new-photo', NOW - DAY, { photo: true });
+    add('no-photo', NOW - 1000);
+    database.function('random', () => 0);
+    assert.equal((await lead()).lead.id, 'new-photo');
+    database.prepare("DELETE FROM news_articles WHERE id = 'new-photo'").run();
+    assert.equal((await lead()).lead.id, 'old-photo');
+    reset();
+  });
+
+  await t.test('with nothing in the window, the newest story leads, with or without a photo', async () => {
+    add('stale-photo', NOW - 10 * DAY, { photo: true });
+    add('stale-plain', NOW - 5 * DAY);
+    add('stale-feature', NOW - 20 * DAY, { featured: 1, photo: true });
+    database.function('random', () => 0);
+    assert.equal((await lead()).lead.id, 'stale-plain');
+    reset();
+  });
+
+  await t.test('drafts and future-dated stories never lead', async () => {
+    add('draft-lead', NOW - DAY, { featured: 1, status: 'draft' });
+    add('future-feature', NOW + DAY, { featured: 1 });
+    add('future-photo', NOW + DAY, { photo: true });
+    add('published', NOW - 2 * DAY);
+    database.function('random', () => 0);
+    assert.equal((await lead()).lead.id, 'published');
+    reset();
+  });
+
+  database.exec('UPDATE news_articles SET published_at = 1');
 });

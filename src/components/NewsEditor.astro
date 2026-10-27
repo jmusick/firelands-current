@@ -53,7 +53,7 @@ const lead = values.lead_media_id ? await getMedia(values.lead_media_id) : null;
       <button type="button" class="button secondary small" id="lead-remove" hidden={!lead}><X />Remove</button>
     </div>
   </div>
-  <label class="check"><input type="checkbox" name="featured" value="1" checked={values.featured} /><span>Feature on the front page <span class="hint">Once published, this story joins the featured stories. Each homepage visit randomly chooses one as the large lead. If none are featured, the newest story leads.</span></span></label>
+  <label class="check"><input type="checkbox" name="featured" value="1" checked={values.featured} /><span>Feature on the front page <span class="hint">Once published, this story can be the large lead for 3 days. Each homepage visit randomly chooses among the featured stories published in the last 3 days; after that it stays featured but no longer leads. If none qualify, the newest story with a photo leads.</span></span></label>
   <label>Story <span class="hint" id="body-hint">Markdown: blank line between paragraphs, ## for subheads, &gt; for pull quotes. Add images with the picture button, or drag or paste one in; an image on its own line shows with its caption and credit.</span><textarea id="body" name="body" style="min-height:420px">{values.body}</textarea></label>
   <div class="actions">
     <label class="status">Status

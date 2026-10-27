@@ -1,6 +1,6 @@
 {
   "name": "firelands-current",
-  "version": "1.29.13",
+  "version": "1.30.0",
   "private": true,
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
@@ -17,6 +17,7 @@
     "secrets:scan": "node scripts/secret-scan.mjs history",
     "secrets:staged": "node scripts/secret-scan.mjs staged",
     "test:profiles": "node --test scripts/test-profiles.mjs",
+    "test:dates": "node --test scripts/test-dates.mjs",
     "test:auth": "node --test scripts/test-auth.mjs",
     "test:fresh-auth": "node --test scripts/test-fresh-auth.mjs",
     "test:password-hash": "node --test scripts/test-password-hash.mjs",
@@ -41,6 +42,7 @@
     "test:secret-scan": "node --test scripts/test-secret-scan.mjs",
     "test:tip-retention": "node --test scripts/test-tip-retention.mjs",
     "test:auth-alerts": "node --test scripts/test-auth-alerts.mjs",
+    "test:ads": "node --test scripts/test-ads.mjs",
     "cf:types": "wrangler types",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:seed:demo": "wrangler d1 execute DB --local --file scripts/seed-demo.sql",
