@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.29.14] - 2026-10-27
+
+### Fixed
+
+- Story, comment and Talk of the Town dates showed in UTC, so a story published at 9:48 a.m. read "1:48 PM" and anything published after 8 p.m. Eastern showed the next day's date. Public dates and times now use Eastern time in AP style ("Oct. 25, 2026, at 9:48 a.m.", with "noon" and "midnight") on the homepage, news list, story pages, related coverage, comments and Talk of the Town, and are marked up with `<time datetime>`. `npm run test:dates` covers the formatting, including daylight saving time changes.
+
 ## [1.29.13] - 2026-10-27
 
 ### Changed

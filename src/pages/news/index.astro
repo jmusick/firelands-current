@@ -3,6 +3,7 @@ import AuthorLink from '../../components/AuthorLink.astro';
 import AdSlot from '../../components/AdSlot.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { adPlanFor, feedAdBreaks } from '../../lib/ads';
+import { fmtStoryDate, isoDateTime } from '../../lib/dates';
 import { SECTIONS, isSection, listArticles } from '../../lib/news';
 
 const sectionParam = Astro.url.searchParams.get('section');
@@ -29,7 +30,7 @@ const pageHref = (n: number) => {
     {Object.entries(SECTIONS).map(([key, label]) => <a href={`/news?section=${key}`} aria-current={section === key ? 'page' : undefined}>{label}</a>)}
   </nav>
   <div>
-    {articles.length === 0 ? <div class="card" style="margin-top:1rem"><h2>No stories yet</h2><p class="muted">Check back soon for reporting from around the region.</p></div> : articles.map((article, i) => <><article class="item"><div class="text"><span class="eyebrow">{article.community}{!section && <span class="section">{SECTIONS[article.section]}</span>}</span><h2><a href={`/news/${article.slug}`}>{article.headline}</a></h2><p class="summary">{article.summary}</p><p class="meta">By <AuthorLink id={article.author_id} name={article.byline} />, {new Date(article.published_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</p></div>{article.lead_key && <a class="thumb" href={`/news/${article.slug}`} tabindex="-1" aria-hidden="true"><img src={`/media/${article.lead_key}`} alt="" width={article.lead_width!} height={article.lead_height!} loading="lazy" /></a>}</article>{adAfter.has(i + 1) && <AdSlot placement="news-feed" />}</>)}
+    {articles.length === 0 ? <div class="card" style="margin-top:1rem"><h2>No stories yet</h2><p class="muted">Check back soon for reporting from around the region.</p></div> : articles.map((article, i) => <><article class="item"><div class="text"><span class="eyebrow">{article.community}{!section && <span class="section">{SECTIONS[article.section]}</span>}</span><h2><a href={`/news/${article.slug}`}>{article.headline}</a></h2><p class="summary">{article.summary}</p><p class="meta">By <AuthorLink id={article.author_id} name={article.byline} />, <time datetime={isoDateTime(article.published_at)}>{fmtStoryDate(article.published_at)}</time></p></div>{article.lead_key && <a class="thumb" href={`/news/${article.slug}`} tabindex="-1" aria-hidden="true"><img src={`/media/${article.lead_key}`} alt="" width={article.lead_width!} height={article.lead_height!} loading="lazy" /></a>}</article>{adAfter.has(i + 1) && <AdSlot placement="news-feed" />}</>)}
   </div>
   {(page > 1 || hasMore) && <nav aria-label="News pages" style="display:flex;justify-content:space-between;margin-top:1.5rem"><span>{page > 1 && <a href={pageHref(page - 1)}>← Newer stories</a>}</span><span>{hasMore && <a href={pageHref(page + 1)}>Older stories →</a>}</span></nav>}
 </BaseLayout>
