@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.30.1] - 2026-10-27
+
+### Changed
+
+- Talk of the Town's default view now leads with conversations: reader-started discussions plus story and event discussions with at least one visible reply. Story and event discussions nobody has joined no longer crowd the first page, and the Stories and Events tabs still list every one. A line under the tabs explains that every story and event has its own discussion. When nothing has been discussed yet, the empty view links to story discussions and to starting one.
+
 ## [1.30.0] - 2026-10-27
 
 ### Added
