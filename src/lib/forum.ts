@@ -62,9 +62,16 @@ const THREAD_SELECT = `
   LEFT JOIN events ev ON ev.id = t.event_id
   WHERE t.status = 'published' AND (t.article_id IS NULL OR a.status = 'published') AND (t.event_id IS NULL OR ev.status != 'draft')`;
 
+/**
+ * One page of discussions, newest activity first. Every story and event gets an automatic discussion, so the
+ * unfiltered list leaves out the ones nobody has replied to (a thread whose only replies are hidden counts as
+ * none) and leads with community topics and discussed stories or events. A kind tab still lists every visible
+ * discussion of that kind. The filter is in SQL so pages stay full, and id breaks ties so paging stays stable.
+ */
 export async function listThreads(page = 0, viewerId = '', kind: ThreadKind | null = null): Promise<Thread[]> {
-  const result = await env.DB.prepare(`SELECT * FROM (${THREAD_SELECT}) WHERE (?3 IS NULL OR kind = ?3)
-    ORDER BY last_activity_at DESC
+  const result = await env.DB.prepare(`SELECT * FROM (${THREAD_SELECT})
+    WHERE (?3 IS NULL AND (kind = 'community' OR reply_count > 0)) OR kind = ?3
+    ORDER BY last_activity_at DESC, id DESC
     LIMIT 21 OFFSET ?2
   `).bind(viewerId, page * 20, kind).all<Thread>();
   return result.results;
