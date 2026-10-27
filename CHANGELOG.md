@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.30.0] - 2026-10-27
+
+### Added
+
+- The paper's own promotions now take a share of ad rotation: advertising, news tips, the events calendar and Talk of the Town. When booked ads could fill a slot, a promo wins it a quarter of the time (`HOUSE_SHARE`), never more than once per page and never on the page it links to. Slots no booked ad fits still always show one. Promos are labeled "From Firelands Current" for sighted and screen-reader users alike, and record no impressions or clicks, so advertisers' counts are unaffected. `/advertise` mentions the paper's own notices, and `npm run test:ads` covers the rotation.
+
 ## [1.29.15] - 2026-10-27
 
 ### Fixed
