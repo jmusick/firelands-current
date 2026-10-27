@@ -6,6 +6,7 @@ import Comments from '../../components/Comments.astro';
 import CorrectionLink from '../../components/CorrectionLink.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { adPlanFor, inlineAdBreaks } from '../../lib/ads';
+import { fmtStoryDate, fmtStoryDateTime, isoDateTime } from '../../lib/dates';
 import { getArticleThread } from '../../lib/forum';
 import { mediaByKeys, mediaKeysIn } from '../../lib/media';
 import { SECTIONS, figureHtml, getArticle, leadMedia, newsArticleJsonLd, relatedArticles, renderBodyBlocks } from '../../lib/news';
@@ -36,7 +37,7 @@ chunks.push(blocks.slice(start).join(''));
     <span class="eyebrow">{article.community}<a class="section" href={`/news?section=${article.section}`}>{SECTIONS[article.section]}</a></span>
     <h1 class="headline">{article.headline}</h1>
     <p class="lede" style="margin-top:0">{article.summary}</p>
-    <p class="meta byline">By <strong><AuthorLink id={article.author_id} name={article.byline} /></strong><br />{new Date(article.published_at).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}</p>
+    <p class="meta byline">By <strong><AuthorLink id={article.author_id} name={article.byline} /></strong><br /><time datetime={isoDateTime(article.published_at)}>{fmtStoryDateTime(article.published_at)}</time></p>
     <ShareButtons url={new URL(`/news/${article.slug}`, Astro.url.origin).href} title={article.headline} />
     {lead && <Fragment set:html={figureHtml(lead, { className: 'story-figure lead', eager: true })} />}
     <div class="story">
@@ -50,7 +51,7 @@ chunks.push(blocks.slice(start).join(''));
           {related.map((r) => (
             <li>
               <a href={`/news/${r.slug}`}>{r.headline}</a>
-              <span class="meta">{SECTIONS[r.section]} &middot; <time datetime={new Date(r.published_at).toISOString()}>{new Date(r.published_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}</time></span>
+              <span class="meta">{SECTIONS[r.section]} &middot; <time datetime={isoDateTime(r.published_at)}>{fmtStoryDate(r.published_at)}</time></span>
             </li>
           ))}
         </ul>
