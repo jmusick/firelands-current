@@ -2,12 +2,13 @@
 import { Plus } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
-import { SECTIONS, listAdminArticles } from '../../../lib/news';
+import { SECTIONS, featureExpired, listAdminArticles } from '../../../lib/news';
 
 const denied = requireSection(Astro, ADMIN.news);
 if (denied) return denied;
 
 const articles = await listAdminArticles();
+const now = Date.now();
 const fmt = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateStyle: 'medium' });
 ---
 <AdminLayout title="News">
@@ -33,7 +34,7 @@ const fmt = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateStyle
       {articles.map((a) => <tr data-search={`${a.headline} ${a.community} ${a.byline} ${a.slug}`.toLowerCase()} data-status={a.status} data-section={a.section} data-featured={a.featured}>
         <td><a class="headline" href={`/admin/news/${a.id}`}>{a.headline}</a><div class="meta">{a.community} · {a.byline}</div></td>
         <td>{SECTIONS[a.section]}</td>
-        <td><span class={`pill ${a.status}`}>{a.status === 'published' ? 'Published' : 'Draft'}</span>{a.featured === 1 && <> <span class="pill featured">Featured</span></>}</td>
+        <td><span class={`pill ${a.status}`}>{a.status === 'published' ? 'Published' : 'Draft'}</span>{a.featured === 1 && (a.status === 'published' && featureExpired(a.published_at, now) ? <> <span class="pill expired">Featured, expired</span></> : <> <span class="pill featured">Featured</span></>)}</td>
         <td class="meta" style="white-space:nowrap">{a.published_at ? fmt(a.published_at) : `Edited ${fmt(a.updated_at)}`}</td>
       </tr>)}
     </tbody>
@@ -84,6 +85,7 @@ const fmt = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateStyle
   .pill { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap; }
   .pill.published { background: var(--ok-bg); color: var(--ok); }
   .pill.featured { background: var(--shoal); color: var(--deep); }
+  .pill.expired { background: transparent; color: var(--deep); box-shadow: inset 0 0 0 1px currentColor; }
   .pill.draft { background: var(--alert-bg); color: var(--alert); }
   @media (max-width: 700px) { th:nth-child(2), td:nth-child(2), th:nth-child(4), td:nth-child(4) { display: none; } }
 </style>

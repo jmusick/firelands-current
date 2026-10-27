@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.29.15] - 2026-10-27
+
+### Fixed
+
+- Featured stories never expired, so stories about events that were already over kept leading the homepage while that day's news sat in the Latest list. A featured story now leads only for three days after it was published (`FEATURE_WINDOW_DAYS`); later edits don't extend that. With no featured story in that window, the newest story with a lead photo from the window leads, and failing that the newest story. Older features keep their flag, and `/admin/news` marks them "Featured, expired".
+
 ## [1.29.14] - 2026-10-27
 
 ### Fixed
