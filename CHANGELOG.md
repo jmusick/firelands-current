@@ -2,6 +2,13 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.29.13] - 2026-10-27
+
+### Changed
+
+- Added the Oct. 27 editorial publication utility for three reviewed stories, five events and three updates to existing coverage. It verifies local and live pages, discussions and calendar exports before releasing new Facebook deliveries, preserves existing posts and featured selections, and excludes the unverified Christmas assistance draft. Time checks prevent publishing or queuing the pantry announcement after its event ends.
+- Expanded newsroom source guidance for Head Start, household assistance, election deadlines and park grants, including checks for conflicting notification dates, eligibility requirements and stale form text.
+
 ## [1.29.12] - 2026-10-26
 
 ### Changed
