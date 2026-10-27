@@ -3,6 +3,7 @@ import AuthorLink from '../../components/AuthorLink.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Comments from '../../components/Comments.astro';
 import VoteButtons from '../../components/VoteButtons.astro';
+import { fmtStoryDateTime, isoDateTime } from '../../lib/dates';
 import { KIND_LABELS, getThread } from '../../lib/forum';
 
 const user = Astro.locals.user;
@@ -15,8 +16,8 @@ const path = `/talk/${thread.id}`;
     <span class="eyebrow"><a href="/talk">Talk of the Town</a><span class="section">{KIND_LABELS[thread.kind]}</span></span>
     <h1>{thread.title}</h1>
     {thread.source_path
-      ? <p class="meta">Comments on {thread.kind === 'event' ? 'an event' : 'a story'} published {new Date(thread.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p>
-      : <p class="meta">Started by <AuthorLink id={thread.author_id} name={thread.author_name} />, {new Date(thread.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
+      ? <p class="meta">Comments on {thread.kind === 'event' ? 'an event' : 'a story'} published <time datetime={isoDateTime(thread.created_at)}>{fmtStoryDateTime(thread.created_at)}</time></p>
+      : <p class="meta">Started by <AuthorLink id={thread.author_id} name={thread.author_name} />, <time datetime={isoDateTime(thread.created_at)}>{fmtStoryDateTime(thread.created_at)}</time></p>}
     <p class="body">{thread.body}</p>
     {thread.source_path && <p><a class="button secondary small" href={thread.source_path}>{thread.kind === 'event' ? 'See the event' : 'Read the story'}</a></p>}
     <VoteButtons kind="thread" id={thread.id} score={thread.score} myVote={thread.my_vote} returnTo={path} signedIn={!!user} />

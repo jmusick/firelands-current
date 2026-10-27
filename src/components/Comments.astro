@@ -1,6 +1,7 @@
 ---
 import AuthorLink from './AuthorLink.astro';
 import VoteButtons from './VoteButtons.astro';
+import { fmtStoryDateTime, isoDateTime } from '../lib/dates';
 import { COMMENTS_PER_PAGE, MAX_REPLY_DEPTH, REPLY_SORTS, type Thread, listComments, replySort } from '../lib/forum';
 
 interface Props {
@@ -29,7 +30,7 @@ const view = (over: { sort?: string; page?: number }) => {
   return params.size ? `${path}?${params}` : path;
 };
 const here = view({});
-const fmt = (ms: number) => new Date(ms).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+const fmt = fmtStoryDateTime;
 ---
 <section id="comments" class="comments">
   <div class="head">
@@ -58,7 +59,7 @@ const fmt = (ms: number) => new Date(ms).toLocaleString('en-US', { dateStyle: 'm
       {reply.removed
         ? <p class="meta" style="margin:.3rem 0">[removed by a moderator]</p>
         : <>
-          <p class="meta"><strong><AuthorLink id={reply.author_id} name={reply.author_name} /></strong>, {fmt(reply.created_at)}</p>
+          <p class="meta"><strong><AuthorLink id={reply.author_id} name={reply.author_name} /></strong>, <time datetime={isoDateTime(reply.created_at)}>{fmt(reply.created_at)}</time></p>
           <p class="text">{reply.body}</p>
           <div class="actions">
             {reply.depth < MAX_REPLY_DEPTH && (user
