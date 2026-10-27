@@ -107,12 +107,36 @@ const SAMPLE_ADS: Ad[] = [
   },
 ];
 
-/** Shown when nothing booked fits a slot, so unsold space sells itself. */
-const HOUSE_AD: Ad = {
-  id: 'house-advertise', businessId: null, advertiser: 'Firelands Current', kind: 'house', images: {},
-  headline: 'Reach your neighbors here', body: 'Put your business in front of readers across Sandusky and the Firelands.', cta: 'Advertise with us',
-  href: '/advertise', theme: { bg: '#dceaec', fg: '#173d4a', accent: '#1c6880' }, placements: [], sections: [], weight: 1,
+// The paper's own promotions. They take a share of slots even when booked ads could fill them,
+// so readers keep hearing about tips, events and Talk, and fill any slot nothing booked fits.
+const HOUSE: Pick<Ad, 'businessId' | 'advertiser' | 'kind' | 'images' | 'placements' | 'sections' | 'weight'> = {
+  businessId: null, advertiser: 'Firelands Current', kind: 'house', images: {}, placements: [], sections: [], weight: 1,
 };
+const HOUSE_LIGHT: Ad['theme'] = { bg: '#dceaec', fg: '#173d4a', accent: '#1c6880' };
+export const HOUSE_ADS: Ad[] = [
+  {
+    ...HOUSE, id: 'house-advertise', theme: HOUSE_LIGHT, href: '/advertise',
+    headline: 'Reach your neighbors here', body: 'Put your business in front of readers across Sandusky and the Firelands.', cta: 'Advertise with us',
+  },
+  {
+    ...HOUSE, id: 'house-tip', theme: DEFAULT_THEME, href: '/submit-news',
+    headline: 'Know something we should cover?', body: 'Tell our newsroom what’s happening on your street, in your school or at city hall.', cta: 'Send us a news tip',
+  },
+  {
+    ...HOUSE, id: 'house-events', theme: HOUSE_LIGHT, href: '/events',
+    headline: 'What’s happening this week', body: 'Concerts, festivals, meetings and markets around Sandusky and the Firelands.', cta: 'See the calendar',
+  },
+  {
+    ...HOUSE, id: 'house-talk', theme: DEFAULT_THEME, href: '/talk',
+    headline: 'Join Talk of the Town', body: 'Ask questions, share news and trade recommendations with your neighbors.', cta: 'Join the conversation',
+  },
+];
+
+/** The chance any one slot goes to a house promo when other ads could fill it. At most one such promo runs per page. */
+export const HOUSE_SHARE = 0.25;
+
+/** A promo for the page the reader is already on would send them nowhere. */
+const linksTo = (href: string, pathname: string) => pathname === href || pathname.startsWith(`${href}/`);
 
 export type AdRow = {
   id: string; business_id: string; advertiser: string; headline: string; body: string; cta: string; href: string;
@@ -155,7 +179,7 @@ async function inventory(): Promise<Ad[]> {
   return rows.map((row) => adFromRow(row, images.results as AdImageRow[]));
 }
 
-export type AdContext = { section?: Section };
+export type AdContext = { section?: Section; pathname?: string };
 export type ServedAd = { ad: Ad; href: string; token: string | null };
 
 /**
@@ -164,24 +188,41 @@ export type ServedAd = { ad: Ad; href: string; token: string | null };
  */
 export class AdPlan {
   private used = new Set<string>();
-  constructor(private ads: Ad[], public context: AdContext, private track: boolean) {}
+  constructor(private ads: Ad[], public context: AdContext, private track: boolean, private random: () => number = Math.random) {}
 
   async take(placement: PlacementKey): Promise<ServedAd> {
     const bookable = this.ads.filter((ad) => (!ad.placements.length || ad.placements.includes(placement)) && !this.used.has(ad.businessId ?? ad.advertiser));
     const section = this.context.section;
     const targeted = section ? bookable.filter((ad) => ad.sections.includes(section)) : [];
     const pool = targeted.length ? targeted : bookable.filter((ad) => !ad.sections.length || !section);
-    const ad = weightedPick(pool.length ? pool : bookable) ?? HOUSE_AD;
-    if (ad !== HOUSE_AD) this.used.add(ad.businessId ?? ad.advertiser);
+    const ad = this.housePromo(bookable.length > 0) ?? weightedPick(pool.length ? pool : bookable, this.random)!;
+    this.used.add(ad.businessId ?? ad.advertiser);
+    if (ad.kind === 'house') this.used.add(ad.id);
     if (ad.kind !== 'booked' || !this.track) return { ad, href: ad.href, token: null };
     const token = await signEvent(ad.id, placement);
     return { ad, href: `/ads/click?t=${encodeURIComponent(token)}`, token };
   }
+
+  /**
+   * A house promo for this slot, or undefined to let other ads have it. When something else could
+   * run, the promo gets HOUSE_SHARE of the draw and only if none has run on this page yet. When
+   * nothing else fits, a promo always fills the slot, preferring one the page hasn't shown.
+   */
+  private housePromo(othersFit: boolean): Ad | undefined {
+    const pathname = this.context.pathname;
+    const promos = pathname ? HOUSE_ADS.filter((ad) => !linksTo(ad.href, pathname)) : HOUSE_ADS;
+    if (othersFit) {
+      if (this.used.has(HOUSE.advertiser) || this.random() >= HOUSE_SHARE) return undefined;
+      return weightedPick(promos, this.random);
+    }
+    const fresh = promos.filter((ad) => !this.used.has(ad.id));
+    return weightedPick(fresh.length ? fresh : promos, this.random) ?? HOUSE_ADS[0];
+  }
 }
 
-function weightedPick(ads: Ad[]): Ad | undefined {
+function weightedPick(ads: Ad[], random: () => number): Ad | undefined {
   const total = ads.reduce((sum, ad) => sum + ad.weight, 0);
-  let roll = Math.random() * total;
+  let roll = random() * total;
   return ads.find((ad) => (roll -= ad.weight) < 0);
 }
 
@@ -193,7 +234,7 @@ const plans = new WeakMap<Request, Promise<AdPlan>>();
 export function adPlanFor(request: Request, locals: App.Locals, context: AdContext = {}): Promise<AdPlan> {
   let plan = plans.get(request);
   if (!plan) {
-    plan = inventory().then((ads) => new AdPlan(ads, context, !locals.staffRole));
+    plan = inventory().then((ads) => new AdPlan(ads, { pathname: new URL(request.url).pathname, ...context }, !locals.staffRole));
     plans.set(request, plan);
   }
   return plan;
