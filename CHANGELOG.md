@@ -2,6 +2,13 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.30.2] - 2026-10-30
+
+### Changed
+
+- Added the Oct. 28–30 editorial research, preparation and publication utilities for eight reviewed stories. They check local and live pages, account-linked bylines, discussions, migrations and saved copy before queuing first-time Facebook deliveries, retain write-intent journals and preserve existing content and featured selections. Today’s preparation script uses the shared project-library location and refuses to overwrite an imported packet.
+- Expanded source guidance for JobsOhio grants, boat-wrap recycling, Perkins leaf collection, Sandusky choir fundraising and local WarmChoice weatherization services, including eligibility, date and attribution checks.
+
 ## [1.30.1] - 2026-10-27
 
 ### Changed
