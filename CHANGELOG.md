@@ -2,6 +2,13 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.30.3] - 2026-11-07
+
+### Changed
+
+- Added the Oct. 31–Nov. 7 editorial research, preparation and publication utilities for seven reviewed news packages. They verify local and live story pages, account-linked bylines, discussions, migrations and saved copy before queuing new Facebook deliveries. Updates to existing coverage preserve the original discussion and Facebook history, and publication journals remain in the project library.
+- Expanded newsroom source guidance for local assistance, utilities, election returns, state announcements and next season's Cedar Point calendar. Added Goodwill and Danbury schools as sources, with checks for sign-in requirements, conflicting dates, missing announcement details and image permissions.
+
 ## [1.30.2] - 2026-10-30
 
 ### Changed
