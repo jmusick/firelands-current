@@ -1,6 +1,6 @@
 {
   "name": "firelands-current",
-  "version": "1.30.7",
+  "version": "1.30.8",
   "private": true,
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
@@ -27,6 +27,7 @@
     "test:preview": "node --test scripts/test-preview.mjs",
     "test:media-alt": "node --test scripts/test-media-alt.mjs",
     "test:media-metadata": "node --test scripts/test-media-metadata.mjs",
+    "test:thread-dates": "node --test scripts/test-thread-dates.mjs",
     "test:forum-pagination": "node --test scripts/test-forum-pagination.mjs",
     "test:body": "node --test scripts/test-request-body.mjs",
     "test:headers": "node --test scripts/test-response-headers.mjs",
