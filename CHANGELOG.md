@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.30.6] - 2026-11-08
+
+### Fixed
+
+- The news-tip form (`/submit-news`) and the contact form (`/contact`), along with their confirmation pages, no longer show the site leaderboard ad, matching the rule that forms never carry ads (#119).
+
 ## [1.30.5] - 2026-11-08
 
 ### Changed
