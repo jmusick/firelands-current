@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.30.4] - 2026-11-08
+
+### Changed
+
+- Updated nine dependencies to their latest minor and patch releases: Astro 7.4.4, the Cloudflare adapter 14.4.3, Better Auth 1.7.14, jose 6.2.14, marked 18.1.2, Lucide 1.66.0, `@astrojs/check` 0.9.12, `@types/node` 26.6.6 and Wrangler 4.156.0. The adapter update fixes `/_image` returning a 500 for missing or non-image files and stops `astro check` or `astro build` from breaking a running dev server's dependency cache. TypeScript stays on 6.x.
+
 ## [1.30.3] - 2026-11-07
 
 ### Changed
