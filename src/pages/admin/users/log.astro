@@ -2,7 +2,8 @@
 import { ArrowLeft } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
-import { AUDIT_LABELS, fmtDateTime, listAudit } from '../../../lib/users';
+import { AUDIT_LABELS, listAudit } from '../../../lib/users';
+import { fmtDateTime } from '../../../lib/dates';
 
 const denied = requireSection(Astro, ADMIN.users);
 if (denied) return denied;

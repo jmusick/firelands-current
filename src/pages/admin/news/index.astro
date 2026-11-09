@@ -1,4 +1,5 @@
 ---
+import { fmtDate } from '../../../lib/dates';
 import { Plus } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
@@ -9,7 +10,7 @@ if (denied) return denied;
 
 const articles = await listAdminArticles();
 const now = Date.now();
-const fmt = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateStyle: 'medium' });
+const fmt = fmtDate;
 ---
 <AdminLayout title="News">
   <div style="display:flex;justify-content:space-between;align-items:end;gap:1rem;flex-wrap:wrap">

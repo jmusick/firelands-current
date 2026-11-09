@@ -1,4 +1,5 @@
 ---
+import { fmtDate, fmtDateTime } from '../../../lib/dates';
 import { ArrowLeft } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
@@ -10,14 +11,14 @@ if (denied) return denied;
 const tip = await env.DB.prepare(`SELECT s.*, u.name AS account_name FROM news_submissions s LEFT JOIN "user" u ON u.id = s.submitter_user_id WHERE s.id = ?`).bind(Astro.params.id).first<any>();
 if (!tip) return new Response('News tip not found', { status: 404 });
 const { deletesAt, anonymizesAt } = tipRetentionDates(tip);
-const day = (ms: number) => new Date(ms).toLocaleDateString('en-US', { dateStyle: 'medium' });
+const day = fmtDate;
 ---
 <AdminLayout title={`Tip: ${tip.subject}`}>
   <a class="back" href="/admin/submissions"><ArrowLeft />All submissions</a>
   <span class="eyebrow" style="display:block;margin-top:1.5rem">News tip · {tip.status}</span><h1>{tip.subject}</h1>
   <div class="card details">{tip.anonymized_at
     ? <p><strong>From:</strong> Submitter details removed {day(tip.anonymized_at)}</p>
-    : <p><strong>From:</strong> {tip.name} · <a href={`mailto:${tip.email}`}>{tip.email}</a></p>}<p><strong>Submitted:</strong> {new Date(tip.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p>{!tip.anonymized_at && <p><strong>Account:</strong> {tip.account_name ? `${tip.account_name} (signed in)` : 'Guest'}</p>}<p><strong>Credit:</strong> {tip.credit_requested ? 'Requested if used' : 'Not requested'}</p><hr/><p class="body">{tip.body}</p></div>
+    : <p><strong>From:</strong> {tip.name} · <a href={`mailto:${tip.email}`}>{tip.email}</a></p>}<p><strong>Submitted:</strong> {fmtDateTime(tip.created_at)}</p>{!tip.anonymized_at && <p><strong>Account:</strong> {tip.account_name ? `${tip.account_name} (signed in)` : 'Guest'}</p>}<p><strong>Credit:</strong> {tip.credit_requested ? 'Requested if used' : 'Not requested'}</p><hr/><p class="body">{tip.body}</p></div>
   {tip.article_id && <p>This tip became <a href={`/admin/news/${tip.article_id}`}>a story</a>.</p>}
   {deletesAt && <p class="meta">This declined tip will be deleted on or after {day(deletesAt)}.</p>}
   {anonymizesAt && <p class="meta">The submitter’s name and email will be removed on or after {day(anonymizesAt)}; the tip itself stays as part of the reporting record.</p>}

@@ -36,3 +36,7 @@ export const fmtStoryDateTime = (ms: number) => {
 
 /** Value for a <time datetime> attribute. */
 export const isoDateTime = (ms: number) => new Date(ms).toISOString();
+
+// Admin style (not AP): Workers run in UTC, so the zone must be explicit.
+export const fmtDate = (value: string | number) => new Date(value).toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'America/New_York' });
+export const fmtDateTime = (value: string | number) => new Date(value).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/New_York' });

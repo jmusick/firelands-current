@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.30.9] - 2026-11-08
+
+### Fixed
+
+- Admin dates and times now show in Eastern time everywhere: the story list and "Last saved" in the story editor, the news-tip inbox and tip pages, and the Talk of the Town moderation queue used to show UTC, so evening entries appeared on the next day. The admin's Eastern formatters moved into `src/lib/dates.ts` beside the public ones (#118).
+
 ## [1.30.8] - 2026-11-08
 
 ### Fixed
