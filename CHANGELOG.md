@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.30.5] - 2026-11-08
+
+### Changed
+
+- Updated newsroom source guidance for Danbury's Norton Athletic Center hours and access rules, Milan's November yard-waste dumpster schedule and the Norwalk natural-gas groundbreaking, which supersedes the earlier anticipated date. Added North Coast Gas Transmission as a promising source, with checks against treating general marketing figures as new local projects.
+
 ## [1.30.4] - 2026-11-08
 
 ### Changed
