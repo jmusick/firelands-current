@@ -18,6 +18,9 @@ export type Thread = {
   kind: ThreadKind;
   /** The story or event this discussion belongs to, e.g. /news/some-story; null for community discussions. Title and body then come from it. */
   source_path: string | null;
+  /** The linked event's own dates (YYYY-MM-DD, Eastern wall-clock); null for story and community discussions. ends_on is null for a single-day event. */
+  event_starts_on: string | null;
+  event_ends_on: string | null;
 };
 
 /** What a discussion is about: a news story, a calendar event, or a topic a reader started. */
@@ -53,6 +56,7 @@ const THREAD_SELECT = `
          t.created_at, t.last_activity_at,
          CASE WHEN t.article_id IS NOT NULL THEN 'story' WHEN t.event_id IS NOT NULL THEN 'event' ELSE 'community' END AS kind,
          COALESCE('/news/' || a.slug, '/events/' || ev.slug) AS source_path,
+         ev.starts_on AS event_starts_on, ev.ends_on AS event_ends_on,
          (SELECT COUNT(*) FROM forum_replies r WHERE r.thread_id = t.id AND r.status = 'published') AS reply_count,
          COALESCE((SELECT SUM(v.value) FROM forum_thread_votes v WHERE v.thread_id = t.id), 0) AS score,
          COALESCE((SELECT v.value FROM forum_thread_votes v WHERE v.thread_id = t.id AND v.user_id = ?1), 0) AS my_vote

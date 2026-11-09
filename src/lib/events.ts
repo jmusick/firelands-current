@@ -140,7 +140,7 @@ export function fmtHours(e: EventTiming): string {
 export const fullHours = (e: EventTiming) => e.hours_note || fmtHours(e);
 
 /** "Saturday, October 3" or "October 3–5" / "October 30 – November 2" for multi-day events. */
-export function fmtDates(e: EventTiming, opts: { year?: boolean } = {}): string {
+export function fmtDates(e: Pick<EventTiming, 'starts_on' | 'ends_on'>, opts: { year?: boolean } = {}): string {
   const year = opts.year ? { year: 'numeric' } as const : {};
   if (!e.ends_on) return fmtDay(e.starts_on, { weekday: 'long', month: 'long', day: 'numeric', ...year });
   const sameMonth = e.starts_on.slice(0, 7) === e.ends_on.slice(0, 7);

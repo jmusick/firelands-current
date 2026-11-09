@@ -18,7 +18,7 @@ database.exec(`
   );
   CREATE TABLE forum_thread_votes (user_id TEXT NOT NULL, thread_id TEXT NOT NULL, value INTEGER NOT NULL, created_at INTEGER NOT NULL, PRIMARY KEY (thread_id, user_id));
   CREATE TABLE news_articles (id TEXT PRIMARY KEY, slug TEXT NOT NULL, headline TEXT NOT NULL, summary TEXT NOT NULL, status TEXT NOT NULL);
-  CREATE TABLE events (id TEXT PRIMARY KEY, slug TEXT NOT NULL, title TEXT NOT NULL, summary TEXT NOT NULL, status TEXT NOT NULL);
+  CREATE TABLE events (id TEXT PRIMARY KEY, slug TEXT NOT NULL, title TEXT NOT NULL, summary TEXT NOT NULL, status TEXT NOT NULL, starts_on TEXT, ends_on TEXT);
   INSERT INTO "user" VALUES ('u1', 'Reader');
 `);
 globalThis.__paginationEnv = { DB: { prepare(sql) {
@@ -96,7 +96,7 @@ test('malformed page values fall back to the first page', async () => {
 test('the unfiltered list skips unreplied story and event threads; kind tabs keep them', async () => {
   const addThread = database.prepare(`INSERT INTO forum_threads (id, author_id, title, body, article_id, event_id, created_at, updated_at, last_activity_at) VALUES (?, 'u1', ?, 'body', ?, ?, ?, ?, ?)`);
   const article = (n) => database.prepare(`INSERT INTO news_articles VALUES (?, ?, ?, 'summary', 'published')`).run(`a${n}`, `story-${n}`, `Story ${n}`);
-  const event = (n) => database.prepare(`INSERT INTO events VALUES (?, ?, ?, 'summary', 'published')`).run(`e${n}`, `event-${n}`, `Event ${n}`);
+  const event = (n) => database.prepare(`INSERT INTO events VALUES (?, ?, ?, 'summary', 'published', '2026-10-14', NULL)`).run(`e${n}`, `event-${n}`, `Event ${n}`);
   const reply = (thread, n, status = 'published') => add(`tr-${thread}-${n}`, thread, null, 5, status);
 
   // Quiet automatic threads are the newest, so they would lead the old list.

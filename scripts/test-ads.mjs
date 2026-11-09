@@ -30,7 +30,7 @@ const stubs = {
 const source = ts.transpileModule(readFileSync(new URL('../src/lib/ads.ts', import.meta.url), 'utf8'), {
   compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
 }).outputText.replace(/from ['"]([^'"]+)['"]/g, (_match, specifier) => `from ${JSON.stringify(stubs[specifier] ?? specifier)}`);
-const { AdPlan, HOUSE_ADS, HOUSE_SHARE, adPlanFor } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+const { AdPlan, HOUSE_ADS, HOUSE_SHARE, adPlanFor, pageTakesAds } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 
 // A small seeded generator (mulberry32), so the share checks give the same answer on every run.
 function seeded(seed) {
@@ -193,4 +193,13 @@ test('sample ads', async (t) => {
     const plan = await adPlanFor(page('/events/fall-festival'), {}, { section: 'local' });
     assert.deepEqual(plan.context, { pathname: '/events/fall-festival', section: 'local' });
   });
+});
+
+test('pages that take no ads', () => {
+  for (const path of ['/submit-news', '/submit-news/', '/submit-news/thanks', '/contact', '/contact/', '/contact/thanks', '/advertise', '/report-inaccuracy', '/talk/new', '/sign-in', '/admin/ads']) {
+    assert.equal(pageTakesAds(path), false, path);
+  }
+  for (const path of ['/', '/news', '/news/local/some-story', '/talk', '/talk/abc123', '/events', '/contact-us', '/submit-news-archive']) {
+    assert.equal(pageTakesAds(path), true, path);
+  }
 });

@@ -2,6 +2,25 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.30.8] - 2026-11-08
+
+### Fixed
+
+- Talk of the Town discussions about events are now named by when the event happens, so the discussions for each occurrence of a recurring event no longer read as duplicates. The heading, page title, search description and the `/talk` listing carry the event's own dates ("on Wednesday, October 14, 2026", or "from October 3–5, 2026" for multi-day events). Story and community discussions are unchanged (#109).
+
+## [1.30.7] - 2026-11-08
+
+### Fixed
+
+- On phones, the homepage no longer shows two ads back to back: the billboard now sits below "Coming up" (or below the story sections when no events are listed), so content separates it from the Latest rail's ad. The desktop layout is unchanged (#101).
+- Image ads show a neutral placeholder instead of a dark box while their image loads.
+
+## [1.30.6] - 2026-11-08
+
+### Fixed
+
+- The news-tip form (`/submit-news`) and the contact form (`/contact`), along with their confirmation pages, no longer show the site leaderboard ad, matching the rule that forms never carry ads (#119).
+
 ## [1.30.5] - 2026-11-08
 
 ### Changed

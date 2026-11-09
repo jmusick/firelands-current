@@ -14,6 +14,7 @@ const events = (await listEvents({}, 0, 4)).slice(0, 4);
 const now = today();
 ---
 <BaseLayout title="Sandusky & Firelands Local News">
+  <div class:list={['home', { 'no-events': events.length === 0 }]}>
   {lead ? <section class="front">
     <article class="lead">
       {leadImage && <figure class="front-photo">
@@ -71,6 +72,7 @@ const now = today();
     <div><h2><a href="/events">Local events</a></h2><p>Concerts, festivals, markets and public meetings around Sandusky and the Firelands.</p></div>
     <div><h2><a href="/talk">Talk of the Town</a></h2><p>Start a discussion, share what is happening, and hear from neighbors. A free account is needed to post.</p></div>
   </section>
+</div>
 </BaseLayout>
 
 <style>
@@ -126,5 +128,16 @@ const now = today();
   @media (max-width: 860px) {
     .front { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
     .rail { border-left: 0; padding-left: 0; border-top: 3px solid var(--deep); padding-top: .6rem; }
+    /* One column puts the rail's ad right above the billboard, so on phones the billboard moves down past the
+       calendar. Visual order only: the billboard stays in the DOM (and tab order) where it is, and it holds no
+       focusable content beyond its own link. Without events it drops below the story sections instead. */
+    .home { display: flex; flex-direction: column; }
+    .home > .front, .home > .empty-front { order: 0; }
+    .home > .coming-up { order: 1; }
+    .home > .home-billboard { order: 2; padding-top: 2rem; }
+    .home > .sections { order: 3; }
+    .home > .about { order: 4; }
+    .home.no-events > .home-billboard { order: 3; }
+    .home.no-events > .sections { order: 2; }
   }
 </style>
