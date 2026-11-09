@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.30.8] - 2026-11-08
+
+### Fixed
+
+- Talk of the Town discussions about events are now named by when the event happens, so the discussions for each occurrence of a recurring event no longer read as duplicates. The heading, page title, search description and the `/talk` listing carry the event's own dates ("on Wednesday, October 14, 2026", or "from October 3–5, 2026" for multi-day events). Story and community discussions are unchanged (#109).
+
 ## [1.30.7] - 2026-11-08
 
 ### Fixed
