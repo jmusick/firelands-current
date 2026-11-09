@@ -2,6 +2,13 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.30.7] - 2026-11-08
+
+### Fixed
+
+- On phones, the homepage no longer shows two ads back to back: the billboard now sits below "Coming up" (or below the story sections when no events are listed), so content separates it from the Latest rail's ad. The desktop layout is unchanged (#101).
+- Image ads show a neutral placeholder instead of a dark box while their image loads.
+
 ## [1.30.6] - 2026-11-08
 
 ### Fixed
