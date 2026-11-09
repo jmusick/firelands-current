@@ -39,7 +39,7 @@ const alt = `${ad.advertiser}: ${ad.headline}`;
 <style>
   .ad-creative { display: block; position: relative; width: 100%; overflow: hidden; text-decoration: none; border-radius: 3px; background: var(--ad-bg); color: var(--ad-fg); border: 1px solid color-mix(in srgb, var(--ad-fg) 18%, transparent); }
   /* While an image loads, show a neutral box rather than the creative's (often dark) text-creative colour. */
-  .ad-creative.has-desktop, .ad-creative.has-mobile { background: #e6eef0; }
+  .ad-creative.has-desktop, .ad-creative.has-mobile { background: var(--shoal); }
   .ad-img { display: block; width: 100%; height: 100%; object-fit: cover; }
   .ad-img-mobile { display: none; }
   .ad-text { display: grid; align-content: center; gap: .25rem; height: 100%; padding: 1rem 1.2rem; }
