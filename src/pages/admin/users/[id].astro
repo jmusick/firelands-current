@@ -7,7 +7,8 @@ import { ADMIN, requireSection } from '../../../lib/admin';
 import { KIND_LABELS, MEMBER_ROLE_LABELS, businessOptions, membershipsFor } from '../../../lib/businesses';
 import { PASSWORD_MESSAGES } from '../../../lib/password-policy';
 import { ROLE_LABELS } from '../../../lib/staff';
-import { AUDIT_LABELS, MAX_PASSWORD, MIN_PASSWORD, PROVIDER_LABELS, describeAgent, fmtDate, fmtDateTime, getUserDetail } from '../../../lib/users';
+import { AUDIT_LABELS, MAX_PASSWORD, MIN_PASSWORD, PROVIDER_LABELS, describeAgent, getUserDetail } from '../../../lib/users';
+import { fmtDate, fmtDateTime } from '../../../lib/dates';
 
 const denied = requireSection(Astro, ADMIN.users);
 if (denied) return denied;

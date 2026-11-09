@@ -8,7 +8,8 @@ import { IMAGE_SIZES, type ImageSize } from '../../../lib/ads';
 import { STATUS_LABELS, type EventStatus } from '../../../lib/events';
 import { sameOrigin } from '../../../lib/forum';
 import { detailsFrom, fmtBytes, getMedia, mediaAudit, mediaAuditLog, mediaUrl, mediaUsage, needsAltDecision, validateDetails, type MediaDetails } from '../../../lib/media';
-import { AUDIT_LABELS, fmtDateTime } from '../../../lib/users';
+import { AUDIT_LABELS } from '../../../lib/users';
+import { fmtDateTime } from '../../../lib/dates';
 
 const denied = requireSection(Astro, ADMIN.media);
 if (denied) return denied;

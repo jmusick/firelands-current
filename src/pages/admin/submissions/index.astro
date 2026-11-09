@@ -1,4 +1,5 @@
 ---
+import { fmtDateTime } from '../../../lib/dates';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
 import { STALE_UNREAD_TIP_MS } from '../../../lib/tip-retention';
@@ -16,7 +17,7 @@ const [rows, stale] = await Promise.all([
   (filter ? query.bind(filter.value) : query).all<any>(),
   env.DB.prepare("SELECT COUNT(*) AS count FROM news_submissions WHERE status = 'unread' AND created_at < ?").bind(Date.now() - STALE_UNREAD_TIP_MS).first<{ count: number }>(),
 ]);
-const fmt = (ms: number) => new Date(ms).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+const fmt = fmtDateTime;
 ---
 <AdminLayout title="News tips">
   <span class="eyebrow">Newsroom</span><h1>Submitted news</h1>

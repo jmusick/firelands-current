@@ -342,5 +342,3 @@ export function describeAgent(ua: string | null): string {
   return os ? `${browser} on ${os}` : browser;
 }
 
-export const fmtDate = (value: string | number) => new Date(value).toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'America/New_York' });
-export const fmtDateTime = (value: string | number) => new Date(value).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/New_York' });

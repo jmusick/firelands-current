@@ -6,7 +6,7 @@ import ts from 'typescript';
 const source = ts.transpileModule(readFileSync(new URL('../src/lib/dates.ts', import.meta.url), 'utf8'), {
   compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
 }).outputText;
-const { fmtStoryDate, fmtStoryDateTime, isoDateTime } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+const { fmtDate, fmtDateTime, fmtStoryDate, fmtStoryDateTime, isoDateTime } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 
 const utc = (...args) => Date.UTC(...args);
 
@@ -49,4 +49,11 @@ test('noon, midnight, and on-the-hour times', () => {
 
 test('the datetime attribute stays a UTC instant', () => {
   assert.equal(isoDateTime(1792936131435), '2026-10-25T13:48:51.435Z');
+});
+
+test('admin formatters keep their non-AP style in Eastern time', () => {
+  // 02:30 UTC on Oct. 26 is 10:30 p.m. EDT on Oct. 25.
+  assert.equal(fmtDate(utc(2026, 9, 26, 2, 30)), 'Oct 25, 2026');
+  assert.equal(fmtDateTime(utc(2026, 9, 26, 2, 30)), 'Oct 25, 2026, 10:30 PM');
+  assert.equal(fmtDate(utc(2027, 0, 1, 3, 0)), 'Dec 31, 2026');
 });

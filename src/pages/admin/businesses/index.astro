@@ -3,7 +3,7 @@ import { Plus } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
 import { KIND_LABELS, businessFiltersFrom, listBusinesses } from '../../../lib/businesses';
-import { fmtDate } from '../../../lib/users';
+import { fmtDate } from '../../../lib/dates';
 
 const denied = requireSection(Astro, ADMIN.businesses);
 if (denied) return denied;

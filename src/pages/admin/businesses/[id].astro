@@ -8,7 +8,8 @@ import { ADMIN, requireSection } from '../../../lib/admin';
 import { KIND_LABELS, MEMBER_ROLE_LABELS, describeChanges, getBusinessDetail, validateBusinessForm, valuesFromBusiness } from '../../../lib/businesses';
 import { sameOrigin } from '../../../lib/forum';
 import { ROLE_LABELS, isStaffRole } from '../../../lib/staff';
-import { AUDIT_LABELS, auditStatement, fmtDate, fmtDateTime } from '../../../lib/users';
+import { AUDIT_LABELS, auditStatement } from '../../../lib/users';
+import { fmtDate, fmtDateTime } from '../../../lib/dates';
 import { STATE_LABELS, listAds } from '../../../lib/ads-admin';
 
 const denied = requireSection(Astro, ADMIN.businesses);

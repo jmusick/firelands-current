@@ -1,4 +1,5 @@
 ---
+import { fmtDateTime } from '../../../lib/dates';
 import { readForm, STORY_FORM_BYTES } from '../../../lib/request-body';
 import { ArrowLeft } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
@@ -36,7 +37,7 @@ const liveUrl = article.status === 'published' ? `/news/${article.slug}` : null;
   <a class="back" href="/admin/news"><ArrowLeft />All stories</a>
   <span class="eyebrow" style="display:block;margin-top:1.5rem">News · {article.status === 'published' ? 'Published' : 'Draft'}</span>
   <h1>Edit story</h1>
-  <p class="meta">Last saved {new Date(article.updated_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}{liveUrl && <> · <a href={liveUrl}>View on site</a></>}</p>
+  <p class="meta">Last saved {fmtDateTime(article.updated_at)}{liveUrl && <> · <a href={liveUrl}>View on site</a></>}</p>
   {corrections.length > 0 && <p class="message" role="status"><strong>{corrections.length} open correction {corrections.length === 1 ? 'report' : 'reports'}:</strong> {corrections.map((c, i) => <>{i > 0 && ', '}<a href={`/admin/corrections/${c.id}`}>review {i + 1}</a></>)}</p>}
   <NewsEditor values={values} errors={errors} saved={Astro.url.searchParams.has('saved') && !errors.length} articleId={article.id} liveUrl={liveUrl} canDelete={Astro.locals.staffRole === 'admin'} />
 </AdminLayout>

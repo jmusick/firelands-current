@@ -4,7 +4,8 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
 import { businessOptions } from '../../../lib/businesses';
 import { ROLE_LABELS } from '../../../lib/staff';
-import { PAGE_SIZE, PROVIDER_LABELS, filtersFrom, fmtDate, listUsers, userCounts } from '../../../lib/users';
+import { PAGE_SIZE, PROVIDER_LABELS, filtersFrom, listUsers, userCounts } from '../../../lib/users';
+import { fmtDate } from '../../../lib/dates';
 
 const denied = requireSection(Astro, ADMIN.users);
 if (denied) return denied;
