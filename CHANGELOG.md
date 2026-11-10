@@ -2,6 +2,13 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.30.10] - 2026-11-10
+
+### Changed
+
+- Added the Nov. 10 editorial publication utility for Danbury leadership nominations, veteran housing support and Huron library recruitment. It verifies local and live stories, bylines, discussions and section counts before releasing first-time Facebook deliveries, with publication records retained in the project library.
+- Updated newsroom source guidance for nomination deadlines, library recruitment, veteran housing assistance, Danbury holiday assistance, Erie County health recruitment and the Hayes exhibit extension. Added New London village and Danbury Township as promising sources, with checks for expired notices, conflicting schedules and hearing outcomes.
+
 ## [1.30.9] - 2026-11-08
 
 ### Fixed
