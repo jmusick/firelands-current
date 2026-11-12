@@ -2,6 +2,17 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.31.2] - 2026-11-11
+
+### Fixed
+
+- The original Fieldstone press release PDF linked from the Fieldstone story is now served at `/downloads/fieldstone-press-release-2026-11-10.pdf`; the link returned "not found" on the live site.
+
+### Changed
+
+- Added the Nov. 11 editorial utilities: three reviewed briefs (Erie County wildlife officer Michele Butler and K9 River, 2027 Leadership Huron County applications, Milan holiday council meetings) and the Fieldstone local article with its photos and PDF, each verifying local and live pages before releasing Facebook deliveries, with records kept in the project library.
+- Updated newsroom source guidance for ODNR's K9 release and the Huron County Growth Partnership, and added Leadership Huron County as a promising source.
+
 ## [1.31.1] - 2026-11-11
 
 ### Changed
