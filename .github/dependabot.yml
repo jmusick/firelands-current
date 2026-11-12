@@ -1,27 +1,41 @@
+# Dependabot version updates, from the jmusick/ci template. Security updates are a separate repository
+# setting and are not controlled by this file.
+#
+# Cadence: one monthly batch per ecosystem keeps review to a single sitting. The cooldown holds each new
+# release back for a week (two for majors) so a yanked or compromised release is usually caught before it
+# reaches a PR. Cooldown does not delay security updates, and jmusick/ci releases skip it.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+      time: "06:00"
     open-pull-requests-limit: 5
-    # Matches min-release-age in .npmrc: wait a week before proposing a new release.
+    labels: [dependencies]
     cooldown:
       default-days: 7
-    # Minor and patch updates arrive as one weekly pull request; majors stay separate.
+      semver-major-days: 14
     groups:
-      npm-minor-patch:
-        update-types:
-          - minor
-          - patch
-  # Keeps the SHA-pinned actions in .github/workflows current. The pinned
-  # Gitleaks release is updated by hand: see scripts/secret-scan.mjs.
+      # The framework, its adapter and the Workers toolchain move together and are tested together.
+      astro-and-cloudflare:
+        patterns: ["astro", "@astrojs/*", "wrangler", "@cloudflare/*"]
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # Keeps SHA-pinned actions current, including the jmusick/ci shared workflows.
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-    # The owner's own shared workflows (jmusick/ci) are proposed as soon as they're released.
+      interval: monthly
+      time: "06:00"
+    open-pull-requests-limit: 3
+    labels: [dependencies]
     cooldown:
-      default-days: 14
+      default-days: 7
       exclude:
         - "jmusick/*"
+    groups:
+      actions:
+        patterns: ["*"]
