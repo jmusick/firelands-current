@@ -131,6 +131,8 @@ function pagesToScan({ ids, businessId }) {
     ['public', '/'],
     ['public', '/news'],
     ['public', '/news?section=government'],
+    ['public', '/search?q=pumpkin'],
+    ['public', '/search?q=zzzz'],
     ['public', '/events'],
     ['public', '/links'],
     ['public', '/talk'],

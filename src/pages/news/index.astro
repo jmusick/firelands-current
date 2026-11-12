@@ -1,6 +1,7 @@
 ---
 import AuthorLink from '../../components/AuthorLink.astro';
 import AdSlot from '../../components/AdSlot.astro';
+import SearchForm from '../../components/SearchForm.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { adPlanFor, feedAdBreaks } from '../../lib/ads';
 import { fmtStoryDate, isoDateTime } from '../../lib/dates';
@@ -25,6 +26,7 @@ const pageHref = (n: number) => {
 ---
 <BaseLayout title={section ? SECTIONS[section] : 'News'} description="Local news from Sandusky and communities across the Firelands." canonicalPath={pageHref(page)}>
   <h1>{section ? SECTIONS[section] : 'Latest news'}</h1>
+  <SearchForm id="news-search" />
   <nav aria-label="News sections" class="filter-tabs">
     <a href="/news" aria-current={section ? undefined : 'page'}>All</a>
     {Object.entries(SECTIONS).map(([key, label]) => <a href={`/news?section=${key}`} aria-current={section === key ? 'page' : undefined}>{label}</a>)}
