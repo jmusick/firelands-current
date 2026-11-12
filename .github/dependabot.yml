@@ -20,5 +20,8 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # The owner's own shared workflows (jmusick/ci) are proposed as soon as they're released.
     cooldown:
       default-days: 14
+      exclude:
+        - "jmusick/*"

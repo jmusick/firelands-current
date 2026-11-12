@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.31.3] - 2026-11-11
+
+### Changed
+
+- The Privacy Policy now says that Cloudflare Web Analytics, which counts page views without cookies, may receive the search page's full address, including the words searched. Google Analytics still never receives them.
+
 ## [1.31.2] - 2026-11-11
 
 ### Fixed
