@@ -120,7 +120,7 @@ These settings live outside the repository, so the code can't enforce them. Rech
 
 - [ ] Two-factor sign-in on the owner's account; review Settings, Sessions and authorized OAuth and GitHub apps.
 - [ ] Collaborators: owner only. No deploy keys.
-- [ ] Secret scanning and push protection on. Dependabot security updates are off; the monthly grouped update in `.github/dependabot.yml` covers it.
+- [ ] Secret scanning and push protection on. Dependabot alerts and security updates on; security fixes open as soon as an advisory lands, outside the monthly schedule and cooldown in `.github/dependabot.yml`.
 - [ ] Actions: default workflow permissions read-only; consider "Require actions to be pinned to a full-length commit SHA" (Settings, Actions), since every workflow already pins.
 - [ ] Branch rules on `main`: none, by choice (README, "Dependency review and provenance" and "Secret scanning"). Pushes to `main` deploy without review; the pre-push secret scan is the gate.
 
