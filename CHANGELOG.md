@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.31.4] - 2026-11-11
+
+### Changed
+
+- Updated Astro 7.4.5, @astrojs/cloudflare 14.4.4, Better Auth 1.7.17, jose 6.2.15, marked 18.1.3, @lucide/astro 1.68.0 and Wrangler 4.157.0. Better Auth's update tightens checks on sign-in through other providers.
+
 ## [1.31.3] - 2026-11-11
 
 ### Changed
