@@ -65,6 +65,7 @@ story('pumpkin-story', { headline: 'Pumpkin hunt returns to Huron', community: '
 story('discount', { headline: 'Shoppers save 50% at the market', body: 'A sale on snake_case signs.' });
 story('discount-plain', { headline: 'Shoppers save 500 dollars', body: 'A sale on snakeXcase signs.' });
 story('milan-council', { headline: 'Village council meets', community: 'Milan' });
+story('eric-profile', { headline: 'Éric Dubois opens a bakery' });
 event('pumpkin-hunt', { title: 'Great pumpkin hunt', community: 'Huron', startsOn: '2026-10-25' });
 event('pumpkin-draft-event', { title: 'Pumpkin carving draft', status: 'draft' });
 event('pumpkin-cancelled', { title: 'Pumpkin roll', status: 'cancelled', startsOn: '2026-10-30' });
@@ -75,6 +76,7 @@ test('every term must match one of the searched fields', async () => {
   assert.deepEqual(await slugs('LEAF'), ['leaf-art', 'leaf-pickup']);
   assert.deepEqual(await slugs('milan'), ['milan-council'], 'community counts as a match');
   assert.deepEqual(await slugs('leaf trucks'), []);
+  assert.deepEqual(await slugs('Éric'), ['eric-profile'], 'a non-ASCII capital still matches itself');
 });
 
 test('headline matches outrank body matches, then newer first', async () => {
@@ -109,7 +111,8 @@ test('short, long and messy queries are normalized', async () => {
   assert.equal(normalizeQuery('x'.repeat(250)).length, MAX_QUERY_LENGTH);
   assert.equal(Array.from(normalizeQuery('🍂'.repeat(150))).length, MAX_QUERY_LENGTH, 'the cap counts characters, not UTF-16 units');
   assert.deepEqual(queryTerms('one two three four five six seven'), ['one', 'two', 'three', 'four', 'five']);
-  assert.deepEqual(queryTerms('Leaf leaf LEAF'), ['leaf']);
+  assert.deepEqual(queryTerms('Leaf leaf LEAF'), ['Leaf']);
+  assert.deepEqual(queryTerms('Éric éric'), ['Éric'], 'duplicates are dropped case-insensitively');
   assert.deepEqual(await search(''), { results: [], total: 0 });
   assert.deepEqual(await search('x'), { results: [], total: 0 });
   // Only the first five terms count, so a sixth that matches nothing doesn't empty the results.
@@ -120,7 +123,7 @@ test('paging returns each match once and reports the total', async () => {
   const all = await search('pumpkin');
   assert.equal(all.total, 4);
   const pages = [await search('pumpkin', 0, 3), await search('pumpkin', 1, 3), await search('pumpkin', 2, 3)];
-  assert.deepEqual(pages.map((p) => p.total), [4, 4, 4]);
+  assert.deepEqual(pages.map((p) => p.total), [4, 4, 0], 'past the last result there are no rows to carry the count');
   assert.deepEqual(pages.map((p) => p.results.length), [3, 1, 0]);
   assert.deepEqual(pages.flatMap((p) => p.results.map((r) => r.slug)), all.results.map((r) => r.slug));
 });

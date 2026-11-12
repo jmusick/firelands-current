@@ -5,13 +5,16 @@ interface Props {
   /** Unique on the page: the header form and a page's own form can appear together. */
   id: string;
   value?: string;
-  /** The header's compact form hides its label visually; the input keeps it as its accessible name. */
+  /**
+   * The header's compact form hides its label visually; the input keeps it as its accessible name. Its landmark is
+   * named "Site" and a page's own form "Page", so the two search landmarks on /news and /search can be told apart.
+   */
   compact?: boolean;
 }
 
 const { id, value = '', compact = false } = Astro.props;
 ---
-<form class:list={['search-form', { compact }]} role="search" action="/search" method="get">
+<form class:list={['search-form', { compact }]} role="search" aria-label={compact ? 'Site' : 'Page'} action="/search" method="get">
   <label for={id} class:list={{ 'visually-hidden': compact }}>Search stories and events</label>
   <span class="search-row">
     <input id={id} type="search" name="q" value={value} maxlength={MAX_QUERY_LENGTH} autocomplete="off" enterkeyhint="search" />
@@ -29,6 +32,8 @@ const { id, value = '', compact = false } = Astro.props;
   .search-form button:hover { background: var(--deep-2); border-color: var(--deep-2); }
   .search-form.compact { width: 15rem; margin: .4rem 0; }
   .search-form.compact input { padding: .4rem .6rem; border-color: #4f8290; }
+  /* On the dark header a teal ring would barely show; a light one keeps the focused field obvious. */
+  .search-form.compact input:focus { outline-color: #f4f7f7; }
   .search-form.compact button { padding: .4rem .75rem; background: transparent; border-color: #4f8290; color: #f4f7f7; font-size: .95rem; }
   .search-form.compact button:hover { background: var(--deep-2); border-color: #d4e4e7; }
   @media (max-width: 700px) { .search-form.compact { width: auto; margin: .6rem 0 .3rem; } }

@@ -23,13 +23,22 @@ export function normalizeQuery(raw: string | null | undefined): string {
   return Array.from(capped).length >= MIN_QUERY_LENGTH ? capped : '';
 }
 
-export const queryTerms = (query: string) => [...new Set(query.toLowerCase().split(' ').filter(Boolean))].slice(0, MAX_TERMS);
+/**
+ * Up to five distinct terms. Duplicates are found case-insensitively, but each term keeps its own case: LIKE folds only
+ * ASCII, so lowercasing "Éric" would stop it matching text that says "Éric".
+ */
+export function queryTerms(query: string): string[] {
+  const seen = new Map<string, string>();
+  for (const term of query.split(' ')) if (term && !seen.has(term.toLowerCase())) seen.set(term.toLowerCase(), term);
+  return [...seen.values()].slice(0, MAX_TERMS);
+}
 
 /** A LIKE pattern that matches the term anywhere, with LIKE's own wildcards and the escape character taken literally. */
 export const likePattern = (term: string) => `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
 /**
- * Published stories and listed events (published or cancelled) that contain every term, with the total match count.
+ * Published stories and listed events (published or cancelled) that contain every term, with the total match count
+ * (0 when the page is past the last result, since the count rides on the page's own rows).
  * Results whose headline matches more terms come first, then the newest; events sort by their start date.
  *
  * LIKE rather than FTS5: D1's export can't include virtual tables, which would break backups and the restore drill,
@@ -61,13 +70,12 @@ export async function searchSite(query: string, page = 0, now = Date.now(), page
       WHERE e.status IN ('published', 'cancelled')
         AND ${everyTerm(['e.title', 'e.summary', 'e.description', 'e.community'])}`;
   const values = [...terms.map(likePattern), now];
-  const [count, rows] = await env.DB.batch<{ total: number } | (SearchResult & { title_hits: number; sort_at: number })>([
-    env.DB.prepare(`SELECT COUNT(*) AS total FROM (${matches})`).bind(...values),
-    env.DB.prepare(`SELECT * FROM (${matches}) ORDER BY title_hits DESC, sort_at DESC, slug LIMIT ?${values.length + 1} OFFSET ?${values.length + 2}`)
-      .bind(...values, pageSize, page * pageSize),
-  ]);
-  const total = Number((count.results[0] as { total: number } | undefined)?.total ?? 0);
-  const results = (rows.results as (SearchResult & { title_hits: number; sort_at: number })[])
-    .map(({ title_hits: _hits, sort_at: _sort, ...row }) => row as SearchResult);
+  // The window count rides along with the page, so the matching scan runs once rather than again for a COUNT(*).
+  const { results: rows } = await env.DB.prepare(`
+    SELECT *, COUNT(*) OVER () AS total FROM (${matches})
+    ORDER BY title_hits DESC, sort_at DESC, slug LIMIT ?${values.length + 1} OFFSET ?${values.length + 2}
+  `).bind(...values, pageSize, page * pageSize).all<SearchResult & { title_hits: number; sort_at: number; total: number }>();
+  const total = Number(rows[0]?.total ?? 0);
+  const results = rows.map(({ title_hits: _hits, sort_at: _sort, total: _total, ...row }) => row as SearchResult);
   return { results, total };
 }
