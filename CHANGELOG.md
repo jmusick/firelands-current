@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.31.0] - 2026-11-11
+
+### Added
+
+- Site search at `/search` for published stories and events, with a search box in the main navigation (inside the Menu panel on phones) and at the top of `/news`. Every word typed must appear in a story's headline, summary, text or community, or an event's title, summary, description or community; headline matches come first, then the newest, 20 per page. Search words are kept out of Google Analytics, the page is not indexed by search engines, and the Privacy Policy now says so (#103).
+
 ## [1.30.10] - 2026-11-10
 
 ### Changed
