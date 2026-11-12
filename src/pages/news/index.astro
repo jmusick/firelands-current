@@ -1,6 +1,8 @@
 ---
 import AuthorLink from '../../components/AuthorLink.astro';
 import AdSlot from '../../components/AdSlot.astro';
+import ListRow from '../../components/ListRow.astro';
+import SearchForm from '../../components/SearchForm.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { adPlanFor, feedAdBreaks } from '../../lib/ads';
 import { fmtStoryDate, isoDateTime } from '../../lib/dates';
@@ -25,24 +27,13 @@ const pageHref = (n: number) => {
 ---
 <BaseLayout title={section ? SECTIONS[section] : 'News'} description="Local news from Sandusky and communities across the Firelands." canonicalPath={pageHref(page)}>
   <h1>{section ? SECTIONS[section] : 'Latest news'}</h1>
+  <SearchForm id="news-search" />
   <nav aria-label="News sections" class="filter-tabs">
     <a href="/news" aria-current={section ? undefined : 'page'}>All</a>
     {Object.entries(SECTIONS).map(([key, label]) => <a href={`/news?section=${key}`} aria-current={section === key ? 'page' : undefined}>{label}</a>)}
   </nav>
   <div>
-    {articles.length === 0 ? <div class="card" style="margin-top:1rem"><h2>No stories yet</h2><p class="muted">Check back soon for reporting from around the region.</p></div> : articles.map((article, i) => <><article class="item"><div class="text"><span class="eyebrow">{article.community}{!section && <span class="section">{SECTIONS[article.section]}</span>}</span><h2><a href={`/news/${article.slug}`}>{article.headline}</a></h2><p class="summary">{article.summary}</p><p class="meta">By <AuthorLink id={article.author_id} name={article.byline} />, <time datetime={isoDateTime(article.published_at)}>{fmtStoryDate(article.published_at)}</time></p></div>{article.lead_key && <a class="thumb" href={`/news/${article.slug}`} tabindex="-1" aria-hidden="true"><img src={`/media/${article.lead_key}`} alt="" width={article.lead_width!} height={article.lead_height!} loading="lazy" /></a>}</article>{adAfter.has(i + 1) && <AdSlot placement="news-feed" />}</>)}
+    {articles.length === 0 ? <div class="card" style="margin-top:1rem"><h2>No stories yet</h2><p class="muted">Check back soon for reporting from around the region.</p></div> : articles.map((article, i) => <><ListRow href={`/news/${article.slug}`} title={article.headline} summary={article.summary} image={article.lead_key ? { key: article.lead_key, width: article.lead_width!, height: article.lead_height! } : null}><Fragment slot="eyebrow">{article.community}{!section && <span class="section">{SECTIONS[article.section]}</span>}</Fragment><Fragment slot="meta">By <AuthorLink id={article.author_id} name={article.byline} />, <time datetime={isoDateTime(article.published_at)}>{fmtStoryDate(article.published_at)}</time></Fragment></ListRow>{adAfter.has(i + 1) && <AdSlot placement="news-feed" />}</>)}
   </div>
   {(page > 1 || hasMore) && <nav aria-label="News pages" style="display:flex;justify-content:space-between;margin-top:1.5rem"><span>{page > 1 && <a href={pageHref(page - 1)}>← Newer stories</a>}</span><span>{hasMore && <a href={pageHref(page + 1)}>Older stories →</a>}</span></nav>}
 </BaseLayout>
-
-<style>
-  .item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1.75rem; align-items: start; padding: 1.5rem 0; border-bottom: 1px solid var(--line-soft); }
-  .text { min-width: 0; }
-  .item h2 { margin: .3rem 0 .45rem; font-size: clamp(1.5rem, 3vw, 2rem); }
-  .item h2 a { color: inherit; text-decoration: none; }
-  .item h2 a:hover { color: var(--channel); }
-  .summary { max-width: 36em; margin: 0 0 .5rem; font-family: var(--read); font-size: 1.1rem; line-height: 1.5; color: #33474c; }
-  .item .meta { margin: 0; }
-  .thumb img { display: block; width: 240px; aspect-ratio: 3 / 2; height: auto; object-fit: cover; background: var(--shoal); margin-top: .3rem; }
-  @media (max-width: 640px) { .thumb img { width: 110px; } .item { gap: 1rem; } }
-</style>

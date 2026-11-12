@@ -1,0 +1,56 @@
+---
+import AuthorLink from '../components/AuthorLink.astro';
+import ListRow from '../components/ListRow.astro';
+import SearchForm from '../components/SearchForm.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { adPlanFor } from '../lib/ads';
+import { fmtStoryDate, isoDateTime } from '../lib/dates';
+import { fmtDates, fullHours } from '../lib/events';
+import { SECTIONS } from '../lib/news';
+import { SEARCH_PAGE_SIZE, normalizeQuery, searchSite } from '../lib/search';
+
+const params = Astro.url.searchParams;
+const typed = params.get('q') ?? '';
+const q = normalizeQuery(typed);
+const requestedPage = Number(params.get('page') ?? 1);
+const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 && requestedPage <= 500 ? requestedPage : 1;
+const { results, total } = q ? await searchSite(q, page - 1) : { results: [], total: 0 };
+const hasMore = page * SEARCH_PAGE_SIZE < total;
+await adPlanFor(Astro.request, Astro.locals);
+const pageHref = (n: number) => {
+  const next = new URLSearchParams({ q });
+  if (n > 1) next.set('page', String(n));
+  return `/search?${next}`;
+};
+const status = !q
+  ? (typed.trim() ? 'Enter at least two characters to search.' : '')
+  : !results.length && page > 1 ? `No more results for “${q}”`
+  : `${total === 1 ? '1 result' : `${total.toLocaleString('en-US')} results`} for “${q}”${page > 1 && results.length ? `, page ${page}` : ''}`;
+// The title and analytics address leave the terms out: Google Analytics records the title and address of every page view.
+---
+<BaseLayout title="Search" description="Search Firelands Current stories and events." noindex canonicalPath="/search" analyticsPath="/search">
+  {/* Links from here send only the origin as the referrer, so the terms don't reach the next page's analytics either. */}
+  <meta slot="head" name="referrer" content="origin" />
+  <h1>Search</h1>
+  <SearchForm id="search-page-q" value={q || typed.trim()} />
+  <p class="search-status" role="status">{status}</p>
+  {q && results.length === 0 && <div class="card empty">
+    <h2>{page > 1 ? 'No more results' : 'Nothing matched'}</h2>
+    <p class="muted">Try fewer or different words, or browse the <a href="/news">latest news</a> and the <a href="/events">events calendar</a>.</p>
+  </div>}
+  {results.length > 0 && <div>
+    {results.map((r) => r.kind === 'story'
+      ? <ListRow href={`/news/${r.slug}`} title={r.title} summary={r.summary} image={r.lead_key ? { key: r.lead_key, width: r.lead_width!, height: r.lead_height! } : null}><Fragment slot="eyebrow">{r.community}<span class="section">{SECTIONS[r.section]}</span></Fragment><Fragment slot="meta">By <AuthorLink id={r.author_id} name={r.byline} />, <time datetime={isoDateTime(r.published_at)}>{fmtStoryDate(r.published_at)}</time></Fragment></ListRow>
+      : <ListRow href={`/events/${r.slug}`} title={r.title} summary={r.summary} image={r.lead_key ? { key: r.lead_key, width: r.lead_width!, height: r.lead_height! } : null}><Fragment slot="eyebrow">Event<span class="section">{r.community}</span></Fragment><Fragment slot="meta">{r.status === 'cancelled' && <strong class="cancelled">Cancelled · </strong>}<time datetime={r.starts_on}>{fmtDates(r, { year: true })}</time>{fullHours(r) && `, ${fullHours(r)}`} · {r.venue}</Fragment></ListRow>)}
+  </div>}
+  {q && (page > 1 || hasMore) && <nav aria-label="Search result pages" class="pages"><span>{page > 1 && <a href={pageHref(page - 1)}>← Previous results</a>}</span><span>{hasMore && <a href={pageHref(page + 1)}>More results →</a>}</span></nav>}
+</BaseLayout>
+
+<style>
+  .search-status { margin: 1.25rem 0 0; color: var(--slate); font-weight: 600; }
+  .search-status:empty { display: none; }
+  .empty { margin-top: 1rem; }
+  .empty h2 { margin-top: 0; }
+  .cancelled { color: var(--alert); }
+  .pages { display: flex; justify-content: space-between; margin-top: 1.5rem; }
+</style>
