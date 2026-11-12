@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.31.5] - 2026-11-12
+
+### Changed
+
+- Prepared a personalized Shores & Islands Ohio publication-listing request with a verified media contact and published coverage examples. The draft and verification record are saved in the project library for #32; outreach remains unsent pending separate authorization.
+
 ## [1.31.4] - 2026-11-11
 
 ### Changed
