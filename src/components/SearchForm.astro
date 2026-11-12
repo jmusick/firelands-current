@@ -20,10 +20,10 @@ const { id, value = '', compact = false } = Astro.props;
 </form>
 
 <style>
-  .search-form { display: grid; gap: .4rem; max-width: 34rem; }
+  .search-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; max-width: 34rem; }
   .search-form label { font-weight: 600; font-size: .95rem; }
   .search-row { display: flex; }
-  .search-form input { flex: 1 1 auto; min-width: 0; padding: .65rem .8rem; border: 1px solid var(--field); border-right: 0; border-radius: 2px 0 0 2px; background: var(--paper); color: var(--ink); }
+  .search-form input { flex: 1 1 auto; width: 100%; min-width: 0; padding: .65rem .8rem; border: 1px solid var(--field); border-right: 0; border-radius: 2px 0 0 2px; background: var(--paper); color: var(--ink); }
   .search-form input:focus { outline: 3px solid var(--channel); outline-offset: 0; border-color: var(--deep); }
   .search-form button { flex: none; padding: .65rem 1rem; background: var(--deep); color: #fff; border: 1px solid var(--deep); border-radius: 0 2px 2px 0; font-weight: 650; font-stretch: 92%; }
   .search-form button:hover { background: var(--deep-2); border-color: var(--deep-2); }
