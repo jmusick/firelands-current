@@ -33,7 +33,7 @@ Guidance for AI coding agents working on Firelands Current, an independent local
 | `npm run db:restore-drill` | Export the local database and restore it into a throwaway copy to prove backups load (`-- --remote` exports production read-only; owner's go-ahead only). See [docs/operations.md](docs/operations.md) |
 | `npm run cf:types` | Regenerate `worker-configuration.d.ts` from `wrangler.jsonc` |
 
-Run `npm run check` and `npm run build` before considering a change done. CI (`.github/workflows/ci.yml`, README "Continuous integration") also runs `npm test` and the accessibility audit on every pull request and push to `main`; a new `test:*` script must keep the `node --test <file>` form so `npm test` picks it up. **Running `npm run check` while the dev server is up breaks the dev server** (client scripts start returning 404); restart `npm run dev` afterwards.
+Run `npm run check` and `npm run build` before considering a change done. CI (`.github/workflows/ci.yml`, README "Continuous integration") also runs `npm test` on every pull request and push to `main`, but not the accessibility audit: run `npm run test:a11y` yourself when a change affects pages or styles; a new `test:*` script must keep the `node --test <file>` form so `npm test` picks it up. **Running `npm run check` while the dev server is up breaks the dev server** (client scripts start returning 404); restart `npm run dev` afterwards.
 
 Local setup needs `.dev.vars` copied from `.dev.vars.example` with a real `BETTER_AUTH_SECRET`. `.dev.vars` is ignored by Git; never commit secrets.
 

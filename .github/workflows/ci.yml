@@ -18,7 +18,7 @@ concurrency:
 jobs:
   baseline:
     name: Baseline
-    uses: jmusick/ci/.github/workflows/baseline.yml@09fd1dbd09257da5c226e23cfe1409d80e029067 # v0.2.1
+    uses: jmusick/ci/.github/workflows/baseline.yml@a8ac9c292577382c63e5a38af58d38a4cd6f8504 # v0.3.0
     with:
       # Same threshold as `npm run audit`.
       audit-level: moderate
@@ -27,7 +27,7 @@ jobs:
 
   web-app:
     name: Web app
-    uses: jmusick/ci/.github/workflows/web-app.yml@09fd1dbd09257da5c226e23cfe1409d80e029067 # v0.2.1
+    uses: jmusick/ci/.github/workflows/web-app.yml@a8ac9c292577382c63e5a38af58d38a4cd6f8504 # v0.3.0
     with:
       # worker-configuration.d.ts is generated rather than committed, and the secret-scan tests skip
       # their blocking cases unless the pinned Gitleaks is installed.
@@ -37,17 +37,6 @@ jobs:
       typecheck-command: npm run check
       test-command: npm test
       build-command: npm run build
-      a11y-command: npm run test:a11y
-      # A throwaway local database with the demo content, so story, event, discussion and booked-ad
-      # pages are scanned too. CI is the one place the demo seeds may go into the local database.
-      a11y-setup-command: |
-        sed -e "s|^BETTER_AUTH_SECRET=.*|BETTER_AUTH_SECRET=$(openssl rand -hex 32)|" \
-            -e "s|^SITE_URL=.*|SITE_URL=http://127.0.0.1:4399|" .dev.vars.example > .dev.vars
-        npm run db:migrate:local
-        npm run db:seed:demo
-        npx wrangler d1 execute DB --local --file scripts/seed-ads-demo.sql
-      a11y-server-command: npx astro dev --host 127.0.0.1 --port 4399
-      a11y-url: http://127.0.0.1:4399
 
   # The one check to require on main: it passes only when every job above passed.
   gate:

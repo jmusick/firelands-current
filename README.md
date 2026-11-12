@@ -508,7 +508,6 @@ The forms, verification links, and password-reset links send from `noreply@firel
 - **Baseline / Dependency checks**: requires npm 11.19 or newer, because older npm ignores `min-release-age`; checks that every `package-lock.json` entry comes from the public registry over HTTPS with a sha512 hash; installs from the lockfile with scripts off; then runs `npm audit --audit-level=moderate` and `npm audit signatures`. Dependencies that run install scripts (today esbuild and workerd) show as warnings until they are listed in a `package.json` `allowScripts` field.
 - **Baseline / Dependency review** (pull requests only): see [Dependency review and provenance](#dependency-review-and-provenance).
 - **Web app / Lint, type check, test and build**: `npm run cf:types` and `npm run secrets:install`, then `npm run check`, `npm test` and `npm run build`. `npm test` runs every `test:*` script except `test:a11y`.
-- **Web app / Accessibility audit**: `npm run test:a11y` against a dev server (see [Accessibility testing](#accessibility-testing)).
 - **CI gate** passes only when every check above passed. It is the one check to require on `main`.
 
 A new `test:*` script must stay in the `node --test <file>` form, or `npm test` stops with a message saying which script to fix. To change what CI runs, edit the inputs in `ci.yml`; to change a check itself, change jmusick/ci, release it, and merge the Dependabot pull request that follows.
@@ -570,7 +569,7 @@ The scan is deliberately not part of `npm run build`. The Workers Builds environ
 
 `npm run test:a11y` (issue #26) is the automated half of accessibility testing. It is a dev tool: Playwright and `@axe-core/playwright` are exact-pinned devDependencies, nothing from them reaches the site, and it is not part of `npm run build`.
 
-CI runs it on every pull request and push to `main` (the `Web app / Accessibility audit` check), against a dev server whose throwaway local database is loaded with `scripts/seed-demo.sql` and `scripts/seed-ads-demo.sql` so story, event, discussion and booked-ad pages are scanned. Keep the demo seeds' ad colors at 4.5:1 contrast or better, like the built-in sample ads in `src/lib/ads.ts`, or the check fails.
+CI does not run it: the shared jmusick/ci workflows dropped the accessibility job in v0.3.0 to shorten CI. Run it yourself against a local dev server when a change affects pages, layout or styles.
 
 ```
 npx playwright install chromium          # once per machine (Chromium only)

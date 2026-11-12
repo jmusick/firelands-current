@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.31.1] - 2026-11-11
+
+### Changed
+
+- CI no longer runs the accessibility audit, matching the shared jmusick/ci workflows (now pinned to v0.3.0), which dropped it to shorten CI. `npm run test:a11y` remains a local check to run when pages or styles change.
+
 ## [1.31.0] - 2026-11-11
 
 ### Added
