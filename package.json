@@ -54,7 +54,7 @@
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.4",
     "@lucide/astro": "^1.68.0",
-    "astro": "^7.4.5",
+    "astro": "^7.4.12",
     "better-auth": "^1.7.17",
     "easymde": "2.21.0",
     "jose": "^6.2.15",
