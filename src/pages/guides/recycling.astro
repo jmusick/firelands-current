@@ -1,0 +1,55 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const description = 'Where to recycle in Sandusky and Erie County, Ohio: drop-off locations, accepted materials, restrictions, and official sources.';
+---
+<BaseLayout title="Sandusky and Erie County recycling guide" description={description}>
+  <article class="wrap guide">
+    <p><a href="/links">Community links</a> / Local guides</p>
+    <h1>Sandusky and Erie County recycling guide</h1>
+    <p class="lede">Find a drop-off site, check what belongs in the bin, and get help with items that need separate handling.</p>
+    <p>Last checked <time datetime="2026-11-15">Nov. 15, 2026</time>. We review this guide monthly and when a service change is reported. Next review: Dec. 15, 2026.</p>
+    <nav aria-label="In this guide"><a href="#locations">Drop-off locations</a> · <a href="#materials">Accepted materials</a> · <a href="#curbside">Curbside service</a> · <a href="#special">Other items</a></nav>
+
+    <h2 id="locations">Drop-off locations</h2>
+    <p>The <a href="https://www.eriecounty.oh.gov/DropOffLocations.aspx">county’s drop-off directory</a> lists these mixed-recycling sites. Check access and hours before loading your vehicle.</p>
+    <ul>
+      <li><strong>Sandusky Services Center, 1024 Cement Ave., Sandusky.</strong> City of Sandusky residents only. Questions: <a href="tel:+14196275844">419-627-5844</a>.</li>
+      <li><strong>Groton Township Services Building, 9414 Portland Road.</strong> The county directory does not give drop-off hours.</li>
+      <li><strong>Erie County Sanitary Landfill, Hoover Road, Milan Township.</strong> Confirm the recycling entrance before traveling: <a href="tel:+14194335023">419-433-5023</a>. County pages give conflicting street numbers: 10101 in the drop-off directory, 10105 in the closure notice, and 10102 on the landfill page.</li>
+    </ul>
+    <p>The <a href="https://www.eriecounty.oh.gov/Landfill.aspx">landfill page</a> lists facility hours of 7 a.m.–3 p.m. Monday–Friday and 8 a.m.–noon Saturday, closed Sundays and listed holidays. Those are facility hours; confirm recycling access separately.</p>
+    <p><strong>The Margaretta Township Garage drop-off is closed.</strong> The <a href="https://www.eriecounty.oh.gov/SolidWasteDistrict.aspx">county’s closure notice</a> gives Sept. 30, 2026, as the closing date and directs residents to the landfill. That page also links the county’s map of recycling facilities.</p>
+    <p>The drop-off directory also lists <strong>paper-only</strong> sites: St. Matthew Evangelical Lutheran Church, 15617 Mason Road, and Grace United Methodist Church, 13406 W. Lake Road, in Vermilion; and Birmingham United Methodist Church, 15018 South St., Wakeman, in Florence Township. Do not use paper-only bins for mixed recycling.</p>
+
+    <h2 id="materials">What the county drop-off program accepts</h2>
+    <p>The <a href="https://filecabinet9.eschoolview.com/48D1DF08-A331-4FC0-B509-BA6699BFA512/92a37a10-43b9-47aa-9889-14ac7b9a3aa8.pdf">county recycling rules (two-page PDF)</a> describe these materials. Empty, rinse and dry items; put them in loose. Leave container lids on.</p>
+    <ul>
+      <li><strong>Glass:</strong> food and beverage bottles and jars. No drinking glasses, ceramics, mirrors, windows or light bulbs.</li>
+      <li><strong>Metal:</strong> food and beverage cans. No foil, pie tins, paint cans, cookware, appliances or scrap metal.</li>
+      <li><strong>Cardboard:</strong> clean, grease-free shipping and paperboard boxes. Flatten them and remove tape. No wax-coated or greasy cardboard.</li>
+      <li><strong>Paper:</strong> newspapers, magazines, office paper and junk mail. No shredded paper, gift wrap, paper cups, tissues, napkins or paper towels.</li>
+      <li><strong>Plastic:</strong> the brochure lists codes 1–5 and 7 and examples including beverage bottles, food containers, detergent jugs and shampoo bottles. It excludes code 6, foam, bags, wrap, bubble wrap, toys, flower pots, and motor-oil or antifreeze containers.</li>
+    </ul>
+    <p>Use the program’s item rules rather than treating a plastic number alone as permission. Ask the district about anything the list does not clearly cover.</p>
+
+    <h2 id="curbside">Curbside recycling depends on your service</h2>
+    <p>The county asks residents to <a href="https://www.eriecounty.oh.gov/CurbsideRecycling.aspx">contact their waste hauler about curbside availability</a>. Confirm service at your address, accepted items, cost and pickup schedule directly. The county drop-off list does not establish your hauler’s rules.</p>
+
+    <h2 id="special">Electronics, batteries, paint and other items</h2>
+    <p>Use a separate collection route for items outside the ordinary recycling list. The county’s <a href="https://www.eriecounty.oh.gov/Electronics.aspx">electronics directory</a> identifies options by device type; call the receiving location about acceptance, size limits and fees before visiting.</p>
+    <p>For batteries, paint, chemicals and other uncertain items, ask the district which collection route applies. Its <a href="https://www.eriecounty.oh.gov/HouseholdHazardousWastes.aspx">household hazardous waste page</a> lists a resident-only collection for Oct. 9, 2027, from 1–3 p.m., with a registration link and no businesses. Check the current instructions and accepted-item list before registering; a scheduled collection is not daily drop-off service.</p>
+
+    <h2>Questions and corrections</h2>
+    <p>The <a href="https://www.eriecounty.oh.gov/Contact.aspx">Erie County Solid Waste District contact page</a> lists the coordinator at <a href="tel:+14196277672">419-627-7672</a>, extension 7549. Ask about access, material restrictions and any fees not specified above.</p>
+    <p>Found a changed service or a mistake? <a href="/contact">Tell Firelands Current</a>. We will check it against the operator’s information and update this guide.</p>
+  </article>
+</BaseLayout>
+<style>
+  .guide { max-width: 760px; padding-block: 2rem 3rem; line-height: 1.7; }
+  .guide h2 { margin-top: 2rem; scroll-margin-top: 1rem; }
+  .guide ul { padding-left: 1.3rem; }
+  .guide li + li { margin-top: .6rem; }
+  .guide nav { margin-block: 1.5rem; }
+  .guide a { overflow-wrap: anywhere; }
+</style>
