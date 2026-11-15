@@ -90,6 +90,7 @@ const title = past ? 'Past events' : category ? `${CATEGORIES[category]} events`
 <BaseLayout title={calendarView ? `${title}, ${monthName(month)}` : title} description="What's happening in Sandusky and across the Firelands: concerts, festivals, meetings, markets and more." canonicalPath={href({ page })} noindex={calendarView && events.length === 0}>
   {community && <span class="eyebrow">{community}</span>}
   <h1>{heading}</h1>
+  <p>Planning an outing? See our <a href="/guides/free-and-low-cost-activities">guide to free and low-cost local activities</a>.</p>
   <nav aria-label="Event categories" class="filter-tabs">
     <a href={href({ category: null, page: 1 })} aria-current={category ? undefined : 'page'}>All</a>
     {Object.entries(CATEGORIES).map(([key, label]) => <a href={href({ category: key, page: 1 })} aria-current={category === key ? 'page' : undefined}>{label}</a>)}

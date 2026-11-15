@@ -136,6 +136,7 @@ function pagesToScan({ ids, businessId }) {
     ['public', '/events'],
     ['public', '/links'],
     ['public', '/guides/recycling'],
+    ['public', '/guides/free-and-low-cost-activities'],
     ['public', '/talk'],
     ['public', '/about'],
     ['public', '/accessibility'],
@@ -416,8 +417,8 @@ async function main() {
     const pages = pagesToScan(session);
     await scanAxe(browser, session.cookies, pages);
     const story = pages.find(([, path]) => path.startsWith('/news/'))?.[1] ?? '/news';
-    await scanNarrow(browser, session.cookies, ['/', story, '/contact', '/guides/recycling']);
-    await scanEmulation(browser, session.cookies, ['/', story, '/events', '/sign-in', '/guides/recycling']);
+    await scanNarrow(browser, session.cookies, ['/', story, '/contact', '/guides/recycling', '/guides/free-and-low-cost-activities']);
+    await scanEmulation(browser, session.cookies, ['/', story, '/events', '/sign-in', '/guides/recycling', '/guides/free-and-low-cost-activities']);
     await keyboardSmokeTest(browser, session.cookies, '/contact');
   } finally {
     await browser?.close();

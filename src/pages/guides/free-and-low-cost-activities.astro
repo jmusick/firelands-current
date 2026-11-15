@@ -1,0 +1,54 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const description = 'Free programs, outdoor outings and museum visits in Sandusky and the Firelands, with checked admission prices, restrictions and official sources.';
+---
+<BaseLayout title="Free and low-cost activities around Sandusky" description={description}>
+  <article class="wrap guide">
+    <p><a href="/links">Community links</a> / Local guides</p>
+    <h1>Free and low-cost activities around Sandusky</h1>
+    <p class="lede">Try a nature program, take your dog out to play, explore a historic estate or plan an indoor museum visit.</p>
+    <p>Last checked <time datetime="2026-11-15">Nov. 15, 2026</time>. We review prices and restrictions monthly and when a change is reported. Next review: Dec. 15, 2026.</p>
+    <p>These are admission costs, not a total trip budget. Travel, food and optional purchases can add to the cost. Check the linked operator’s current hours, closures and booking instructions before leaving.</p>
+    <nav aria-label="In this guide"><a href="#free">Free outings</a> · <a href="#museum">Museum admission under $11</a> · <a href="#calendar">Find a dated event</a></nav>
+
+    <h2 id="free">Free outings</h2>
+    <h3>Nature programs with Erie MetroParks</h3>
+    <p><strong>Cost:</strong> Erie MetroParks advertises more than 500 free programs each year. Its <a href="https://eriemetroparks.org/programs/">program calendar and registration page</a> gives individual activities, locations and booking details.</p>
+    <p>Start with a program that fits your group’s ages and interests. Check its listing for registration, space limits, equipment and weather instructions; the district’s free-program offer does not establish that every camp, rental or special activity is free. The <a href="https://eriemetroparks.org/">district website</a> also links park maps and accessibility information.</p>
+
+    <h3>MetroBark Dog Park at Osborn MetroPark, Huron</h3>
+    <p><strong>Cost:</strong> Free to use, according to the <a href="https://eriemetroparks.org/dogpark/">official MetroBark page</a>. The dog park is at 3109 Hull Road and includes a separate area for small dogs.</p>
+    <p>Owners must supervise their dogs. The district recommends current vaccinations and says use is at your own risk. Outside the dog park, keep pets leashed and pick up their waste. Review the park rules and current access information before visiting.</p>
+
+    <h3>Spiegel Grove at the Hayes Presidential Library &amp; Museums, Fremont</h3>
+    <p><strong>Cost:</strong> Admission to the estate grounds and presidential research library is free. The <a href="https://www.rbhayes.org/visit-us/visitor-information/">Hayes visitor information page</a> distinguishes these from paid museum and Hayes Home admission and guided grounds tours.</p>
+    <p>Choose a walk on the grounds if you want an outing without an admission charge. Check seasonal hours and holiday closures before a library visit. The <a href="https://www.rbhayes.org/visitor-tips-and-accessibility">visitor tips and accessibility page</a> says parking is free; pets may accompany you on the grounds, but only service animals may enter the buildings.</p>
+
+    <h2 id="museum">Museum admission under $11</h2>
+    <h3>Merry-Go-Round Museum, downtown Sandusky</h3>
+    <p>At 301 Jackson St., the museum’s <a href="https://merrygoroundmuseum.org/visit">official visit page</a> lists these general admission rates:</p>
+    <ul>
+      <li>Adults: $10.</li>
+      <li>Seniors age 60 and older: $7.</li>
+      <li>Children ages 4–14: $6; children under 4: free.</li>
+      <li>Active military with valid identification: free.</li>
+      <li>Care partners accompanying a visitor with a disability: free.</li>
+    </ul>
+    <p>Admission includes one carousel ride; additional rides cost $1 each. Regular hours are 11 a.m.–4 p.m. Wednesday–Saturday and noon–4 p.m. Sunday, closed Monday and Tuesday. Private events may cause closures; confirm at <a href="tel:+14196266111">419-626-6111</a>.</p>
+    <p>The front entrance has steps. A ramped rear entrance has a locked door with a call button for staff assistance. Boarding the carousel requires a 14-inch step; consider that separately from building access.</p>
+
+    <h2 id="calendar">Find a dated event</h2>
+    <p>Use our <a href="/events">local event calendar</a> for concerts, talks, festivals and other scheduled activities. Open the individual event for its cost, age rules and registration link. A calendar listing does not by itself mean an event is free; confirm any missing price with the organizer.</p>
+    <p>For more organizations and places to explore, visit <a href="/links">Community links</a>. Found a changed price, closure or restriction? <a href="/contact">Tell Firelands Current</a> so we can check the operator’s information and update this guide.</p>
+  </article>
+</BaseLayout>
+<style>
+  .guide { max-width: 760px; padding-block: 2rem 3rem; line-height: 1.7; }
+  .guide h2 { margin-top: 2rem; scroll-margin-top: 1rem; }
+  .guide h3 { margin-top: 1.5rem; }
+  .guide ul { padding-left: 1.3rem; }
+  .guide li + li { margin-top: .6rem; }
+  .guide nav { margin-block: 1.5rem; }
+  .guide a { overflow-wrap: anywhere; }
+</style>
