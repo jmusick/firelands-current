@@ -116,6 +116,7 @@ const { POST: reviewPost } = await import(load('src/pages/api/admin/event-submis
 const { render: renderNewEvent } = await import(loadPage('src/pages/admin/events/new.astro'));
 const retention = await import(load('src/lib/event-submission-retention.ts'));
 const { validateEventSubmission } = await import(load('src/lib/event-submissions.ts'));
+const { saveEventFromForm } = await import(load('src/lib/events-admin.ts'));
 const { QUOTAS } = await import(load('src/lib/quotas.ts'));
 const { CATEGORIES } = await import(load('src/lib/events.ts'));
 const { runTipRetention } = await import(load('src/lib/tip-retention.ts'));
@@ -416,14 +417,18 @@ test('conversion opens the editor prefilled, creates a draft event, links the su
   // A converted submission cannot be converted again, declined, or opened for conversion.
   const again = await renderNewEvent(astro('POST', `?submission=${item.id}`, { ...fields, title: 'A second draft from the same submission' }));
   assert.equal(again.status, 303);
-  assert.equal(rows('events').length, 2);
+  assert.equal(rows('events').length, 1);
+  assert.equal(again.headers.get('Location'), `/admin/events/${event.id}?saved=1`);
   assert.equal(stored()[0].event_id, event.id, 'the first link stays');
   assert.equal(audit().filter((entry) => entry.action === 'event-submission-converted').length, 1);
   assert.equal((await review({ id: item.id, status: 'declined' })).status, 404);
   assert.equal((await renderNewEvent(astro('GET', `?submission=${item.id}`))).fromSubmission, false);
 
   // The draft publishes through the normal editor save, and deleting the event leaves the submission with no link.
-  database.prepare("UPDATE events SET status = 'published' WHERE id = ?").run(event.id);
+  const publication = new FormData();
+  for (const [key, value] of Object.entries({ ...prefilled.values, slug: event.slug, status: 'published' })) publication.set(key, value);
+  assert.equal((await saveEventFromForm(publication, event, EDITOR.user)).ok, true);
+  assert.equal(rows('events')[0].status, 'published');
   database.prepare('DELETE FROM events WHERE id = ?').run(event.id);
   assert.equal(stored()[0].event_id, null);
   assert.equal(stored()[0].status, 'converted');
@@ -438,6 +443,40 @@ test('a draft that fails the editor checks is not linked', async () => {
   assert.ok(result.errors.length > 0);
   assert.equal(stored()[0].status, 'unread');
   assert.equal(rows('events').length, 0);
+});
+
+test('competing conversions create one draft and one audit pair', async () => {
+  const item = await accepted();
+  const form = title => {
+    const data = new FormData();
+    for (const [key, value] of Object.entries({ ...good(), title, status: 'published' })) data.set(key, value);
+    return data;
+  };
+  const results = await Promise.all([
+    saveEventFromForm(form('First conversion'), null, EDITOR.user, item.id),
+    saveEventFromForm(form('Competing conversion'), null, EDITOR.user, item.id),
+  ]);
+  assert.ok(results.every(result => result.ok));
+  assert.equal(results[0].id, results[1].id);
+  assert.equal(rows('events').length, 1);
+  assert.equal(rows('events')[0].status, 'draft');
+  assert.equal(stored()[0].event_id, results[0].id);
+  assert.deepEqual(audit().map(entry => entry.action), ['event-create', 'event-submission-converted']);
+});
+
+test('conversion rolls back the event and audits when linking fails', async () => {
+  const item = await accepted();
+  const data = new FormData();
+  for (const [key, value] of Object.entries(good())) data.set(key, value);
+  database.exec(`CREATE TEMP TRIGGER fail_conversion BEFORE UPDATE OF event_id ON event_submissions
+    BEGIN SELECT RAISE(ABORT, 'Simulated link failure'); END`);
+  try {
+    await assert.rejects(saveEventFromForm(data, null, EDITOR.user, item.id), /Simulated link failure/);
+    assert.equal(rows('events').length, 0);
+    assert.equal(audit().length, 0);
+    assert.equal(stored()[0].status, 'unread');
+  } finally { database.exec('DROP TRIGGER fail_conversion'); }
+  assert.equal((await saveEventFromForm(data, null, EDITOR.user, item.id)).ok, true);
 });
 
 test('removing submitter details blanks name, email and note now, keeps the event, and is audited once', async () => {

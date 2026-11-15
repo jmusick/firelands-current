@@ -6,7 +6,7 @@ import EventEditor from '../../../components/EventEditor.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
 import { getAdminEvent } from '../../../lib/events';
 import { copyOfEvent, emptyEvent, saveEventFromForm, type EventFormValues } from '../../../lib/events-admin';
-import { auditRecord, denyAdmin, recordDenied } from '../../../lib/audit';
+import { denyAdmin, recordDenied } from '../../../lib/audit';
 import { valuesFromSubmission } from '../../../lib/event-submissions';
 import { env } from 'cloudflare:workers';
 import { sameOrigin } from '../../../lib/forum';
@@ -32,17 +32,9 @@ if (Astro.request.method === 'POST') {
   if (!sameOrigin(Astro.request)) return denyAdmin(Astro.locals, Astro.request, 'event-save', 'origin');
   const form = await readForm(Astro.request);
   if (form instanceof Response) return form;
-  // A converted submission always starts as a draft; publishing is a separate step on the event's page.
-  if (/^[\w-]{8,64}$/.test(form.get('submission_id')?.toString() ?? '')) form.set('status', 'draft');
-  const result = await saveEventFromForm(form, null, Astro.locals.user!);
+  const linkedSubmission = form.get('submission_id')?.toString() || submissionId || null;
+  const result = await saveEventFromForm(form, null, Astro.locals.user!, linkedSubmission);
   if (result.ok) {
-    const linkedSubmission = form.get('submission_id')?.toString() ?? '';
-    // The audit entry is written only while the submission is still unconverted, in the same batch as the link.
-    // No title, text or contact details.
-    if (/^[\w-]{8,64}$/.test(linkedSubmission)) await env.DB.batch([
-      auditRecord(Astro.locals.user!, 'event-submission', linkedSubmission, 'event-submission-converted', `Event ${result.id}`, { sql: "status != 'converted'", binds: [] }),
-      env.DB.prepare("UPDATE event_submissions SET status = 'converted', event_id = ?1, updated_at = ?2, decided_at = ?2 WHERE id = ?3 AND status != 'converted'").bind(result.id, Date.now(), linkedSubmission),
-    ]);
     return Astro.redirect(`/admin/events/${result.id}?saved=1`, 303);
   }
   ({ values, errors } = result);

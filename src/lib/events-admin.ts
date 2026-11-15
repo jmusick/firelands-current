@@ -72,7 +72,7 @@ function eventAudit(actor: AuditActor, id: string, values: EventFormValues, exis
   return statements;
 }
 
-export async function saveEventFromForm(form: FormData, existing: AdminEvent | null, actor: AuditActor): Promise<EventFormResult> {
+export async function saveEventFromForm(form: FormData, existing: AdminEvent | null, actor: AuditActor, submissionId: string | null = null): Promise<EventFormResult> {
   const category = cleanText(form.get('category'));
   const status = cleanText(form.get('status'));
   const typedSlug = sanitizeSlug(cleanText(form.get('slug')));
@@ -114,6 +114,14 @@ export async function saveEventFromForm(form: FormData, existing: AdminEvent | n
   if (values.ends_on === values.starts_on) values.ends_on = '';
 
   const errors: string[] = [];
+  if (submissionId !== null) {
+    values.status = 'draft';
+    const submission = /^[\w-]{8,64}$/.test(submissionId) && !existing
+      ? await env.DB.prepare('SELECT status, event_id FROM event_submissions WHERE id = ?').bind(submissionId).first<{ status: string; event_id: string | null }>()
+      : null;
+    if (submission?.status === 'converted' && submission.event_id) return { ok: true, id: submission.event_id };
+    if (!submission || submission.status === 'converted') return { ok: false, values, errors: ['This submission is no longer available for conversion.'] };
+  }
   if (values.title.length < 3 || values.title.length > 140) errors.push('Title must be 3–140 characters.');
   if (values.summary.length < 10 || values.summary.length > 300) errors.push('Summary must be 10–300 characters.');
   if (values.description.length > 20000) errors.push('Details must be under 20,000 characters.');
@@ -180,11 +188,14 @@ export async function saveEventFromForm(form: FormData, existing: AdminEvent | n
 
   const now = Date.now();
   // The audit entries share the save's batch, so an event never changes without a record of who changed it.
-  await env.DB.batch([env.DB.prepare(`
+  const conversionGuard = submissionId !== null
+    ? 'EXISTS (SELECT 1 FROM event_submissions WHERE id = ?27 AND status != \'converted\')' : '1';
+  const saved = await env.DB.batch([env.DB.prepare(`
     INSERT INTO events (id, slug, title, summary, description, category, starts_on, start_time, ends_on, end_time,
       venue, address, community, organizer, cost, link, image_media_id, status, created_at, updated_at, hours_note,
       performer, performer_type, ticket_price, ticket_url, ticket_availability, organizer_url)
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26)
+    SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26
+    WHERE ${conversionGuard}
     ON CONFLICT(id) DO UPDATE SET
       slug = excluded.slug, title = excluded.title, summary = excluded.summary, description = excluded.description,
       category = excluded.category, starts_on = excluded.starts_on, start_time = excluded.start_time, ends_on = excluded.ends_on,
@@ -197,7 +208,24 @@ export async function saveEventFromForm(form: FormData, existing: AdminEvent | n
     values.start_time || null, values.ends_on || null, (values.start_time && values.end_time) || null,
     values.venue, values.address, values.community, values.organizer, values.cost, values.link,
     values.image_media_id || null, values.status, now, values.hours_note,
-    values.performer, values.performer_type, values.ticket_price, values.ticket_url, values.ticket_availability, values.organizer_url), ...eventAudit(actor, id, values, existing)]);
+    values.performer, values.performer_type, values.ticket_price, values.ticket_url, values.ticket_availability, values.organizer_url,
+    ...(submissionId !== null ? [submissionId] : [])),
+    ...(submissionId !== null ? [
+      // The insert, both audits and the submission link commit together. A competing conversion
+      // finds no unconverted submission, inserts no event and therefore writes no audit entries.
+      auditRecord(actor, 'event', id, 'event-create', `/events/${values.slug}; draft`),
+      auditRecord(actor, 'event-submission', submissionId, 'event-submission-converted', `Event ${id}`,
+        { sql: "status != 'converted' AND EXISTS (SELECT 1 FROM events WHERE id = ?)", binds: [id] }),
+      env.DB.prepare(`UPDATE event_submissions SET status = 'converted', event_id = ?1, updated_at = ?2, decided_at = ?2
+        WHERE id = ?3 AND status != 'converted' AND EXISTS (SELECT 1 FROM events WHERE id = ?1)`).bind(id, now, submissionId),
+    ] : eventAudit(actor, id, values, existing)),
+  ]);
+  if (submissionId !== null && !saved[0].meta.changes) {
+    const converted = await env.DB.prepare("SELECT event_id FROM event_submissions WHERE id = ? AND status = 'converted'")
+      .bind(submissionId).first<{ event_id: string | null }>();
+    return converted?.event_id ? { ok: true, id: converted.event_id }
+      : { ok: false, values, errors: ['This submission is no longer available for conversion.'] };
+  }
   if (values.status !== 'draft') await ensureEventThread({ id, title: values.title, summary: values.summary });
   return { ok: true, id };
 }
