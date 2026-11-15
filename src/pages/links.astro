@@ -10,6 +10,7 @@ const checkedDate = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDate
     <header class="directory-intro"><h1>Community links</h1><p class="lede">Find your local government, public services, libraries, and chambers of commerce.</p><p>Official websites for the places we cover, organized by county and then community. Countywide resources appear first. This directory does not include individual businesses.</p></header>
     <p>Local guide: <a href="/guides/recycling">Recycling in Sandusky and Erie County</a> — drop-off locations, accepted materials, restrictions, and official sources.</p>
     <p>Local guide: <a href="/guides/free-and-low-cost-activities">Free and low-cost activities around Sandusky</a> — outings, admission prices, restrictions, and links to scheduled events.</p>
+    <p>Local guide: <a href="/guides/food-assistance">Food assistance in Sandusky and the Firelands</a> — pantry hours, service areas, eligibility, and provider contacts.</p>
     {groups.length ? <>
       <nav class="county-nav" aria-label="Jump to county">{groups.map((group) => <a href={`#${group.county}`}>{group.name}</a>)}</nav>
       {groups.map((group) => <section class="county" aria-labelledby={group.county}>
