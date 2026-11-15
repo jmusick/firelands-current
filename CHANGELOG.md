@@ -2,6 +2,16 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.31.6] - 2026-11-15
+
+### Fixed
+
+- Calendar months with no events, with or without a category or community filter, are now marked `noindex` so Search Console stops reporting them as soft 404s. The calendar still works, and months with events keep their canonical URL (#129).
+
+### Changed
+
+- Updated Astro to 7.4.12.
+
 ## [1.31.5] - 2026-11-12
 
 ### Changed
