@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.37.0] - 2026-11-15
+
+### Added
+
+- A local food assistance guide with provider-published pantry hours, eligibility, service areas, contacts and monthly review dates, linked from Community links and included in the sitemap (#42).
+
 ## [1.36.0] - 2026-11-15
 
 ### Added
