@@ -1,0 +1,1 @@
+New packets use [packet.mjs](packet.mjs); see [Editorial packet tools](../../docs/editorial-tools.md) for manifests, modes and safeguards. Dated scripts remain the historical record of earlier publication runs.

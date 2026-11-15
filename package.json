@@ -47,6 +47,7 @@
     "test:auth-alerts": "node --test scripts/test-auth-alerts.mjs",
     "test:ads": "node --test scripts/test-ads.mjs",
     "test:outreach": "node --test scripts/test-outreach.mjs",
+    "test:editorial-packet": "node --test scripts/test-editorial-packet.mjs",
     "cf:types": "wrangler types",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:seed:demo": "wrangler d1 execute DB --local --file scripts/seed-demo.sql",
