@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.32.0] - 2026-11-15
+
+### Added
+
+- Indexable public pages now permit large search image previews while preserving existing `noindex` restrictions. Publishing guidance recommends suitable, credited editorial images at least 1,200 pixels wide (#130).
+
 ## [1.31.6] - 2026-11-15
 
 ### Fixed
