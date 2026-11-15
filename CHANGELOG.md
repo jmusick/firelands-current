@@ -2,6 +2,13 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.36.0] - 2026-11-15
+
+### Added
+
+- A permanent Sandusky and Erie County recycling guide with verified drop-off locations, materials, restrictions, official sources and monthly review dates, linked from Community links and included in the sitemap (#33).
+- A guide to free and low-cost local activities with checked admission prices, restrictions, official sources and monthly review dates, linked from Community links and the event calendar and included in the sitemap (#41).
+
 ## [1.35.1] - 2026-11-15
 
 ### Changed
