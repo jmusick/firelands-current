@@ -2,6 +2,17 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.35.0] - 2026-11-15
+
+### Added
+
+- Organizers can submit events for editorial review through `/submit-event`. Editors can review, decline, convert submissions into draft events, and remove submitter details, with audited actions and scheduled retention (migration 0036) (#105).
+- A private outreach tracker in the project library records contacts, authorization, correspondence, follow-ups and verified backlinks, with validation and summaries of unique relevant linking websites and referral sessions (#34).
+
+### Fixed
+
+- Converting an event submission saves the draft, submission link and audit entries atomically. Repeated or competing saves return the existing draft instead of creating duplicates (#105).
+
 ## [1.34.0] - 2026-11-15
 
 ### Added
