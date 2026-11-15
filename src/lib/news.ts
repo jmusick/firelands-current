@@ -31,10 +31,10 @@ export type Article = {
 /** The story's lead image, from the media library; all null when it has none. */
 export type LeadImage = {
   lead_key: string | null; lead_width: number | null; lead_height: number | null;
-  lead_alt: string | null; lead_caption: string | null; lead_credit: string | null;
+  lead_alt: string | null; lead_caption: string | null; lead_credit: string | null; lead_file_photo: number | null;
 };
 
-export const LEAD_COLUMNS = `m.object_key AS lead_key, m.width AS lead_width, m.height AS lead_height, m.alt AS lead_alt, m.caption AS lead_caption, m.credit AS lead_credit`;
+export const LEAD_COLUMNS = `m.object_key AS lead_key, m.width AS lead_width, m.height AS lead_height, m.alt AS lead_alt, m.caption AS lead_caption, m.credit AS lead_credit, m.is_file_photo AS lead_file_photo`;
 
 /** Saves this soon after publication are treated as finishing touches, not a modification worth announcing. */
 const MODIFIED_GRACE_MS = 60 * 60 * 1000;
@@ -66,8 +66,14 @@ export function newsArticleJsonLd(a: Article, origin: string): string {
 
 /** The lead image in the shape figureHtml takes, or null. */
 export const leadMedia = (a: LeadImage) => a.lead_key
-  ? { object_key: a.lead_key, width: a.lead_width!, height: a.lead_height!, alt: a.lead_alt ?? '', caption: a.lead_caption ?? '', credit: a.lead_credit ?? '' }
+  ? { object_key: a.lead_key, width: a.lead_width!, height: a.lead_height!, alt: a.lead_alt ?? '', caption: a.lead_caption ?? '', credit: a.lead_credit ?? '', filePhoto: a.lead_file_photo === 1 }
   : null;
+
+/**
+ * Whether a credit marks the image as CC BY-ND, which must not be cropped (docs/news-sources.md). The license
+ * is only recorded in the credit text, so cropped thumbnails use this to leave those images out.
+ */
+export const isNoDerivatives = (credit: string) => /\bBY[-\s]?ND\b|NoDerivatives/i.test(credit);
 
 export type AdminArticle = Omit<Article, 'published_at' | 'updated_at' | keyof LeadImage> & {
   lead_media_id: string | null;

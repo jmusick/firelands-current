@@ -4,7 +4,7 @@ import AdSlot from '../components/AdSlot.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { fmtStoryDate as fmtDate, isoDateTime } from '../lib/dates';
 import { CATEGORIES, fmtDay, fmtHours, listEvents, today } from '../lib/events';
-import { SECTIONS, articlesBySection, frontPageArticles, leadMedia } from '../lib/news';
+import { SECTIONS, articlesBySection, frontPageArticles, isNoDerivatives, leadMedia } from '../lib/news';
 
 const { lead, more } = await frontPageArticles();
 // Only the lead is left out: the rail is a newest-first list, and skipping it would leave sections short.
@@ -19,7 +19,7 @@ const now = today();
     <article class="lead">
       {leadImage && <figure class="front-photo">
         <a class="front-image" href={`/news/${lead.slug}`} tabindex="-1" aria-hidden="true"><img src={`/media/${leadImage.object_key}`} alt="" width={leadImage.width} height={leadImage.height} fetchpriority="high" /></a>
-        <figcaption>{leadImage.caption} {leadImage.credit} <a href={`/news/${lead.slug}`}>Photo details</a></figcaption>
+        <figcaption>{leadImage.credit.replace(/\.$/, '')}{leadImage.filePhoto ? '. File photo.' : '.'} <a href={`/news/${lead.slug}`}>Photo details</a></figcaption>
       </figure>}
       <span class="eyebrow">{lead.community}<span class="section">{SECTIONS[lead.section]}</span></span>
       <h1><a href={`/news/${lead.slug}`}>{lead.headline}</a></h1>
@@ -61,10 +61,17 @@ const now = today();
   {sections.length > 0 && <div class="sections">
     {sections.map(({ section, articles }) => <section class="news-section" aria-labelledby={`sec-${section}`}>
       <div class="band-head"><h2 id={`sec-${section}`}>{SECTIONS[section]}</h2><a href={`/news?section=${section}`}>More {SECTIONS[section]}</a></div>
-      {articles.map((a) => <article>
-        <h3><a href={`/news/${a.slug}`}>{a.headline}</a></h3>
-        <p class="meta">{a.community}, <time datetime={isoDateTime(a.published_at)}>{fmtDate(a.published_at)}</time></p>
-      </article>)}
+      {articles.map((a, i) => {
+        // Only the first story gets a thumbnail, and never a CC BY-ND image, which can't be cropped.
+        const thumb = i === 0 && a.lead_key && !isNoDerivatives(a.lead_credit ?? '') ? a : null;
+        return <article class:list={{ 'has-thumb': thumb }}>
+          <div class="text">
+            <h3><a href={`/news/${a.slug}`}>{a.headline}</a></h3>
+            <p class="meta">{a.community}, <time datetime={isoDateTime(a.published_at)}>{fmtDate(a.published_at)}</time></p>
+          </div>
+          {thumb && <a class="thumb" href={`/news/${a.slug}`} tabindex="-1" aria-hidden="true"><img src={`/media/${thumb.lead_key}`} alt="" width={thumb.lead_width!} height={thumb.lead_height!} loading="lazy" /></a>}
+        </article>;
+      })}
     </section>)}
   </div>}
   <section class="about" aria-label="About Firelands Current">
@@ -118,6 +125,9 @@ const now = today();
   .news-section article { padding: .9rem 0; border-bottom: 1px solid var(--line-soft); }
   .news-section article:last-child { border-bottom: 0; }
   .news-section h3 { margin: 0 0 .3rem; font-size: 1.3rem; }
+  .news-section .has-thumb { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: start; }
+  .news-section .text { min-width: 0; }
+  .news-section .thumb img { display: block; width: 110px; aspect-ratio: 3 / 2; height: auto; object-fit: cover; background: var(--shoal); margin-top: .2rem; }
 
   .about { margin-top: 3.5rem; padding-top: 1.8rem; border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem 2.5rem; }
   .about h2 { margin: 0 0 .4rem; font-size: 1.45rem; }

@@ -6,6 +6,7 @@ Practical rules for writing and publishing stories, events, and ads so readers u
 
 - Every media library image needs an alt text decision: describe what the image shows, or tick **This image is decorative** when it adds nothing a reader would miss. The library refuses both, neither, or placeholder text such as "photo" or a file name (`validateMediaDetails` in `src/lib/media.ts`, covered by `npm run test:media-alt`).
 - Write alt text for the story's purpose. A photo of a council meeting that illustrates a vote gets "Council members raise their hands to approve the budget," not "council meeting." Keep it under 300 characters and skip "image of" and "photo of."
+- Tick **This is a file photo** in the media editor for a historical or stock image that does not show the story's own subject or event. The front page shortens the lead caption to the credit plus a "File photo" label, so the flag is how that disclosure survives there; the full caption on the story page must still say so. Front-page section thumbnails are decorative and cropped, so they skip images credited CC BY-ND.
 - Put the credit and caption in their own fields. Alt text describes the picture; the caption adds context for everyone. Do not repeat the caption as alt text.
 - A story can override the alt text for one use by writing different text between the brackets of the Markdown image.
 - Text inside an image (a flyer, a sign, a schedule) must also appear as text in the story body or caption.

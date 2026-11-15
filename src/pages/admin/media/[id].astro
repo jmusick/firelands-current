@@ -17,7 +17,7 @@ if (denied) return denied;
 const media = await getMedia(Astro.params.id ?? '');
 if (!media) return new Response('Image not found', { status: 404 });
 
-let values: MediaDetails = { alt: media.alt, decorative: media.decorative === 1, caption: media.caption, credit: media.credit, source: media.source };
+let values: MediaDetails = { alt: media.alt, decorative: media.decorative === 1, caption: media.caption, credit: media.credit, source: media.source, filePhoto: media.is_file_photo === 1 };
 let errors: string[] = [];
 if (Astro.request.method === 'POST') {
   if (!sameOrigin(Astro.request)) return new Response('Invalid request origin', { status: 403 });
@@ -30,11 +30,12 @@ if (Astro.request.method === 'POST') {
     const fields = (Object.keys(LABELS) as (keyof typeof LABELS)[]).filter((k) => values[k] !== media[k]).map((k) => LABELS[k]);
     // The decorative choice is logged in its own words, so the history records the editorial decision itself.
     const decision = values.decorative === (media.decorative === 1) ? '' : values.decorative ? 'marked decorative' : 'no longer decorative';
-    if (!fields.length && !decision) return Astro.redirect(`/admin/media/${media.id}?notice=unchanged`, 303);
+    const filePhoto = values.filePhoto === (media.is_file_photo === 1) ? '' : values.filePhoto ? 'marked file photo' : 'no longer file photo';
+    if (!fields.length && !decision && !filePhoto) return Astro.redirect(`/admin/media/${media.id}?notice=unchanged`, 303);
     await env.DB.batch([
-      env.DB.prepare('UPDATE media SET alt = ?, decorative = ?, caption = ?, credit = ?, source = ?, updated_at = ? WHERE id = ?')
-        .bind(values.alt, values.decorative ? 1 : 0, values.caption, values.credit, values.source, Date.now(), media.id),
-      mediaAudit(Astro.locals.user!, media, 'media-update', [fields.length && `${fields.join(', ')} changed`, decision].filter(Boolean).join('; ')),
+      env.DB.prepare('UPDATE media SET alt = ?, decorative = ?, caption = ?, credit = ?, source = ?, is_file_photo = ?, updated_at = ? WHERE id = ?')
+        .bind(values.alt, values.decorative ? 1 : 0, values.caption, values.credit, values.source, values.filePhoto ? 1 : 0, Date.now(), media.id),
+      mediaAudit(Astro.locals.user!, media, 'media-update', [fields.length && `${fields.join(', ')} changed`, decision, filePhoto].filter(Boolean).join('; ')),
     ]);
     return Astro.redirect(`/admin/media/${media.id}?notice=saved`, 303);
   }
@@ -73,6 +74,7 @@ const inUseError = Astro.url.searchParams.get('error') === 'in-use';
           <label>Alt text <span class="hint">Describes the image for screen readers. Required unless the image is decorative. A story can override it for one use.</span><input name="alt" value={values.alt} maxlength="300" disabled={values.decorative && !values.alt} /></label>
           <label class="check"><input type="checkbox" name="decorative" checked={values.decorative} /><span>This image is decorative <span class="hint">It adds nothing a reader would miss, so screen readers skip it. Don’t tick this for a photo that illustrates a story.</span></span></label>
           <label>Caption <span class="hint">Shown under the image in stories.</span><textarea name="caption" maxlength="500" style="min-height:80px">{values.caption}</textarea></label>
+          <label class="check"><input type="checkbox" name="file_photo" checked={values.filePhoto} /><span>This is a file photo <span class="hint">A historical or stock image, not a photograph of the story’s own subject or event. The front page labels it “File photo” beside the credit. Write the full disclosure in the caption too.</span></span></label>
           <label>Source &amp; permission <span class="hint">Staff only.</span><textarea name="source" maxlength="1000" style="min-height:80px">{values.source}</textarea></label>
           <div><button class="button small" type="submit"><Check />Save details</button></div>
         </form>
