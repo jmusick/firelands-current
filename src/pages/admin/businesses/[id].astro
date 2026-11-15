@@ -32,8 +32,8 @@ if (Astro.request.method === 'POST') {
     if (!changes) return Astro.redirect(`/admin/businesses/${business.id}?notice=unchanged`, 303);
     const v = result.values;
     await env.DB.batch([
-      env.DB.prepare('UPDATE businesses SET name = ?, kind = ?, website = ?, email = ?, phone = ?, notes = ?, updated_at = ? WHERE id = ?')
-        .bind(v.name, v.kind, v.website || null, v.email || null, v.phone || null, v.notes || null, Date.now(), business.id),
+      env.DB.prepare('UPDATE businesses SET name = ?, kind = ?, website = ?, email = ?, phone = ?, notes = ?, publisher_affiliated = ?, updated_at = ? WHERE id = ?')
+        .bind(v.name, v.kind, v.website || null, v.email || null, v.phone || null, v.notes || null, v.publisherAffiliated ? 1 : 0, Date.now(), business.id),
       auditStatement(Astro.locals.user!, { business: { id: business.id, name: v.name } }, 'business-update', changes),
     ]);
     return Astro.redirect(`/admin/businesses/${business.id}?notice=saved`, 303);

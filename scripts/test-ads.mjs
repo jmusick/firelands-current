@@ -30,7 +30,7 @@ const stubs = {
 const source = ts.transpileModule(readFileSync(new URL('../src/lib/ads.ts', import.meta.url), 'utf8'), {
   compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
 }).outputText.replace(/from ['"]([^'"]+)['"]/g, (_match, specifier) => `from ${JSON.stringify(stubs[specifier] ?? specifier)}`);
-const { AdPlan, HOUSE_ADS, HOUSE_SHARE, adPlanFor, pageTakesAds } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+const { AdPlan, HOUSE_ADS, adLabel, HOUSE_SHARE, adPlanFor, pageTakesAds } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 
 // A small seeded generator (mulberry32), so the share checks give the same answer on every run.
 function seeded(seed) {
@@ -192,6 +192,38 @@ test('sample ads', async (t) => {
   await t.test('pass the request path to the plan', async () => {
     const plan = await adPlanFor(page('/events/fall-festival'), {}, { section: 'local' });
     assert.deepEqual(plan.context, { pathname: '/events/fall-festival', section: 'local' });
+  });
+});
+
+test('ad labels', async (t) => {
+  const booked = { kind: 'booked', advertiser: 'Cedar Street Hardware', publisherAffiliated: false };
+  const affiliated = { ...booked, publisherAffiliated: true };
+  await t.test('ordinary ads stay Advertisement or Sponsored', () => {
+    assert.deepEqual(adLabel(booked, 'leaderboard'), { label: 'Advertisement', name: 'Advertisement' });
+    assert.deepEqual(adLabel({ kind: 'sample', advertiser: 'X' }, 'rectangle'), { label: 'Advertisement', name: 'Advertisement' });
+    assert.deepEqual(adLabel(booked, 'native'), { label: 'Sponsored · Cedar Street Hardware', name: 'Sponsored' });
+  });
+  await t.test('ads for publisher-connected businesses say so in every format', () => {
+    for (const format of ['leaderboard', 'rectangle', 'billboard']) assert.deepEqual(adLabel(affiliated, format), { label: 'From the publisher', name: 'From the publisher' });
+    assert.deepEqual(adLabel(affiliated, 'native'), { label: 'From the publisher · Cedar Street Hardware', name: 'From the publisher' });
+  });
+  await t.test('house promos keep their own label', () => {
+    assert.deepEqual(adLabel({ kind: 'house', advertiser: 'Firelands Current', publisherAffiliated: true }, 'native'), { label: 'From Firelands Current', name: 'From Firelands Current' });
+  });
+  await t.test('the flag defaults off and reaches served ads from the database', async () => {
+    const column = database.prepare("SELECT dflt_value, \"notnull\" AS required FROM pragma_table_info('businesses') WHERE name = 'publisher_affiliated'").get();
+    assert.deepEqual({ ...column }, { dflt_value: '0', required: 1 });
+    const realRandom = Math.random;
+    Math.random = () => 0.99;
+    try {
+      const served = async () => (await render(await adPlanFor(new Request('https://firelandscurrent.test/'), {}), HOME)).find(({ ad }) => ad.kind === 'booked');
+      assert.equal((await served()).ad.publisherAffiliated, false);
+      database.exec("UPDATE businesses SET publisher_affiliated = 1 WHERE id = 'biz-test'");
+      assert.equal((await served()).ad.publisherAffiliated, true);
+    } finally {
+      Math.random = realRandom;
+      database.exec("UPDATE businesses SET publisher_affiliated = 0 WHERE id = 'biz-test'");
+    }
   });
 });
 

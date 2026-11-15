@@ -26,7 +26,7 @@ const STATE_SQL = `CASE
   ELSE 'running' END`;
 
 export type AdRecord = {
-  id: string; business_id: string; business_name: string; business_status: 'active' | 'archived';
+  id: string; business_id: string; business_name: string; business_status: 'active' | 'archived'; publisher_affiliated: number;
   name: string; status: AdStatus; state: AdState;
   headline: string; body: string; cta: string; href: string;
   theme_bg: string; theme_fg: string; theme_accent: string;
@@ -54,7 +54,7 @@ export async function listAds(filters: AdFilters, opts: { includeDrafts?: boolea
   if (opts.includeDrafts === false) where.push("a.status != 'draft'");
   const result = await env.DB.prepare(`
     SELECT * FROM (
-      SELECT a.*, b.name AS business_name, b.status AS business_status, ${STATE_SQL} AS state
+      SELECT a.*, b.name AS business_name, b.status AS business_status, b.publisher_affiliated, ${STATE_SQL} AS state
       FROM ads a JOIN businesses b ON b.id = a.business_id
       ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
     )
@@ -67,7 +67,7 @@ export async function listAds(filters: AdFilters, opts: { includeDrafts?: boolea
 
 export async function getAd(id: string): Promise<{ record: AdRecord; ad: Ad; images: AdImageRow[] } | null> {
   const [rows, images] = await env.DB.batch([
-    env.DB.prepare(`SELECT a.*, b.name AS business_name, b.status AS business_status, ${STATE_SQL} AS state FROM ads a JOIN businesses b ON b.id = a.business_id WHERE a.id = ?2`).bind(statDay(), id),
+    env.DB.prepare(`SELECT a.*, b.name AS business_name, b.status AS business_status, b.publisher_affiliated, ${STATE_SQL} AS state FROM ads a JOIN businesses b ON b.id = a.business_id WHERE a.id = ?2`).bind(statDay(), id),
     env.DB.prepare('SELECT ad_id, size, object_key, width, height FROM ad_images WHERE ad_id = ?').bind(id),
   ]);
   const record = rows.results[0] as AdRecord | undefined;

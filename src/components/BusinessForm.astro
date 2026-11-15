@@ -24,9 +24,12 @@ const { values, errors, submitLabel } = Astro.props;
     <label>Phone <input name="phone" type="tel" value={values.phone} maxlength="40" /></label>
   </div>
   <label>Notes <span class="meta" style="font-weight:400">(staff only)</span><textarea name="notes" maxlength="2000" style="min-height:100px">{values.notes}</textarea></label>
+  <label class="check"><input type="checkbox" name="publisherAffiliated" value="1" checked={values.publisherAffiliated} /> Connected to the publisher <span class="meta" style="font-weight:400">(its ads are labeled “From the publisher” instead of “Advertisement”)</span></label>
   <div><button class="button small" type="submit">{submitLabel}</button></div>
 </form>
 
 <style>
+  .form label.check { display: flex; align-items: flex-start; gap: .45rem; font-weight: 500; line-height: 1.35; }
+  .form label.check input { width: auto; margin: .15rem 0 0; }
   .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
 </style>

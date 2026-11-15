@@ -1,6 +1,6 @@
 ---
 import AdCreative from './AdCreative.astro';
-import { PLACEMENTS, adPlanFor, type PlacementKey } from '../lib/ads';
+import { PLACEMENTS, adLabel, adPlanFor, type PlacementKey } from '../lib/ads';
 
 interface Props {
   placement: PlacementKey;
@@ -10,9 +10,8 @@ interface Props {
 const { placement, class: className } = Astro.props;
 const { format } = PLACEMENTS[placement];
 const { ad, href, token } = await (await adPlanFor(Astro.request, Astro.locals)).take(placement);
-const label = ad.kind === 'house' ? 'From Firelands Current' : format === 'native' ? `Sponsored · ${ad.advertiser}` : 'Advertisement';
-// The paper's own promotions aren't paid for, so screen readers hear the same label sighted readers see.
-const name = ad.kind === 'house' ? 'From Firelands Current' : format === 'native' ? 'Sponsored' : 'Advertisement';
+// Screen readers hear the same label sighted readers see.
+const { label, name } = adLabel(ad, format);
 ---
 <aside class:list={[format === 'native' ? 'ad-native' : ['ad-slot', `slot-${format}`], className]} data-ad={ad.id} data-placement={placement} data-ad-token={token} aria-label={name}>
   <span class="ad-label">{label}{ad.kind === 'sample' && <span class="ad-sample">Sample</span>}</span>

@@ -27,6 +27,7 @@ export type Business = {
   email: string | null;
   phone: string | null;
   notes: string | null;
+  publisher_affiliated: number;
   status: 'active' | 'archived';
   created_at: number;
   updated_at: number;
@@ -109,13 +110,13 @@ export async function membershipsFor(userId: string): Promise<Membership[]> {
   return result.results;
 }
 
-export type BusinessFormValues = { name: string; kind: BusinessKind | ''; website: string; email: string; phone: string; notes: string };
+export type BusinessFormValues = { name: string; kind: BusinessKind | ''; website: string; email: string; phone: string; notes: string; publisherAffiliated: boolean };
 export type BusinessFormResult = { ok: true; values: BusinessFormValues } | { ok: false; values: BusinessFormValues; errors: string[] };
 
-export const emptyBusiness: BusinessFormValues = { name: '', kind: '', website: '', email: '', phone: '', notes: '' };
+export const emptyBusiness: BusinessFormValues = { name: '', kind: '', website: '', email: '', phone: '', notes: '', publisherAffiliated: false };
 
 export function valuesFromBusiness(b: Business): BusinessFormValues {
-  return { name: b.name, kind: b.kind, website: b.website ?? '', email: b.email ?? '', phone: b.phone ?? '', notes: b.notes ?? '' };
+  return { name: b.name, kind: b.kind, website: b.website ?? '', email: b.email ?? '', phone: b.phone ?? '', notes: b.notes ?? '', publisherAffiliated: b.publisher_affiliated === 1 };
 }
 
 export async function validateBusinessForm(form: FormData, existingId: string | null): Promise<BusinessFormResult> {
@@ -129,6 +130,7 @@ export async function validateBusinessForm(form: FormData, existingId: string | 
     email: cleanText(form.get('email')).toLowerCase(),
     phone: cleanText(form.get('phone')),
     notes: cleanText(form.get('notes')),
+    publisherAffiliated: form.get('publisherAffiliated') === '1',
   };
 
   const errors: string[] = [];
@@ -150,13 +152,14 @@ export async function validateBusinessForm(form: FormData, existingId: string | 
 
 /** Human-readable list of what changed between two versions of a business, for the audit log. */
 export function describeChanges(before: BusinessFormValues, after: BusinessFormValues): string {
-  const labels: Record<keyof BusinessFormValues, string> = { name: 'Name', kind: 'Type', website: 'Website', email: 'Email', phone: 'Phone', notes: 'Notes' };
+  const labels: Record<keyof BusinessFormValues, string> = { name: 'Name', kind: 'Type', website: 'Website', email: 'Email', phone: 'Phone', notes: 'Notes', publisherAffiliated: 'Publisher-connected' };
   return (Object.keys(labels) as (keyof BusinessFormValues)[])
     .filter((key) => before[key] !== after[key])
     .map((key) => {
       if (key === 'notes') return 'Notes edited';
+      if (key === 'publisherAffiliated') return `${labels[key]}: ${before[key] ? 'yes' : 'no'} → ${after[key] ? 'yes' : 'no'}`;
       const show = (v: string) => (key === 'kind' && isKind(v) ? KIND_LABELS[v] : v) || '—';
-      return `${labels[key]}: ${show(before[key])} → ${show(after[key])}`;
+      return `${labels[key]}: ${show(before[key] as string)} → ${show(after[key] as string)}`;
     })
     .join('; ');
 }

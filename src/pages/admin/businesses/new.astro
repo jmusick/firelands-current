@@ -24,8 +24,8 @@ if (Astro.request.method === 'POST') {
     const now = Date.now();
     const v = result.values;
     await env.DB.batch([
-      env.DB.prepare('INSERT INTO businesses (id, name, kind, website, email, phone, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-        .bind(id, v.name, v.kind, v.website || null, v.email || null, v.phone || null, v.notes || null, now, now),
+      env.DB.prepare('INSERT INTO businesses (id, name, kind, website, email, phone, notes, publisher_affiliated, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .bind(id, v.name, v.kind, v.website || null, v.email || null, v.phone || null, v.notes || null, v.publisherAffiliated ? 1 : 0, now, now),
       auditStatement(Astro.locals.user!, { business: { id, name: v.name } }, 'business-create'),
     ]);
     return Astro.redirect(`/admin/businesses/${id}?notice=created`, 303);

@@ -74,6 +74,8 @@ export type Ad = {
   weight: number;
   images: Partial<Record<ImageSize, AdImage>>;
   kind: 'booked' | 'sample' | 'house';
+  /** The advertiser is connected to the publisher, so the ad is labeled "From the publisher" rather than "Advertisement". */
+  publisherAffiliated?: boolean;
 };
 
 export const DEFAULT_THEME: Ad['theme'] = { bg: '#173d4a', fg: '#edf2ed', accent: '#e7a98d' };
@@ -132,6 +134,17 @@ export const HOUSE_ADS: Ad[] = [
   },
 ];
 
+/**
+ * The label above an ad and the name screen readers hear. The paper's own promos and ads for businesses
+ * connected to the publisher say so, instead of the generic "Advertisement" or "Sponsored".
+ */
+export function adLabel(ad: Pick<Ad, 'kind' | 'advertiser' | 'publisherAffiliated'>, format: AdFormat): { label: string; name: string } {
+  if (ad.kind === 'house') return { label: 'From Firelands Current', name: 'From Firelands Current' };
+  if (ad.publisherAffiliated) return { label: format === 'native' ? `From the publisher · ${ad.advertiser}` : 'From the publisher', name: 'From the publisher' };
+  if (format === 'native') return { label: `Sponsored · ${ad.advertiser}`, name: 'Sponsored' };
+  return { label: 'Advertisement', name: 'Advertisement' };
+}
+
 /** The chance any one slot goes to a house promo when other ads could fill it. At most one such promo runs per page. */
 export const HOUSE_SHARE = 0.25;
 
@@ -141,6 +154,7 @@ const linksTo = (href: string, pathname: string) => pathname === href || pathnam
 export type AdRow = {
   id: string; business_id: string; advertiser: string; headline: string; body: string; cta: string; href: string;
   theme_bg: string; theme_fg: string; theme_accent: string; placements: string; sections: string; weight: number;
+  publisher_affiliated?: number;
 };
 export type AdImageRow = { ad_id: string; size: ImageSize; object_key: string; width: number; height: number };
 
@@ -153,7 +167,7 @@ export { mediaUrl };
 
 export function adFromRow(row: AdRow, images: AdImageRow[]): Ad {
   return {
-    id: row.id, businessId: row.business_id, advertiser: row.advertiser, kind: 'booked',
+    id: row.id, businessId: row.business_id, advertiser: row.advertiser, kind: 'booked', publisherAffiliated: row.publisher_affiliated === 1,
     headline: row.headline, body: row.body, cta: row.cta, href: row.href,
     theme: { bg: row.theme_bg, fg: row.theme_fg, accent: row.theme_accent },
     placements: parseList(row.placements, isPlacement), sections: parseList(row.sections, isSectionKey), weight: row.weight,
@@ -170,7 +184,7 @@ async function inventory(): Promise<Ad[]> {
       AND (a.impression_cap IS NULL OR a.impressions < a.impression_cap)`;
   const today = statDay();
   const [ads, images, booked] = await env.DB.batch([
-    env.DB.prepare(`SELECT a.id, a.business_id, b.name AS advertiser, a.headline, a.body, a.cta, a.href, a.theme_bg, a.theme_fg, a.theme_accent, a.placements, a.sections, a.weight ${live}`).bind(today),
+    env.DB.prepare(`SELECT a.id, a.business_id, b.name AS advertiser, a.headline, a.body, a.cta, a.href, a.theme_bg, a.theme_fg, a.theme_accent, a.placements, a.sections, a.weight, b.publisher_affiliated ${live}`).bind(today),
     env.DB.prepare(`SELECT i.ad_id, i.size, i.object_key, i.width, i.height FROM ad_images i WHERE i.ad_id IN (SELECT a.id ${live})`).bind(today),
     env.DB.prepare('SELECT EXISTS (SELECT 1 FROM ads) AS any'),
   ]);
