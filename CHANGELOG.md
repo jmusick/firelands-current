@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.33.0] - 2026-11-15
+
+### Added
+
+- Businesses can be marked **Connected to the publisher** on the admin business form (migration 0034; recorded in the audit log). Their ads are labeled "From the publisher" instead of "Advertisement", and sponsored listings read "From the publisher · Advertiser". House promos keep "From Firelands Current", and `/advertise` explains the label (#113).
+
 ## [1.32.0] - 2026-11-15
 
 ### Added
