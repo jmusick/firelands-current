@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.35.1] - 2026-11-15
+
+### Changed
+
+- Consolidated reviewed editorial packet imports and publication into one manifest-driven tool, with exclusive journals, baseline and checksum guards, local verification and disposable rehearsals. Dated utilities remain as historical records; their notes now live in the editorial tools guide (#108).
+
 ## [1.35.0] - 2026-11-15
 
 ### Added
