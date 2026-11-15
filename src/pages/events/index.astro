@@ -53,6 +53,7 @@ if (!calendarView) {
   }
 }
 
+// An empty month (with or without a category or community filter) is a thin page that Search Console reports as a soft 404; it stays usable and returns 200 but carries noindex.
 // The month grid runs Sunday to Saturday, padded with blank days from the months either side.
 const weekday = (day: string) => new Date(`${day}T12:00:00Z`).getUTCDay();
 const cells: { day: string; inMonth: boolean; events: CalendarEvent[] }[] = [];
@@ -86,7 +87,7 @@ const href = (changes: { category?: string | null; community?: string | null; pa
 const heading = past ? 'Past events' : category ? CATEGORIES[category] : 'Local events';
 const title = past ? 'Past events' : category ? `${CATEGORIES[category]} events` : 'Local events';
 ---
-<BaseLayout title={calendarView ? `${title}, ${monthName(month)}` : title} description="What's happening in Sandusky and across the Firelands: concerts, festivals, meetings, markets and more." canonicalPath={href({ page })}>
+<BaseLayout title={calendarView ? `${title}, ${monthName(month)}` : title} description="What's happening in Sandusky and across the Firelands: concerts, festivals, meetings, markets and more." canonicalPath={href({ page })} noindex={calendarView && events.length === 0}>
   {community && <span class="eyebrow">{community}</span>}
   <h1>{heading}</h1>
   <nav aria-label="Event categories" class="filter-tabs">
