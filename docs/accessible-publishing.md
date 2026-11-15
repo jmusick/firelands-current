@@ -10,6 +10,7 @@ Practical rules for writing and publishing stories, events, and ads so readers u
 - A story can override the alt text for one use by writing different text between the brackets of the Markdown image.
 - Text inside an image (a flyer, a sign, a schedule) must also appear as text in the story body or caption.
 - Use the **Needs alt text** filter at `/admin/media?alt=missing` to clear older images that have no decision.
+- For editorial lead images, choose a relevant, credited media-library image at least 1,200 pixels wide when a suitable original is available, following [Google's Discover image guidance](https://developers.google.com/search/docs/appearance/google-discover). Do not fabricate or upscale photos to meet that size. The generic masthead fallback is not a representative story image.
 
 ## Story structure
 

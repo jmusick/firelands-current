@@ -415,6 +415,8 @@ The file is written to R2 before its library record is saved. If saving the reco
 
 In a story, an image on a line of its own shows as a figure with its caption and credit. Stories can only show library images: an image linked from another site shows as its alt text instead. Each story can also have a **lead image**, shown above the story, with it on the front page and in the news list, and as the preview image when the story is shared on social media.
 
+Indexable pages using the public layout permit large search image previews with the `max-image-preview:large` robots directive. Existing `noindex` pages keep that restriction. This setting permits larger previews; it does not guarantee indexing, Discover placement, rankings, or traffic. See [accessible publishing](docs/accessible-publishing.md#images) for choosing suitable editorial images.
+
 The story editor's preview and side-by-side view use the same safe renderer as published stories. Raw HTML appears as text, and previews load only existing media-library images, with captions and credits. Previews send the current story text to our Cloudflare-hosted server without saving it and require a connection and a current administrator or editor sign-in. A failed preview shows an error; it does not fall back to rendering untrusted HTML in the browser.
 
 `npm run test:media-alt` checks the alt text decision (required alt text or decorative choice, placeholder rejection, migration `0023` leaving existing rows undecided, and the Needs alt text listing) against an isolated in-memory database.

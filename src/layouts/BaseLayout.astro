@@ -48,6 +48,7 @@ const gaConfig = {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     {(noindex || accountPage) && <meta name="robots" content="noindex" />}
+    {!noindex && !accountPage && <meta name="robots" content="max-image-preview:large" />}
     {!noindex && !accountPage && <link rel="canonical" href={pageUrl} />}
     <!-- Without JavaScript the phone menu can't open, so the nav stays expanded unless this runs. -->
     <script is:inline nonce={Astro.locals.cspNonce}>document.documentElement.classList.add('js');</script>
