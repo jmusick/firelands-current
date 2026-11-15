@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.34.0] - 2026-11-15
+
+### Added
+
+- Front-page section blocks show a small decorative thumbnail for their first story when it has a lead image (skipping images credited CC BY-ND, which can't be cropped). The front-page lead caption is shortened to the credit, a "File photo" label, and **Photo details**; the full caption stays on the story page. A new **This is a file photo** checkbox in the media editor sets the label (migration 0035, audited) (#106).
+
 ## [1.33.0] - 2026-11-15
 
 ### Added
