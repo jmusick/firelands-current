@@ -196,7 +196,7 @@ test('sample ads', async (t) => {
 });
 
 test('pages that take no ads', () => {
-  for (const path of ['/submit-news', '/submit-news/', '/submit-news/thanks', '/contact', '/contact/', '/contact/thanks', '/advertise', '/report-inaccuracy', '/talk/new', '/sign-in', '/admin/ads']) {
+  for (const path of ['/submit-news', '/submit-news/', '/submit-news/thanks', '/submit-event', '/submit-event/', '/contact', '/contact/', '/contact/thanks', '/advertise', '/report-inaccuracy', '/talk/new', '/sign-in', '/admin/ads']) {
     assert.equal(pageTakesAds(path), false, path);
   }
   for (const path of ['/', '/news', '/news/local/some-story', '/talk', '/talk/abc123', '/events', '/contact-us', '/submit-news-archive']) {

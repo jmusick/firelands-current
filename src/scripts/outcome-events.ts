@@ -1,4 +1,4 @@
-// Reports newspaper outcomes (sign_up, news_tip_submitted, advertiser_inquiry) to Google Analytics, only after
+// Reports newspaper outcomes (sign_up, news_tip_submitted, advertiser_inquiry, event_submitted) to Google Analytics, only after
 // the action succeeded and only on pages where gtag already loads (BaseLayout leaves it off sign-in,
 // registration, and account pages). Nothing a visitor typed is sent: just the event name and, for sign_up,
 // the sign-in method or, for forms, the form name.
@@ -13,6 +13,7 @@ const SIGN_UP_METHODS = new Set(['email', 'google', 'facebook', 'apple', 'micros
 const INBOX_EVENTS: Record<string, { name: string; form: string }> = {
   '/submit-news': { name: 'news_tip_submitted', form: 'news' },
   '/advertise': { name: 'advertiser_inquiry', form: 'ads' },
+  '/submit-event': { name: 'event_submitted', form: 'event' },
 };
 
 type Pending = { method: string; at: number };
@@ -63,7 +64,7 @@ function run() {
       .forEach((item) => gtag('event', 'sign_up', { method: item.method }));
   }
 
-  // The inbox endpoint redirects with o=1 only for an accepted submission; remove it so a reload does not recount.
+  // The inbox and event submission endpoints redirect with o=1 only for an accepted submission; remove it so a reload does not recount.
   const inbox = INBOX_EVENTS[location.pathname];
   if (inbox && params.get('o') === '1') {
     dropParam('o');

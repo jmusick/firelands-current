@@ -10,13 +10,15 @@ export type Quota = { max: number; windowMs: number };
  * Per-client allowances for public writes. A window may not exceed RATE_LIMIT_RETENTION_MS, or the
  * scheduled prune would delete a counter that is still in force.
  *
- * `inbox`, `corrections`, `vote`, and `reauth` are counted in D1 by `takeQuota`. `thread`, `reply`, and `report` are
+ * `inbox`, `event`, `corrections`, `vote`, and `reauth` are counted in D1 by `takeQuota`. `thread`, `reply`, and `report` are
  * enforced inside the INSERT that stores the row (see the Talk endpoints), because a forum limit must hold
  * for concurrent requests, so they count the author's rows instead.
  */
 export const QUOTAS = {
   // Contact, Submit news, and Advertise share one allowance: they all send mail to staff.
   inbox: { max: 10, windowMs: HOUR },
+  // Organizers often send several events at once, so this is a little looser than the mail forms it resembles.
+  event: { max: 10, windowMs: HOUR },
   // A reader may reasonably flag several errors in one sitting.
   corrections: { max: 10, windowMs: HOUR },
   // Voting is one click, and switching or taking back a vote counts too.
@@ -28,7 +30,7 @@ export const QUOTAS = {
   reauth: { max: 5, windowMs: 10 * MINUTE },
 } as const satisfies Record<string, Quota>;
 
-export type CountedQuota = 'inbox' | 'corrections' | 'vote' | 'reauth';
+export type CountedQuota = 'inbox' | 'event' | 'corrections' | 'vote' | 'reauth';
 
 /** Collapses an IPv6 address to its /64 network, as Better Auth does, so a visitor can't dodge a limit by rotating through a /64. */
 export function normalizeIp(ip: string): string {

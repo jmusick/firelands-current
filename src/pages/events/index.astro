@@ -107,6 +107,7 @@ const title = past ? 'Past events' : category ? `${CATEGORIES[category]} events`
     </label>}
     {!past && communityOptions.length > 1 && <noscript><button class="button secondary small" type="submit">Show</button></noscript>}
     <span class="end">
+      <a class="when" href="/submit-event">Submit an event</a>
       {!calendarView && <a class="when" href={href({ past: !past, community: null, page: 1 })}>{past ? 'Upcoming events' : 'Past events'}</a>}
       <span class="views" role="group" aria-label="View">
         <a href={href({ calendar: false, past: false, page: 1 })} aria-current={calendarView ? undefined : 'page'}>List</a>

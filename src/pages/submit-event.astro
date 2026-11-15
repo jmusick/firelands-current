@@ -1,0 +1,10 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import EventSubmissionForm from '../components/EventSubmissionForm.astro';
+---
+<BaseLayout title="Submit an event" description="Send an event to the Firelands Current editors for the local events calendar." noindex>
+  <h1>Submit an event</h1>
+  <p class="lede">Hosting something in Sandusky or the Firelands? Tell us about it and our editors will consider it for the <a href="/events">events calendar</a>. We check every submission before anything is listed, and we may email you with questions. Not every event is listed.</p>
+  <EventSubmissionForm />
+  <p>You can also write to <a href="mailto:news@firelandscurrent.com">news@firelandscurrent.com</a>. To send a news tip instead, use <a href="/submit-news">Submit news</a>.</p>
+</BaseLayout>

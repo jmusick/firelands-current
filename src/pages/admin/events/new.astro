@@ -6,7 +6,9 @@ import EventEditor from '../../../components/EventEditor.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
 import { getAdminEvent } from '../../../lib/events';
 import { copyOfEvent, emptyEvent, saveEventFromForm, type EventFormValues } from '../../../lib/events-admin';
-import { denyAdmin, recordDenied } from '../../../lib/audit';
+import { auditRecord, denyAdmin, recordDenied } from '../../../lib/audit';
+import { valuesFromSubmission } from '../../../lib/event-submissions';
+import { env } from 'cloudflare:workers';
 import { sameOrigin } from '../../../lib/forum';
 
 const denied = requireSection(Astro, ADMIN.events);
@@ -19,12 +21,30 @@ if (denied) {
 const source = Astro.url.searchParams.has('copy') ? await getAdminEvent(Astro.url.searchParams.get('copy') ?? '') : null;
 let values: EventFormValues = source ? copyOfEvent(source) : { ...emptyEvent };
 let errors: string[] = [];
+// ?submission=<id> starts a draft from an organizer's submitted event (src/pages/admin/events/submissions).
+const submissionId = Astro.url.searchParams.get('submission') ?? '';
+let fromSubmission = false;
+if (submissionId && /^[\w-]{8,64}$/.test(submissionId)) {
+  const submitted = await env.DB.prepare("SELECT * FROM event_submissions WHERE id = ? AND status != 'converted'").bind(submissionId).first<any>();
+  if (submitted) { values = valuesFromSubmission(submitted, values); fromSubmission = true; }
+}
 if (Astro.request.method === 'POST') {
   if (!sameOrigin(Astro.request)) return denyAdmin(Astro.locals, Astro.request, 'event-save', 'origin');
   const form = await readForm(Astro.request);
   if (form instanceof Response) return form;
+  // A converted submission always starts as a draft; publishing is a separate step on the event's page.
+  if (/^[\w-]{8,64}$/.test(form.get('submission_id')?.toString() ?? '')) form.set('status', 'draft');
   const result = await saveEventFromForm(form, null, Astro.locals.user!);
-  if (result.ok) return Astro.redirect(`/admin/events/${result.id}?saved=1`, 303);
+  if (result.ok) {
+    const linkedSubmission = form.get('submission_id')?.toString() ?? '';
+    // The audit entry is written only while the submission is still unconverted, in the same batch as the link.
+    // No title, text or contact details.
+    if (/^[\w-]{8,64}$/.test(linkedSubmission)) await env.DB.batch([
+      auditRecord(Astro.locals.user!, 'event-submission', linkedSubmission, 'event-submission-converted', `Event ${result.id}`, { sql: "status != 'converted'", binds: [] }),
+      env.DB.prepare("UPDATE event_submissions SET status = 'converted', event_id = ?1, updated_at = ?2, decided_at = ?2 WHERE id = ?3 AND status != 'converted'").bind(result.id, Date.now(), linkedSubmission),
+    ]);
+    return Astro.redirect(`/admin/events/${result.id}?saved=1`, 303);
+  }
   ({ values, errors } = result);
 }
 ---
@@ -32,6 +52,7 @@ if (Astro.request.method === 'POST') {
   <a class="back" href="/admin/events"><ArrowLeft />All events</a>
   <span class="eyebrow" style="display:block;margin-top:1.5rem">Events</span>
   <h1>New event</h1>
+  {fromSubmission && !errors.length && <p class="message" role="status">Started from a submitted event. Check the details, then save. It is saved as a draft and the submission is marked converted; publish it from the event’s page when it’s ready.</p>}
   {source && !errors.length && <p class="message" role="status">Copied from “{source.title}”. Choose the new date.</p>}
-  <EventEditor values={values} errors={errors} />
+  <EventEditor values={values} errors={errors} submissionId={submissionId} />
 </AdminLayout>

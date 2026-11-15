@@ -1,13 +1,15 @@
 ---
-import { Plus } from '@lucide/astro';
+import { Inbox, Plus } from '@lucide/astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ADMIN, requireSection } from '../../../lib/admin';
+import { env } from 'cloudflare:workers';
 import { CATEGORIES, STATUS_LABELS, fmtDates, fullHours, isPast, listAdminEvents } from '../../../lib/events';
 
 const denied = requireSection(Astro, ADMIN.events);
 if (denied) return denied;
 
 const all = await listAdminEvents();
+const unreadSubmissions = (await env.DB.prepare("SELECT COUNT(*) AS count FROM event_submissions WHERE status = 'unread'").first<{ count: number }>())?.count ?? 0;
 // Upcoming events read soonest first; past ones stay newest first.
 const upcoming = all.filter((e) => !isPast(e)).reverse();
 const events = [...upcoming, ...all.filter(isPast)];
@@ -15,7 +17,7 @@ const events = [...upcoming, ...all.filter(isPast)];
 <AdminLayout title="Events">
   <div style="display:flex;justify-content:space-between;align-items:end;gap:1rem;flex-wrap:wrap">
     <div><span class="eyebrow">Events</span><h1>Local events</h1></div>
-    <a class="button" href="/admin/events/new"><Plus />New event</a>
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap"><a class="button secondary" href="/admin/events/submissions"><Inbox />Submitted{unreadSubmissions ? ` (${unreadSubmissions} unread)` : ''}</a><a class="button" href="/admin/events/new"><Plus />New event</a></div>
   </div>
   {Astro.url.searchParams.has('deleted') && <p class="message" role="status">Event deleted.</p>}
 

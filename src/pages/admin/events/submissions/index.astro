@@ -1,0 +1,39 @@
+---
+import { ArrowLeft } from '@lucide/astro';
+import { fmtDateTime } from '../../../../lib/dates';
+import AdminLayout from '../../../../layouts/AdminLayout.astro';
+import { ADMIN, requireSection } from '../../../../lib/admin';
+import { CATEGORIES } from '../../../../lib/events';
+import { STALE_UNREAD_SUBMISSION_MS } from '../../../../lib/event-submission-retention';
+import { env } from 'cloudflare:workers';
+
+const denied = requireSection(Astro, ADMIN.events);
+if (denied) return denied;
+// One address's submissions, for answering a request to see or delete someone's information.
+const email = Astro.url.searchParams.get('email')?.trim().toLowerCase() ?? '';
+const query = env.DB.prepare(`SELECT id, title, category, starts_on, community, name, email, status, anonymized_at, created_at
+  FROM event_submissions ${email ? 'WHERE lower(email) = ?' : ''} ORDER BY created_at DESC`);
+const [rows, stale] = await Promise.all([
+  (email ? query.bind(email) : query).all<any>(),
+  env.DB.prepare("SELECT COUNT(*) AS count FROM event_submissions WHERE status = 'unread' AND created_at < ?").bind(Date.now() - STALE_UNREAD_SUBMISSION_MS).first<{ count: number }>(),
+]);
+---
+<AdminLayout title="Submitted events">
+  <a class="back" href="/admin/events"><ArrowLeft />All events</a>
+  <span class="eyebrow" style="display:block;margin-top:1.5rem">Events</span><h1>Submitted events</h1>
+  <p class="muted">Events organizers sent through Submit an event, newest first. Unread submissions are shown in bold. Declined submissions are deleted 90 days after they’re declined; reviewed and converted ones lose the submitter’s name, email and note a year after the decision.</p>
+  {stale?.count ? <p class="notice">{stale.count} unread {stale.count === 1 ? 'submission is' : 'submissions are'} more than 90 days old. Unread submissions are never deleted automatically; review or decline them.</p> : null}
+  <form class="filter" method="get" action="/admin/events/submissions">
+    <label>Submitter email <input name="email" type="email" value={email} autocomplete="off" spellcheck="false" /></label>
+    <button class="button secondary small" type="submit">Find</button>
+    {email && <a href="/admin/events/submissions">Show all submissions</a>}
+  </form>
+  {rows.results.length ? <div class="table-wrap"><table><thead><tr><th>Event</th><th>Submitted by</th><th>Status</th><th>Received</th></tr></thead><tbody>
+    {rows.results.map((s: any) => <tr><td><a class:list={['headline', { unread: s.status === 'unread' }]} href={`/admin/events/submissions/${s.id}`}>{s.title}</a><div class="meta">{CATEGORIES[s.category as keyof typeof CATEGORIES]} · {s.starts_on} · {s.community}</div></td><td>{s.anonymized_at ? <span class="muted">Details removed</span> : s.name}<div class="meta">{s.anonymized_at ? '' : s.email}</div></td><td><span class={`pill ${s.status}`}>{s.status}</span></td><td class="meta">{fmtDateTime(s.created_at)}</td></tr>)}
+  </tbody></table></div> : <div class="card"><h2>{email ? 'No matching event submissions' : 'No event submissions yet'}</h2></div>}
+</AdminLayout>
+<style>
+  .table-wrap { overflow-x:auto; border-top:3px solid var(--deep); } table { width:100%; border-collapse:collapse; } th { text-align:left; font-size: .88rem; color:var(--slate); padding:.8rem .6rem; border-bottom:1px solid var(--line); } td { padding:.9rem .6rem; border-bottom:1px solid var(--line); vertical-align:top; } .meta { margin-top:.2rem; } .headline { font-weight:400; color:var(--deep); text-decoration:none; } .headline.unread { font-weight:700; } .headline:hover { text-decoration:underline; } .pill { display:inline-block; padding:.15rem .55rem; border-radius:999px; font-size:.78rem; font-weight:700; text-transform:capitalize; background:var(--shoal); } .pill.unread { background:var(--alert-bg); color:var(--alert); }
+  .notice { padding:.7rem .9rem; border-left:3px solid var(--alert); background:var(--alert-bg); max-width:850px; }
+  .filter { display:flex; gap:.6rem; align-items:end; flex-wrap:wrap; margin:1rem 0; } .filter label { display:grid; gap:.25rem; font-size:.88rem; } .filter input { min-width:16rem; max-width:100%; }
+</style>

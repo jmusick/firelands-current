@@ -1,0 +1,54 @@
+---
+import { fmtDate, fmtDateTime } from '../../../../lib/dates';
+import { ArrowLeft } from '@lucide/astro';
+import AdminLayout from '../../../../layouts/AdminLayout.astro';
+import { ADMIN, requireSection } from '../../../../lib/admin';
+import { CATEGORIES, fmtDates, fullHours } from '../../../../lib/events';
+import { submissionRetentionDates } from '../../../../lib/event-submission-retention';
+import { env } from 'cloudflare:workers';
+
+const denied = requireSection(Astro, ADMIN.events);
+if (denied) return denied;
+const item = await env.DB.prepare('SELECT * FROM event_submissions WHERE id = ?').bind(Astro.params.id).first<any>();
+if (!item) return new Response('Event submission not found', { status: 404 });
+const { deletesAt, anonymizesAt } = submissionRetentionDates(item);
+const when = `${fmtDates(item, { year: true })}${fullHours(item) ? ` · ${fullHours(item)}` : ''}`;
+const day = fmtDate;
+---
+<AdminLayout title={`Submitted event: ${item.title}`}>
+  <a class="back" href="/admin/events/submissions"><ArrowLeft />All submitted events</a>
+  <span class="eyebrow" style="display:block;margin-top:1.5rem">Submitted event · {item.status}</span><h1>{item.title}</h1>
+  <div class="card details">
+    {item.anonymized_at
+      ? <p><strong>From:</strong> Submitter details removed {day(item.anonymized_at)}</p>
+      : <p><strong>From:</strong> {item.name} · <a href={`mailto:${item.email}`}>{item.email}</a></p>}
+    <p><strong>Received:</strong> {fmtDateTime(item.created_at)}</p>
+    <hr/>
+    <p><strong>Category:</strong> {CATEGORIES[item.category as keyof typeof CATEGORIES]}</p>
+    <p><strong>When:</strong> {when}</p>
+    <p><strong>Where:</strong> {item.venue}{item.address && `, ${item.address}`} · {item.community}</p>
+    {item.organizer && <p><strong>Organizer:</strong> {item.organizer}</p>}
+    {item.cost && <p><strong>Cost:</strong> {item.cost}</p>}
+    {item.link && <p><strong>Link:</strong> <a href={item.link} rel="noopener noreferrer nofollow" target="_blank">{item.link}</a></p>}
+    <p><strong>Summary:</strong> {item.summary}</p>
+    {item.description && <><p><strong>Details</strong></p><p class="body">{item.description}</p></>}
+    {item.note && <><p><strong>Note to editors</strong></p><p class="body">{item.note}</p></>}
+  </div>
+  {item.event_id && <p>This submission became <a href={`/admin/events/${item.event_id}`}>an event</a>.</p>}
+  {deletesAt && <p class="meta">This declined submission will be deleted on or after {day(deletesAt)}.</p>}
+  {anonymizesAt && <p class="meta">The submitter’s name, email and note will be removed on or after {day(anonymizesAt)}; the event details stay.</p>}
+  <div class="actions">
+    {item.status !== 'converted' && <>
+      {item.status === 'unread' && <form method="post" action="/api/admin/event-submissions"><input type="hidden" name="id" value={item.id}/><input type="hidden" name="status" value="reviewed"/><button class="button secondary">Mark reviewed</button></form>}
+      <form method="post" action="/api/admin/event-submissions"><input type="hidden" name="id" value={item.id}/><input type="hidden" name="status" value="declined"/><button class="button secondary">Decline</button></form>
+      <a class="button" href={`/admin/events/new?submission=${item.id}`}>Convert to draft event</a>
+    </>}
+    {!item.anonymized_at && <form method="post" action="/api/admin/event-submissions" data-confirm="Remove the submitter’s name, email and note from this submission now? The event details stay. This can’t be undone."><input type="hidden" name="id" value={item.id}/><input type="hidden" name="action" value="anonymize"/><button class="button secondary">Remove submitter details</button></form>}
+  </div>
+</AdminLayout>
+<script is:inline nonce={Astro.locals.cspNonce}>
+  document.querySelectorAll('form[data-confirm]').forEach(function (form) {
+    form.addEventListener('submit', function (event) { if (!confirm(form.dataset.confirm)) event.preventDefault(); });
+  });
+</script>
+<style>.details { max-width:850px; margin:1rem 0; } .details p { line-height:1.6; margin:.35rem 0; } .body { white-space:pre-wrap; } .actions { display:flex; gap:.6rem; flex-wrap:wrap; } .actions form { margin:0; }</style>

@@ -20,6 +20,7 @@ Guidance for AI coding agents working on Firelands Current, an independent local
 | `npm test` | Every `test:*` script below except `test:a11y`, in one run (what CI runs) |
 | `npm run test:body` | Isolated tests for the bounded request-body readers |
 | `npm run test:preview` | Isolated regression tests for safe story previews and their endpoint |
+| `npm run test:event-submissions` | Isolated tests for the Submit an event form, review queue, conversion to a draft event, audit entries, and event submission retention |
 | `npm run test:authorization` | Isolated access tests for every endpoint and role, suspended accounts, business isolation, and session cookies |
 | `npm run test:media-metadata` | Isolated tests for upload metadata stripping and failed-upload cleanup |
 | `npm run test:a11y` | axe-core, forced-colors, reduced-motion, and Tab-order checks against a dev server you start yourself (port 4399 by default); uses throwaway users in the local database (see "Accessibility testing" in README.md) |

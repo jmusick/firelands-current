@@ -6,6 +6,8 @@ export const INBOXES = {
   ads: { address: 'ads@firelandscurrent.com', subject: 'Advertising inquiry', path: '/advertise' },
   // Not a public form kind (see isInboxKind): only the corrections endpoint sends to it.
   corrections: { address: 'news@firelandscurrent.com', subject: 'Correction request', path: '/report-inaccuracy' },
+  // Not a public form kind either: only the event submission endpoint sends to it.
+  events: { address: 'news@firelandscurrent.com', subject: 'Event submission', path: '/submit-event' },
 } as const;
 
 export type InboxKind = keyof typeof INBOXES;

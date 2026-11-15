@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers';
 
 /**
- * Audit records for newsroom and moderation work: stories, events, community links, discussions, corrections and news tips.
+ * Audit records for newsroom and moderation work: stories, events, community links, discussions, corrections, news tips and event submissions.
  * They go in `admin_audit_log` beside the user, business, ad and media entries (see `auditStatement` in
  * users.ts, `adAudit` and `mediaAudit`), with `target_type` and `target_id` naming the record.
  *
@@ -11,7 +11,7 @@ import { env } from 'cloudflare:workers';
  */
 
 export type AuditActor = { id: string; name: string };
-export type AuditResourceType = 'story' | 'event' | 'link' | 'thread' | 'reply' | 'correction' | 'tip';
+export type AuditResourceType = 'story' | 'event' | 'link' | 'thread' | 'reply' | 'correction' | 'tip' | 'event-submission';
 
 // Where each record kind lives and how its entry is labelled. Entries copy the label in, so they still
 // read correctly after the record is deleted.
@@ -23,6 +23,7 @@ const SOURCES: Record<AuditResourceType, { from: string; id: string; label: stri
   reply: { from: 'forum_replies r JOIN forum_threads t ON t.id = r.thread_id', id: 'r.id', label: "'Reply in ' || t.title" },
   correction: { from: 'corrections', id: 'id', label: 'item_title' },
   tip: { from: 'news_submissions', id: 'id', label: "'News tip ' || id" },
+  'event-submission': { from: 'event_submissions', id: 'id', label: "'Event submission ' || id" },
 };
 
 const COLUMNS = '(id, actor_id, actor_name, target_type, target_id, target_label, action, detail, outcome, created_at)';
