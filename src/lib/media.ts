@@ -7,7 +7,7 @@ import { cleanText } from './forum';
 
 export type MediaRecord = {
   id: string; object_key: string; content_type: string; width: number; height: number; bytes: number;
-  filename: string; alt: string; decorative: number; caption: string; credit: string; source: string;
+  filename: string; alt: string; decorative: number; caption: string; credit: string; source: string; is_file_photo: number;
   uploaded_by: string | null; created_at: number; updated_at: number;
 };
 
@@ -304,11 +304,12 @@ export async function checkUpload(file: File, maxBytes = MAX_UPLOAD_BYTES, label
 
 // `decorative` is the editor's explicit choice that the image adds nothing a reader would miss, so it
 // renders with an empty alt. A decorative image never carries alt text.
-export type MediaDetails = { alt: string; decorative: boolean; caption: string; credit: string; source: string };
+export type MediaDetails = { alt: string; decorative: boolean; caption: string; credit: string; source: string; filePhoto?: boolean };
 
 export function detailsFrom(form: FormData): MediaDetails {
   const decorative = ['on', '1', 'true'].includes(cleanText(form.get('decorative')));
-  return { alt: cleanText(form.get('alt')), decorative, caption: cleanText(form.get('caption')), credit: cleanText(form.get('credit')), source: cleanText(form.get('source')) };
+  return { alt: cleanText(form.get('alt')), decorative, caption: cleanText(form.get('caption')), credit: cleanText(form.get('credit')), source: cleanText(form.get('source')),
+    filePhoto: ['on', '1', 'true'].includes(cleanText(form.get('file_photo'))) };
 }
 
 // Alt text that says nothing: a placeholder word or a file name.
@@ -342,7 +343,7 @@ export async function storeMedia(image: CheckedImage, filename: string, details:
   const now = Date.now();
   const record: MediaRecord = {
     id, object_key: `library/${id}.${image.ext}`, content_type: image.type, width: image.width, height: image.height, bytes: image.bytes.length,
-    filename: cleanFilename(filename), ...details, decorative: details.decorative ? 1 : 0, uploaded_by: uploaderId, created_at: now, updated_at: now,
+    filename: cleanFilename(filename), ...details, decorative: details.decorative ? 1 : 0, is_file_photo: 0, uploaded_by: uploaderId, created_at: now, updated_at: now,
   };
   await env.MEDIA.put(record.object_key, image.bytes, { httpMetadata: { contentType: image.type } });
   const statement = env.DB.prepare(`
