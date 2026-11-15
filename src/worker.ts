@@ -3,6 +3,7 @@ import { pruneAuthAlerts, runAuthAlerts } from './lib/auth-alerts';
 import { pruneAuthRateLimits } from './lib/auth-rate-limit';
 import { publishFacebookStories } from './lib/facebook-publisher';
 import { sendSecurityAlertMail } from './lib/mail';
+import { runEventSubmissionRetention } from './lib/event-submission-retention';
 import { runTipRetention } from './lib/tip-retention';
 
 export default {
@@ -15,6 +16,7 @@ export default {
     await runAuthAlerts(env.DB, { recipient: env.SECURITY_ALERT_EMAIL, send: sendSecurityAlertMail }).catch(() => console.error(JSON.stringify({ event: 'auth_alerts_failed' })));
     // Does its work once a day; the other runs return after one cheap claim query.
     await runTipRetention(env.DB).catch(() => console.error(JSON.stringify({ event: 'tip_retention_failed' })));
+    await runEventSubmissionRetention(env.DB).catch(() => console.error(JSON.stringify({ event: 'event_submission_retention_failed' })));
     try {
       await publishFacebookStories(env);
     } catch {

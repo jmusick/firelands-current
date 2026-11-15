@@ -199,6 +199,7 @@ export async function listAudit(limit = 100): Promise<AuditEntry[]> {
         WHEN l.target_type = 'link' AND cl.id IS NOT NULL THEN '/admin/links/' || cl.id
         WHEN l.target_type = 'correction' AND c.id IS NOT NULL THEN '/admin/corrections/' || c.id
         WHEN l.target_type = 'tip' AND s.id IS NOT NULL THEN '/admin/submissions/' || s.id
+        WHEN l.target_type = 'event-submission' AND es.id IS NOT NULL THEN '/admin/events/submissions/' || es.id
       END AS resource_href
     FROM admin_audit_log l
     LEFT JOIN "user" u ON u.id = l.target_user_id
@@ -209,6 +210,7 @@ export async function listAudit(limit = 100): Promise<AuditEntry[]> {
     LEFT JOIN community_links cl ON l.target_type = 'link' AND cl.id = l.target_id
     LEFT JOIN corrections c ON l.target_type = 'correction' AND c.id = l.target_id
     LEFT JOIN news_submissions s ON l.target_type = 'tip' AND s.id = l.target_id
+    LEFT JOIN event_submissions es ON l.target_type = 'event-submission' AND es.id = l.target_id
     ORDER BY l.created_at DESC, l.rowid DESC LIMIT ?
   `).bind(limit).all<AuditEntry>();
   return result.results;
@@ -327,6 +329,12 @@ export const AUDIT_LABELS: Record<string, string> = {
   'tip-anonymized': 'Removed news tip submitter details',
   'tip-retention': 'Applied news tip retention',
   'tip-review': 'Reviewed a news tip',
+  'event-submission-reviewed': 'Marked event submission reviewed',
+  'event-submission-declined': 'Declined event submission',
+  'event-submission-converted': 'Converted event submission to a draft event',
+  'event-submission-anonymized': 'Removed event submission submitter details',
+  'event-submission-retention': 'Applied event submission retention',
+  'event-submission-review': 'Reviewed an event submission',
   'user-admin': 'Changed a user account',
   'business-admin': 'Changed a business',
   'ad-admin': 'Changed an ad',

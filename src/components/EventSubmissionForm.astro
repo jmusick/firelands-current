@@ -1,0 +1,142 @@
+---
+import Turnstile from './Turnstile.astro';
+import ErrorSummary from './ErrorSummary.astro';
+import FieldError from './FieldError.astro';
+import { CATEGORIES } from '../lib/events';
+import { EVENT_FIELD_ERRORS, parseInvalidFields, summaryText } from '../lib/form-errors';
+const sent = Astro.url.searchParams.get('sent');
+const error = Astro.url.searchParams.get('error');
+const user = Astro.locals.user;
+
+const labels: Record<keyof typeof EVENT_FIELD_ERRORS, string> = {
+  title: 'Event name', summary: 'Short summary', description: 'Details', category: 'Category', starts_on: 'Date', start_time: 'Start time',
+  ends_on: 'Last day', end_time: 'End time', venue: 'Venue', address: 'Address', community: 'Town or community', organizer: 'Organizer',
+  cost: 'Cost', link: 'Event link', name: 'Your name', email: 'Your email', note: 'Note to our editors',
+};
+const invalid = error === 'invalid' ? parseInvalidFields(Astro.url.searchParams.get('fields'), EVENT_FIELD_ERRORS) : [];
+const fieldError = (field: keyof typeof EVENT_FIELD_ERRORS) => invalid.includes(field) ? EVENT_FIELD_ERRORS[field] : undefined;
+const problem = (field: keyof typeof EVENT_FIELD_ERRORS) => invalid.includes(field) ? { 'aria-invalid': 'true' as const, 'aria-describedby': `event-${field}-error` } : {};
+const summaryItems = error === 'captcha' ? [{ href: '#event-captcha', text: 'Complete the human check and try again.' }]
+  : error === 'captcha_unavailable' ? [{ text: 'We could not run the human check right now. Please try again in a moment.' }]
+  : error === 'rate' ? [{ text: 'You have sent several events in the last hour. Please wait a while and try again; what you wrote is still below.' }]
+  : error === 'invalid' && invalid.length ? invalid.map((field) => ({ href: `#event-${field}`, text: summaryText(labels[field], EVENT_FIELD_ERRORS[field]) }))
+  : error ? [{ text: 'Please check the form and try again.' }]
+  : [];
+---
+{sent && <p class="message" role="status">Thanks, your event was sent to our editors. We review every submission and may email you with questions. Not every event is listed.</p>}
+<form class="form" method="post" action="/api/event-submissions" data-form-errors data-draft-key="event-submission">
+  <ErrorSummary id="event-errors" items={summaryItems} />
+  <label class="hp" aria-hidden="true">Leave this empty <input name="website" tabindex="-1" autocomplete="off" /></label>
+
+  <fieldset>
+    <legend>About the event</legend>
+    <div class="field">
+      <label>Event name <input id="event-title" name="title" required minlength="3" maxlength="140" data-draft data-error-message={EVENT_FIELD_ERRORS.title} {...problem('title')} /></label>
+      <FieldError field="event-title" message={fieldError('title')} />
+    </div>
+    <div class="field">
+      <label>Short summary <span class="hint">One or two sentences saying what it is.</span><textarea id="event-summary" name="summary" required minlength="10" maxlength="300" data-draft data-error-message={EVENT_FIELD_ERRORS.summary} {...problem('summary')}></textarea></label>
+      <FieldError field="event-summary" message={fieldError('summary')} />
+    </div>
+    <div class="field">
+      <label>Category
+        <select id="event-category" name="category" required data-draft data-error-message={EVENT_FIELD_ERRORS.category} {...problem('category')}>
+          <option value="">Choose…</option>
+          {Object.entries(CATEGORIES).map(([key, label]) => <option value={key}>{label}</option>)}
+        </select>
+      </label>
+      <FieldError field="event-category" message={fieldError('category')} />
+    </div>
+    <div class="field">
+      <label>Details <span class="hint">Optional. Schedule, what to bring, registration, accessibility.</span><textarea id="event-description" name="description" maxlength="5000" data-draft data-error-message={EVENT_FIELD_ERRORS.description} {...problem('description')}></textarea></label>
+      <FieldError field="event-description" message={fieldError('description')} />
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>When <span class="hint">Eastern time. Leave the times blank for an all-day event.</span></legend>
+    <div class="row">
+      <div class="field">
+        <label>Date <input id="event-starts_on" name="starts_on" type="date" required data-draft data-error-message={EVENT_FIELD_ERRORS.starts_on} {...problem('starts_on')} /></label>
+        <FieldError field="event-starts_on" message={fieldError('starts_on')} />
+      </div>
+      <div class="field">
+        <label>Last day <span class="hint">Only if it runs several days.</span><input id="event-ends_on" name="ends_on" type="date" data-draft data-error-message={EVENT_FIELD_ERRORS.ends_on} {...problem('ends_on')} /></label>
+        <FieldError field="event-ends_on" message={fieldError('ends_on')} />
+      </div>
+      <div class="field">
+        <label>Start time <input id="event-start_time" name="start_time" type="time" data-draft data-error-message={EVENT_FIELD_ERRORS.start_time} {...problem('start_time')} /></label>
+        <FieldError field="event-start_time" message={fieldError('start_time')} />
+      </div>
+      <div class="field">
+        <label>End time <input id="event-end_time" name="end_time" type="time" data-draft data-error-message={EVENT_FIELD_ERRORS.end_time} {...problem('end_time')} /></label>
+        <FieldError field="event-end_time" message={fieldError('end_time')} />
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Where</legend>
+    <div class="field">
+      <label>Venue <input id="event-venue" name="venue" required minlength="2" maxlength="120" data-draft data-error-message={EVENT_FIELD_ERRORS.venue} {...problem('venue')} /></label>
+      <FieldError field="event-venue" message={fieldError('venue')} />
+    </div>
+    <div class="field">
+      <label>Address <span class="hint">Optional.</span><input id="event-address" name="address" maxlength="200" autocomplete="off" data-draft data-error-message={EVENT_FIELD_ERRORS.address} {...problem('address')} /></label>
+      <FieldError field="event-address" message={fieldError('address')} />
+    </div>
+    <div class="field">
+      <label>Town or community <input id="event-community" name="community" required maxlength="60" placeholder="Sandusky" data-draft data-error-message={EVENT_FIELD_ERRORS.community} {...problem('community')} /></label>
+      <FieldError field="event-community" message={fieldError('community')} />
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>More</legend>
+    <div class="field">
+      <label>Organizer <span class="hint">Optional. The group or business hosting it.</span><input id="event-organizer" name="organizer" maxlength="120" data-draft data-error-message={EVENT_FIELD_ERRORS.organizer} {...problem('organizer')} /></label>
+      <FieldError field="event-organizer" message={fieldError('organizer')} />
+    </div>
+    <div class="field">
+      <label>Cost <span class="hint">Optional. Free, $10, donations welcome…</span><input id="event-cost" name="cost" maxlength="80" data-draft data-error-message={EVENT_FIELD_ERRORS.cost} {...problem('cost')} /></label>
+      <FieldError field="event-cost" message={fieldError('cost')} />
+    </div>
+    <div class="field">
+      <label>Event link <span class="hint">Optional. A page with tickets or details.</span><input id="event-link" name="link" maxlength="500" inputmode="url" placeholder="https://" data-draft data-error-message={EVENT_FIELD_ERRORS.link} {...problem('link')} /></label>
+      <FieldError field="event-link" message={fieldError('link')} />
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>About you <span class="hint">Only our editors see this. We use it to check details with you.</span></legend>
+    <div class="field">
+      <label>Your name <input id="event-name" name="name" required maxlength="100" autocomplete="name" value={user?.name} data-draft data-error-message={EVENT_FIELD_ERRORS.name} {...problem('name')} /></label>
+      <FieldError field="event-name" message={fieldError('name')} />
+    </div>
+    <div class="field">
+      <label>Your email <input id="event-email" name="email" type="email" required maxlength="200" autocomplete="email" value={user?.email} data-draft data-error-message={EVENT_FIELD_ERRORS.email} {...problem('email')} /></label>
+      <FieldError field="event-email" message={fieldError('email')} />
+    </div>
+    <div class="field">
+      <label>Note to our editors <span class="hint">Optional.</span><textarea id="event-note" name="note" maxlength="2000" data-draft data-error-message={EVENT_FIELD_ERRORS.note} {...problem('note')}></textarea></label>
+      <FieldError field="event-note" message={fieldError('note')} />
+    </div>
+  </fieldset>
+
+  <Turnstile action="event-submission" id="event-captcha" />
+  <button class="button" type="submit">Send event</button>
+</form>
+<script>
+  import '../scripts/form-errors';
+</script>
+<style>
+  .hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+  .hint { font-weight: 400; color: var(--slate); font-size: .85rem; }
+  fieldset { border: 1px solid var(--line-soft); border-radius: 4px; padding: .9rem 1rem 1rem; margin: 0; display: grid; gap: 1rem; background: var(--paper); min-width: 0; }
+  legend { font-weight: 700; font-size: .95rem; padding: 0 .35rem; }
+  legend .hint { display: block; margin-top: .15rem; }
+  .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+  .form :global(select) { width: 100%; padding: .75rem .85rem; border: 1px solid var(--field); border-radius: 2px; background: var(--paper); color: var(--ink); font: inherit; }
+  .form textarea { min-height: 110px; }
+  @media (max-width: 520px) { .row { grid-template-columns: minmax(0, 1fr); } }
+</style>

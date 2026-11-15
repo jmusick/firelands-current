@@ -65,6 +65,7 @@ const worker = (await import(sourceModule('src/worker.ts', {
   './lib/auth-alerts': alertsUrl,
   './lib/auth-rate-limit': sourceModule('src/lib/auth-rate-limit.ts'),
   './lib/tip-retention': sourceModule('src/lib/tip-retention.ts'),
+  './lib/event-submission-retention': sourceModule('src/lib/event-submission-retention.ts', { './tip-retention': sourceModule('src/lib/tip-retention.ts') }),
   './lib/facebook-publisher': 'data:text/javascript,export const publishFacebookStories = async () => { globalThis.__alertTestFacebookRuns++; };',
   './lib/mail': 'data:text/javascript,export const sendSecurityAlertMail = async (mail) => { globalThis.__alertTestMail.push(mail); };',
 }))).default;

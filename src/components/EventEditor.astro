@@ -13,9 +13,11 @@ interface Props {
   eventId?: string;
   liveUrl?: string | null;
   canDelete?: boolean;
+  /** The submitted event this draft converts; saved once, with the event. */
+  submissionId?: string;
 }
 
-const { values, errors, saved = false, eventId, liveUrl, canDelete = false } = Astro.props;
+const { values, errors, saved = false, eventId, liveUrl, canDelete = false, submissionId = '' } = Astro.props;
 const image = values.image_media_id ? await getMedia(values.image_media_id) : null;
 // Communities already in use, so the calendar's community filter doesn't split "Sandusky" and "sandusky".
 const communities = (await env.DB.prepare('SELECT community FROM events UNION SELECT community FROM news_articles ORDER BY 1 LIMIT 300').all<{ community: string }>()).results;
@@ -24,6 +26,7 @@ const communities = (await env.DB.prepare('SELECT community FROM events UNION SE
 {saved && <p class="message saved" role="status">Event saved.{liveUrl && <> <a href={liveUrl}>View it on the site →</a></>}</p>}
 
 <form method="post" id="event-form" class="form editor">
+  {submissionId && <input type="hidden" name="submission_id" value={submissionId} />}
   <label>Title <input name="title" value={values.title} required minlength="3" maxlength="140" /></label>
   <label>Summary <span class="hint">One or two sentences, shown in the calendar and in link previews.</span><textarea name="summary" required minlength="10" maxlength="300" style="min-height:80px">{values.summary}</textarea></label>
   <div class="row">

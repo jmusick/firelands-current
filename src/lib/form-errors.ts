@@ -7,6 +7,26 @@ export const INBOX_FIELD_ERRORS = {
   body: 'Enter 20 to 10,000 characters.',
 } as const;
 
+export const EVENT_FIELD_ERRORS = {
+  title: 'Enter 3 to 140 characters.',
+  summary: 'Enter 10 to 300 characters.',
+  description: 'Keep this to 5,000 characters or fewer.',
+  category: 'Choose a category.',
+  starts_on: 'Choose a date that has not passed, within the next two years.',
+  start_time: 'Enter a valid time, or leave this blank for an all-day event.',
+  ends_on: 'Choose a last day on or after the first day, within a year of it, or leave this blank.',
+  end_time: 'Enter a start time and an end time that comes after it, or leave this blank.',
+  venue: 'Enter the venue, up to 120 characters.',
+  address: 'Keep this to 200 characters or fewer.',
+  community: 'Enter the town or community, up to 60 characters.',
+  organizer: 'Keep this to 120 characters or fewer.',
+  cost: 'Keep this to 80 characters or fewer.',
+  link: 'Enter a link that starts with http:// or https://, or leave this blank.',
+  name: 'Enter your name, up to 100 characters.',
+  email: 'Enter a valid email address, such as name@example.com.',
+  note: 'Keep this to 2,000 characters or fewer.',
+} as const;
+
 export const CORRECTION_FIELD_ERRORS = {
   name: 'Enter your name, up to 100 characters.',
   email: 'Enter a valid email address, such as name@example.com.',

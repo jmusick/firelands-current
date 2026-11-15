@@ -134,7 +134,7 @@ for (const [id, role] of [['reader'], ['owner'], ['moderator', 'moderator'], ['e
 const now = Date.now();
 const fx = {
   businessA: 'business-a', businessB: 'business-b', adA: 'ad-a-live', adADraft: 'ad-a-draft', adB: 'ad-b-live', adBDraft: 'ad-b-draft',
-  story: 'story-fixture-1', event: 'event-fixture-1', media: 'media-fixture-1', tip: 'tip-fixture-1', correction: 'correction-fixture-1',
+  story: 'story-fixture-1', event: 'event-fixture-1', media: 'media-fixture-1', tip: 'tip-fixture-1', eventSubmission: 'event-submission-fixture-1', correction: 'correction-fixture-1',
   thread: crypto.randomUUID(), report: crypto.randomUUID(),
 };
 for (const [id, name] of [[fx.businessA, 'Alpha Bakery'], [fx.businessB, 'Bravo Hardware']]) {
@@ -155,6 +155,8 @@ database.prepare(`INSERT INTO media (id, object_key, content_type, width, height
   VALUES (?, 'library/fixture.png', 'image/png', 10, 10, 100, 'fixture.png', 'Fixture credit', ?, ?)`).run(fx.media, now, now);
 database.prepare(`INSERT INTO news_submissions (id, name, email, subject, body, status, created_at, updated_at)
   VALUES (?, 'Tipster', 'tipster@example.test', 'A tip', 'Tip text', 'unread', ?, ?)`).run(fx.tip, now, now);
+database.prepare(`INSERT INTO event_submissions (id, title, summary, category, starts_on, venue, community, name, email, status, created_at, updated_at)
+  VALUES (?, 'Submitted event', 'A submitted event summary.', 'community', '2030-02-01', 'Hall', 'Sandusky', 'Organizer', 'organizer@example.test', 'unread', ?, ?)`).run(fx.eventSubmission, now, now);
 database.prepare(`INSERT INTO corrections (id, kind, article_id, item_title, item_slug, name, email, details, created_at, updated_at)
   VALUES (?, 'news', ?, 'Fixture story', 'fixture-story', 'Reader', 'reader@example.test', 'A detail is wrong.', ?, ?)`).run(fx.correction, fx.story, now, now);
 database.prepare('INSERT INTO forum_threads (id, author_id, title, body, created_at, updated_at, last_activity_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
@@ -257,6 +259,9 @@ const ROUTES = [
   { file: 'src/pages/api/admin/corrections.ts', path: '/api/admin/corrections', kind: 'staff', roles: SECTION_ROLES.corrections, guard: 'corrections', audit: 'correction-resolve',
     attacks: [{ fields: { id: fx.correction, action: 'corrected', note: 'Fixed.' } }],
     probe: { fields: { id: 'short', action: 'corrected' } }, answer: { status: 400 } },
+  { file: 'src/pages/api/admin/event-submissions.ts', path: '/api/admin/event-submissions', kind: 'staff', roles: SECTION_ROLES.events, guard: 'events', audit: 'event-submission-review',
+    attacks: [{ fields: { id: fx.eventSubmission, action: 'anonymize' } }, { fields: { id: fx.eventSubmission, status: 'declined' } }, { fields: { id: fx.eventSubmission, status: 'reviewed' } }],
+    probe: { fields: { id: 'short' } }, answer: { status: 400 } },
   { file: 'src/pages/api/admin/events.ts', path: '/api/admin/events', kind: 'staff', roles: ADMIN_ONLY, guard: 'admin-only', audit: 'event-delete',
     attacks: [{ fields: { action: 'delete', id: fx.event } }],
     probe: { fields: { action: 'bogus' } }, answer: { status: 400 } },
@@ -319,6 +324,7 @@ const ROUTES = [
     probe: { fields: { password: '', next: '/admin' } }, answer: { status: 303, location: /^\/reauth\?next=%2Fadmin&error=password$/ } },
 
   { file: 'src/pages/api/inbox.ts', path: '/api/inbox', kind: 'open', probe: { fields: { kind: 'nope' } }, answer: { status: 400 } },
+  { file: 'src/pages/api/event-submissions.ts', path: '/api/event-submissions', kind: 'open', probe: { fields: { website: 'bot' } }, answer: { status: 303, location: /^\/submit-event\?sent=1$/ } },
   { file: 'src/pages/api/corrections.ts', path: '/api/corrections', kind: 'open', probe: { fields: { type: 'nope', slug: 'x' } }, answer: { status: 400 } },
 ];
 
