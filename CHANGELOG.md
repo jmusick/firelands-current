@@ -2,6 +2,12 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.38.0] - 2026-11-15
+
+### Added
+
+- A Sandusky community page combining a paginated local news archive, upcoming events and maintained local guides, linked from News and Community links and included in the sitemap (#45).
+
 ## [1.37.0] - 2026-11-15
 
 ### Added
