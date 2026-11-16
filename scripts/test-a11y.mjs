@@ -135,6 +135,8 @@ function pagesToScan({ ids, businessId }) {
     ['public', '/search?q=zzzz'],
     ['public', '/events'],
     ['public', '/links'],
+    ['public', '/communities/sandusky'],
+    ['public', '/communities/sandusky?page=2'],
     ['public', '/guides/recycling'],
     ['public', '/guides/free-and-low-cost-activities'],
     ['public', '/guides/food-assistance'],
@@ -418,8 +420,8 @@ async function main() {
     const pages = pagesToScan(session);
     await scanAxe(browser, session.cookies, pages);
     const story = pages.find(([, path]) => path.startsWith('/news/'))?.[1] ?? '/news';
-    await scanNarrow(browser, session.cookies, ['/', story, '/contact', '/guides/recycling', '/guides/free-and-low-cost-activities', '/guides/food-assistance']);
-    await scanEmulation(browser, session.cookies, ['/', story, '/events', '/sign-in', '/guides/recycling', '/guides/free-and-low-cost-activities', '/guides/food-assistance']);
+    await scanNarrow(browser, session.cookies, ['/', story, '/contact', '/communities/sandusky', '/guides/recycling', '/guides/free-and-low-cost-activities', '/guides/food-assistance']);
+    await scanEmulation(browser, session.cookies, ['/', story, '/events', '/sign-in', '/communities/sandusky', '/guides/recycling', '/guides/free-and-low-cost-activities', '/guides/food-assistance']);
     await keyboardSmokeTest(browser, session.cookies, '/contact');
   } finally {
     await browser?.close();

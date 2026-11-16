@@ -27,6 +27,7 @@ const pageHref = (n: number) => {
 ---
 <BaseLayout title={section ? SECTIONS[section] : 'News'} description="Local news from Sandusky and communities across the Firelands." canonicalPath={pageHref(page)}>
   <h1>{section ? SECTIONS[section] : 'Latest news'}</h1>
+  <p>Following Sandusky? Visit <a href="/communities/sandusky">Sandusky news, events and local guides</a>.</p>
   <SearchForm id="news-search" />
   <nav aria-label="News sections" class="filter-tabs">
     <a href="/news" aria-current={section ? undefined : 'page'}>All</a>

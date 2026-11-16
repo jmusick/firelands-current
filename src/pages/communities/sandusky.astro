@@ -1,0 +1,73 @@
+---
+import AuthorLink from '../../components/AuthorLink.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { fmtStoryDate, isoDateTime } from '../../lib/dates';
+import { fmtDates, fmtHours, listEvents } from '../../lib/events';
+import { communityArticles, SECTIONS } from '../../lib/news';
+
+const requestedPage = Number(Astro.url.searchParams.get('page') ?? 1);
+const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 && requestedPage <= 10000 ? requestedPage : 1;
+const pageSize = 12;
+const [fetched, upcoming] = await Promise.all([
+  communityArticles('Sandusky', page - 1, pageSize),
+  listEvents({ community: 'Sandusky' }, 0, 4),
+]);
+const articles = fetched.slice(0, pageSize);
+const events = upcoming.slice(0, 4);
+const pageHref = (n: number) => `/communities/sandusky${n > 1 ? `?page=${n}` : ''}`;
+---
+<BaseLayout title={`Sandusky news, events and local guides${page > 1 ? ` — Page ${page}` : ''}`} description="Follow Sandusky government, schools, businesses and community life, find upcoming events, and use our local guides to food assistance, recycling and outings." canonicalPath={pageHref(page)} noindex={articles.length === 0}>
+  <div class="wrap community-page">
+    <header>
+      <h1>Sandusky</h1>
+      <p class="lede">Local news, events and practical guides for life in Sandusky.</p>
+      <p>Our coverage of Sandusky follows city government, schools, businesses and community life. This page brings together stories and events labeled Sandusky by our editors. For countywide news and neighboring communities, browse <a href="/news">all Firelands news</a> and the <a href="/events">regional events calendar</a>.</p>
+    </header>
+    <nav aria-label="On this page"><a href="#news">Sandusky news</a> · <a href="#events">Upcoming events</a> · <a href="#guides">Local guides and resources</a></nav>
+    <section aria-labelledby="news">
+      <h2 id="news">{page > 1 ? 'Sandusky news archive' : 'Latest Sandusky news'}</h2>
+      {articles.length ? articles.map((article) => <article class="story">
+        <span class="eyebrow">{SECTIONS[article.section]}</span>
+        <h3><a href={`/news/${article.slug}`}>{article.headline}</a></h3>
+        <p>{article.summary}</p>
+        <p class="meta">By <AuthorLink id={article.author_id} name={article.byline} />, <time datetime={isoDateTime(article.published_at)}>{fmtStoryDate(article.published_at)}</time></p>
+      </article>) : <p>No stories on this page. <a href={pageHref(1)}>Return to the latest Sandusky news</a>.</p>}
+      {(page > 1 || fetched.length > pageSize) && <nav class="pagination" aria-label="Sandusky news pages"><span>{page > 1 && <a href={pageHref(page - 1)}>← Newer stories</a>}</span><span>{fetched.length > pageSize && <a href={pageHref(page + 1)}>Older stories →</a>}</span></nav>}
+    </section>
+    <section aria-labelledby="events">
+      <h2 id="events">Upcoming Sandusky events</h2>
+      {events.length ? <ul class="event-list">{events.map((event) => <li>
+        <h3><a href={`/events/${event.slug}`}>{event.title}</a></h3>
+        <p>{event.status === 'cancelled' && <strong>Cancelled: </strong>}{fmtDates(event, { year: true })} · {fmtHours(event)} · {event.venue}</p>
+        <p>{event.summary}</p>
+      </li>)}</ul> : <p>No upcoming Sandusky events are listed. Check the regional calendar for events nearby.</p>}
+      <p><a href="/events?community=Sandusky">Sandusky event calendar</a> · <a href="/submit-event">Submit an event for review</a></p>
+    </section>
+    <section aria-labelledby="guides">
+      <h2 id="guides">Local guides and resources</h2>
+      <p>These maintained guides include Sandusky resources alongside options elsewhere in the Firelands. Check each guide for provider rules, source links and its last review date.</p>
+      <ul class="guides">
+        <li><a href="/guides/food-assistance">Food assistance in Sandusky and the Firelands</a> — pantry hours, eligibility, service areas and provider contacts.</li>
+        <li><a href="/guides/recycling">Recycling in Sandusky and Erie County</a> — drop-off sites, accepted materials and disposal restrictions.</li>
+        <li><a href="/guides/free-and-low-cost-activities">Free and low-cost activities around Sandusky</a> — outings, admission costs and registration requirements.</li>
+        <li><a href="/links#erie">Erie County community links</a> — official government, library and public-service websites, grouped by community.</li>
+      </ul>
+    </section>
+    <p>Have a Sandusky news tip or a correction? <a href="/submit-news">Share it with the newsroom</a>.</p>
+  </div>
+</BaseLayout>
+<style>
+  .community-page { max-width: 860px; padding-block: 2rem 3rem; }
+  header p { max-width: 70ch; }
+  nav { margin-block: 1.5rem; }
+  section { margin-block: 2.5rem; }
+  h2 { border-bottom: 2px solid var(--deep); padding-bottom: .6rem; scroll-margin-top: 1rem; }
+  h3 { margin: .4rem 0; font-size: 1.4rem; }
+  .story, .event-list li { border-bottom: 1px solid var(--line-soft); padding-block: 1rem; }
+  .story p, .event-list p { margin-block: .5rem; }
+  .event-list { list-style: none; padding: 0; }
+  .guides { padding-left: 1.3rem; }
+  .guides li + li { margin-top: .8rem; }
+  .pagination { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; }
+  a { overflow-wrap: anywhere; }
+</style>

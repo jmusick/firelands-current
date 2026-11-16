@@ -69,6 +69,27 @@ const form = (article, featured) => {
   return data;
 };
 
+test('community archive filters visibility and pages tied publication dates consistently', async () => {
+  try {
+    insert('community-a', 100);
+    insert('community-b', 100);
+    insert('community-c', 90);
+    insert('community-d', 80);
+    insert('community-draft', 110, 0, 'draft');
+    insert('community-future', 201);
+    insert('community-other', 120);
+    database.exec("UPDATE news_articles SET community = 'Sandusky County' WHERE id = 'community-other'");
+    const list = (page) => news.module.communityArticles('Sandusky', page, 2, 200);
+    assert.deepEqual((await list(0)).map((a) => a.id), ['community-a', 'community-b', 'community-c']);
+    assert.deepEqual((await list(1)).map((a) => a.id), ['community-c', 'community-d']);
+    assert.deepEqual(await list(2), []);
+    assert.deepEqual(await news.module.communityArticles("Sandusky' OR 1=1 --", 0, 2, 200), []);
+    assert.deepEqual((await news.module.communityArticles('Sandusky County', 0, 2, 200)).map((a) => a.id), ['community-other']);
+  } finally {
+    database.exec("DELETE FROM news_articles WHERE id LIKE 'community-%'");
+  }
+});
+
 test('featured homepage stories', async (t) => {
   await t.test('empty database has no lead or latest stories', async () => {
     assert.deepEqual(await front(), { lead: null, more: [] });

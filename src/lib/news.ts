@@ -98,6 +98,18 @@ export async function listArticles(page = 0, section?: Section, pageSize = 20): 
   return result.results;
 }
 
+/** A community archive, with one extra row to detect the next page. */
+export async function communityArticles(community: string, page = 0, pageSize = 12, now = Date.now()): Promise<Article[]> {
+  const result = await env.DB.prepare(`
+    SELECT a.id, a.slug, a.headline, a.summary, a.body, a.section, a.community, COALESCE(u.name, a.byline) AS byline, a.author_id, a.published_at, a.updated_at, ${LEAD_COLUMNS}
+    FROM news_articles a LEFT JOIN "user" u ON u.id = a.author_id LEFT JOIN media m ON m.id = a.lead_media_id
+    WHERE a.status = 'published' AND a.community = ?1 AND a.published_at <= ?2
+    ORDER BY a.published_at DESC, a.id ASC
+    LIMIT ?3 OFFSET ?4
+  `).bind(community, now, pageSize + 1, page * pageSize).all<Article>();
+  return result.results;
+}
+
 /** How long after publication a featured story may lead the front page. Measured from `published_at`, so later edits don't extend it. */
 export const FEATURE_WINDOW_DAYS = 3;
 const FEATURE_WINDOW_MS = FEATURE_WINDOW_DAYS * 24 * 60 * 60 * 1000;
