@@ -1,0 +1,623 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-16T02:58:57.709Z",
+  "title": "Design System: Firelands Current",
+  "extensions": {
+    "colorMeta": {
+      "deep": {
+        "role": "primary",
+        "displayName": "Deep Teal-Navy",
+        "canonical": "#173d4a",
+        "oklch": "oklch(33.9% 0.048 223.6)",
+        "tonalRamp": [
+          "#060c0f",
+          "#18272c",
+          "#2c444c",
+          "#43636f",
+          "#648694",
+          "#8faab4",
+          "#bbced6",
+          "#e6f1f5"
+        ]
+      },
+      "deep-2": {
+        "role": "primary",
+        "displayName": "Lifted Teal-Navy",
+        "canonical": "#21525f",
+        "oklch": "oklch(41.1% 0.056 218.0)",
+        "tonalRamp": [
+          "#050d0f",
+          "#14272d",
+          "#27454d",
+          "#3c6570",
+          "#5d8895",
+          "#8aabb5",
+          "#b8cfd6",
+          "#e4f1f5"
+        ]
+      },
+      "channel": {
+        "role": "secondary",
+        "displayName": "Harbor Blue",
+        "canonical": "#1c6880",
+        "oklch": "oklch(48.3% 0.080 223.8)",
+        "tonalRamp": [
+          "#020d12",
+          "#0c2832",
+          "#1a4655",
+          "#29667b",
+          "#4b8aa1",
+          "#7fadbf",
+          "#b1d1dd",
+          "#e0f2fa"
+        ]
+      },
+      "sunset": {
+        "role": "tertiary",
+        "displayName": "Warm Amber",
+        "canonical": "#e9a53a",
+        "oklch": "oklch(77.0% 0.142 74.4)",
+        "tonalRamp": [
+          "#130900",
+          "#331f00",
+          "#583801",
+          "#7e5404",
+          "#ac7307",
+          "#c99b5b",
+          "#e5c59a",
+          "#ffebd3"
+        ]
+      },
+      "logo-clay": {
+        "role": "tertiary",
+        "displayName": "Clay Orange (logo only)",
+        "canonical": "#bc633e",
+        "oklch": "oklch(59.7% 0.125 42.5)",
+        "tonalRamp": [
+          "#170602",
+          "#3b190a",
+          "#642e18",
+          "#8f4626",
+          "#b86746",
+          "#d39379",
+          "#edbfac",
+          "#ffe9e1"
+        ]
+      },
+      "fog": {
+        "role": "neutral",
+        "displayName": "Cool Off-White",
+        "canonical": "#f4f7f7",
+        "oklch": "oklch(97.4% 0.003 197.1)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#232424",
+          "#3e4040",
+          "#5c5e5e",
+          "#7e8181",
+          "#a3a5a5",
+          "#c9cbcb",
+          "#eeeeee"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "White",
+        "canonical": "#ffffff",
+        "oklch": "oklch(100.0% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "shoal": {
+        "role": "neutral",
+        "displayName": "Pale Aqua Mist",
+        "canonical": "#dceaec",
+        "oklch": "oklch(92.7% 0.015 207.1)",
+        "tonalRamp": [
+          "#090c0c",
+          "#202526",
+          "#3a4142",
+          "#556061",
+          "#778384",
+          "#9da7a8",
+          "#c5cccd",
+          "#ebeff0"
+        ]
+      },
+      "shoal-2": {
+        "role": "neutral",
+        "displayName": "Faint Aqua Wash",
+        "canonical": "#eaf2f3",
+        "oklch": "oklch(95.5% 0.009 205.9)",
+        "tonalRamp": [
+          "#0a0b0c",
+          "#222525",
+          "#3c4141",
+          "#595f60",
+          "#7b8282",
+          "#a0a6a6",
+          "#c8cbcc",
+          "#edefef"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Blue-Black Ink",
+        "canonical": "#1b2a2f",
+        "oklch": "oklch(27.4% 0.022 220.6)",
+        "tonalRamp": [
+          "#080c0d",
+          "#1f2528",
+          "#374245",
+          "#526065",
+          "#748389",
+          "#9ba7ab",
+          "#c3cccf",
+          "#eaeff1"
+        ]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Soft Ink",
+        "canonical": "#33474c",
+        "oklch": "oklch(38.3% 0.026 214.8)",
+        "tonalRamp": [
+          "#080c0d",
+          "#1d2628",
+          "#354246",
+          "#4f6166",
+          "#718489",
+          "#98a8ac",
+          "#c2cdd0",
+          "#e9f0f1"
+        ]
+      },
+      "slate": {
+        "role": "neutral",
+        "displayName": "Muted Blue-Gray",
+        "canonical": "#56696e",
+        "oklch": "oklch(50.7% 0.024 215.5)",
+        "tonalRamp": [
+          "#080c0d",
+          "#1e2627",
+          "#364245",
+          "#516165",
+          "#728489",
+          "#99a7ab",
+          "#c3cdcf",
+          "#eaf0f1"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Gray-Aqua Rule",
+        "canonical": "#c5d3d5",
+        "oklch": "oklch(85.7% 0.015 207.1)",
+        "tonalRamp": [
+          "#090c0c",
+          "#202526",
+          "#3a4142",
+          "#556061",
+          "#778384",
+          "#9da7a8",
+          "#c5cccd",
+          "#ebeff0"
+        ]
+      },
+      "line-soft": {
+        "role": "neutral",
+        "displayName": "Soft Rule",
+        "canonical": "#dde6e7",
+        "oklch": "oklch(91.8% 0.010 204.9)",
+        "tonalRamp": [
+          "#0a0b0c",
+          "#222525",
+          "#3c4141",
+          "#585f60",
+          "#7a8283",
+          "#a0a6a6",
+          "#c7cbcc",
+          "#ecefef"
+        ]
+      },
+      "field": {
+        "role": "neutral",
+        "displayName": "Field Stroke Gray",
+        "canonical": "#667f84",
+        "oklch": "oklch(57.9% 0.030 211.2)",
+        "tonalRamp": [
+          "#070c0d",
+          "#1c2628",
+          "#344346",
+          "#4d6266",
+          "#6e8589",
+          "#97a8ac",
+          "#c1cdd0",
+          "#e9f0f1"
+        ]
+      },
+      "alert": {
+        "role": "status",
+        "displayName": "Rust Red",
+        "canonical": "#8a3a1d",
+        "oklch": "oklch(45.2% 0.117 39.5)",
+        "tonalRamp": [
+          "#160603",
+          "#3a190e",
+          "#622f1e",
+          "#8d472f",
+          "#b6694e",
+          "#d1947f",
+          "#ecbfb0",
+          "#ffe9e2"
+        ]
+      },
+      "alert-bg": {
+        "role": "status",
+        "displayName": "Rust Red Wash",
+        "canonical": "#fdf1e8",
+        "oklch": "oklch(96.5% 0.018 59.5)",
+        "tonalRamp": [
+          "#0d0b09",
+          "#272320",
+          "#453e3a",
+          "#645c55",
+          "#887e77",
+          "#aba39d",
+          "#cfc9c5",
+          "#f1eeeb"
+        ]
+      },
+      "alert-line": {
+        "role": "status",
+        "displayName": "Rust Red Rule",
+        "canonical": "#e6c2b0",
+        "oklch": "oklch(84.0% 0.048 48.1)",
+        "tonalRamp": [
+          "#100a07",
+          "#2d211a",
+          "#4e3b31",
+          "#725749",
+          "#97796a",
+          "#b79f93",
+          "#d8c7be",
+          "#f6ece7"
+        ]
+      },
+      "warn": {
+        "role": "status",
+        "displayName": "Burnt Orange",
+        "canonical": "#9a5212",
+        "oklch": "oklch(51.5% 0.119 55.5)",
+        "tonalRamp": [
+          "#150701",
+          "#381c05",
+          "#5f330e",
+          "#894c19",
+          "#b16e3b",
+          "#cd9772",
+          "#e8c2a8",
+          "#feeadd"
+        ]
+      },
+      "warn-2": {
+        "role": "status",
+        "displayName": "Deep Burnt Orange",
+        "canonical": "#7c410e",
+        "oklch": "oklch(44.1% 0.101 55.2)",
+        "tonalRamp": [
+          "#140802",
+          "#361d0b",
+          "#5b3519",
+          "#834f28",
+          "#aa7148",
+          "#c7997b",
+          "#e4c3ad",
+          "#feeadd"
+        ]
+      },
+      "ok": {
+        "role": "status",
+        "displayName": "Pine Green",
+        "canonical": "#1f5a41",
+        "oklch": "oklch(42.2% 0.074 162.2)",
+        "tonalRamp": [
+          "#040e09",
+          "#13291f",
+          "#254838",
+          "#396952",
+          "#5a8d74",
+          "#88af9b",
+          "#b7d2c4",
+          "#e3f3ea"
+        ]
+      },
+      "ok-bg": {
+        "role": "status",
+        "displayName": "Pine Green Wash",
+        "canonical": "#e6f2ea",
+        "oklch": "oklch(95.0% 0.017 156.9)",
+        "tonalRamp": [
+          "#0a0c0a",
+          "#212522",
+          "#3b423d",
+          "#57605a",
+          "#79837d",
+          "#9fa7a2",
+          "#c7ccc8",
+          "#ecefed"
+        ]
+      },
+      "ok-line": {
+        "role": "status",
+        "displayName": "Pine Green Rule",
+        "canonical": "#8fbfa2",
+        "oklch": "oklch(76.2% 0.066 157.9)",
+        "tonalRamp": [
+          "#050d08",
+          "#17291e",
+          "#2b4737",
+          "#416851",
+          "#628b73",
+          "#8eae9a",
+          "#bbd1c3",
+          "#e5f2ea"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "masthead": {
+        "displayName": "Masthead",
+        "purpose": "The Firelands Current nameplate in the masthead; reused smaller in the footer and admin header."
+      },
+      "display": {
+        "displayName": "Display",
+        "purpose": "The homepage lead story's headline."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Story headlines; page titles use the global h1 at width 72%."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section headings (h2)."
+      },
+      "title-sm": {
+        "displayName": "Title small",
+        "purpose": "List headlines (h3) on the homepage, events, and section lists."
+      },
+      "lede": {
+        "displayName": "Lede",
+        "purpose": "The serif summary under a headline, max 36em."
+      },
+      "body-read": {
+        "displayName": "Body (read)",
+        "purpose": "Story text, max 36em (about 70 characters a line)."
+      },
+      "body-scan": {
+        "displayName": "Body (scan)",
+        "purpose": "Interface text, forms, navigation, comments, admin."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Kickers, buttons, and form labels."
+      },
+      "meta": {
+        "displayName": "Meta",
+        "purpose": "Bylines, dates, places, captions; Muted Blue-Gray."
+      },
+      "date-numeral": {
+        "displayName": "Date numeral",
+        "purpose": "Day number in event date blocks, tabular figures."
+      }
+    },
+    "shadows": [
+      {
+        "name": "focus-ring",
+        "value": "0 0 0 2px #fff",
+        "purpose": "White ring behind the 3px Deep Teal-Navy focus outline, so focus shows on dark bands too."
+      },
+      {
+        "name": "invalid-field",
+        "value": "inset 0 0 0 1px var(--alert)",
+        "purpose": "Doubles the Rust Red border on an invalid field."
+      },
+      {
+        "name": "now-bar-top",
+        "value": "inset 0 3px 0 var(--sunset)",
+        "purpose": "Today's cell in the month calendar."
+      },
+      {
+        "name": "now-bar-left",
+        "value": "-4px 0 0 var(--sunset)",
+        "purpose": "The comment a reader was linked to."
+      },
+      {
+        "name": "full-bleed-band",
+        "value": "0 0 0 100vmax var(--shoal)",
+        "purpose": "With clip-path: inset(0 -100vmax), extends a tinted band to the viewport edges without horizontal scroll. Structural, not elevation."
+      }
+    ],
+    "motion": [
+      {
+        "name": "none",
+        "value": "none",
+        "purpose": "The system has no transitions or animations; state changes are instant. Add motion only with a prefers-reduced-motion fallback."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "story-rail",
+        "value": "1100px",
+        "purpose": "Story ad rail drops below this width."
+      },
+      {
+        "name": "front-single",
+        "value": "860px",
+        "purpose": "Homepage collapses to one column."
+      },
+      {
+        "name": "phone",
+        "value": "700px",
+        "purpose": "Masthead menu button, sideways-scrolling filter tabs, one-column footer."
+      },
+      {
+        "name": "small-phone",
+        "value": "460px",
+        "purpose": "Smaller nameplate, dateline hidden."
+      },
+      {
+        "name": "tiny",
+        "value": "360px",
+        "purpose": "Menu button label visually hidden."
+      }
+    ],
+    "layout": {
+      "wrap": "1180px",
+      "gutter": "1.25rem",
+      "storyColumn": "760px",
+      "storyText": "36em",
+      "rail": "300px",
+      "form": "580px"
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The main action on a page or form: Deep Teal-Navy block, white label, 2px corners.",
+      "html": "<a class=\"ds-btn-primary\" href=\"#\">Start a discussion</a>",
+      "css": ".ds-btn-primary { font-family: var(--scan, 'Archivo', 'Arial Narrow', sans-serif); display: inline-block; background: var(--deep, #173d4a); color: #fff; border: 1px solid var(--deep, #173d4a); border-radius: 2px; padding: .75rem 1.15rem; text-decoration: none; font-weight: 650; font-stretch: 92%; line-height: 1.2; } .ds-btn-primary:hover { background: var(--deep-2, #21525f); border-color: var(--deep-2, #21525f); } .ds-btn-primary:focus-visible { outline: 3px solid var(--deep, #173d4a); outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A quieter action beside a primary one: outlined, fills with Pale Aqua Mist on hover.",
+      "html": "<a class=\"ds-btn-secondary\" href=\"#\">Full events calendar</a>",
+      "css": ".ds-btn-secondary { font-family: var(--scan, 'Archivo', 'Arial Narrow', sans-serif); display: inline-block; background: transparent; color: var(--deep, #173d4a); border: 1px solid var(--line, #c5d3d5); border-radius: 2px; padding: .75rem 1.15rem; text-decoration: none; font-weight: 650; font-stretch: 92%; line-height: 1.2; } .ds-btn-secondary:hover { background: var(--shoal, #dceaec); border-color: var(--shoal, #dceaec); } .ds-btn-secondary:focus-visible { outline: 3px solid var(--deep, #173d4a); outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Form field with a label above: white, Field Stroke Gray border, Harbor Blue focus outline.",
+      "html": "<label class=\"ds-field\">Your email<input type=\"email\" placeholder=\"name@example.com\"></label>",
+      "css": ".ds-field { font-family: var(--scan, 'Archivo', 'Arial Narrow', sans-serif); display: grid; gap: .4rem; max-width: 420px; font-weight: 600; font-size: .95rem; color: var(--ink, #1b2a2f); } .ds-field input { font: inherit; font-weight: 400; width: 100%; padding: .75rem .85rem; border: 1px solid var(--field, #667f84); border-radius: 2px; background: #fff; color: var(--ink, #1b2a2f); } .ds-field input:focus { outline: 3px solid var(--channel, #1c6880); outline-offset: 0; border-color: var(--deep, #173d4a); }"
+    },
+    {
+      "name": "Masthead and Navigation",
+      "kind": "nav",
+      "refersTo": "masthead",
+      "description": "Deep-water masthead with condensed nameplate and dateline; the current page gets a Warm Amber underline.",
+      "html": "<header class=\"ds-mast\"><div class=\"ds-mast-top\"><span class=\"ds-brand\">Firelands Current</span><p class=\"ds-dateline\"><strong>Sunday, November 15, 2026</strong>News from Sandusky and the Firelands</p></div><nav class=\"ds-nav\"><a href=\"#\">News</a><a href=\"#\">Events</a><a href=\"#\" aria-current=\"page\">Talk of the Town</a><a href=\"#\">Submit news</a></nav></header>",
+      "css": ".ds-mast { font-family: var(--scan, 'Archivo', 'Arial Narrow', sans-serif); background: var(--deep, #173d4a); color: #e6eff0; } .ds-mast-top { display: flex; justify-content: space-between; align-items: end; gap: 1.5rem; padding: 1.2rem 1.25rem 1rem; } .ds-brand { font: 800 2.6rem/.9 var(--scan, 'Archivo', sans-serif); font-stretch: 68%; letter-spacing: -.015em; color: #f4f7f7; } .ds-dateline { margin: 0; text-align: right; font-size: .85rem; line-height: 1.4; color: #a9c3c8; } .ds-dateline strong { display: block; color: #f4f7f7; font-weight: 600; font-size: .95rem; } .ds-nav { display: flex; flex-wrap: wrap; gap: 0 1.6rem; padding: 0 1.25rem; border-top: 1px solid var(--deep-2, #21525f); } .ds-nav a { display: block; padding: .8rem 0 .65rem; border-bottom: 3px solid transparent; text-decoration: none; color: #d4e4e7; font-weight: 600; font-stretch: 88%; } .ds-nav a:hover { color: #fff; border-bottom-color: #4f8290; } .ds-nav a[aria-current] { color: #fff; border-bottom-color: var(--sunset, #e9a53a); } .ds-nav a:focus-visible { outline: 3px solid var(--deep, #173d4a); outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }"
+    },
+    {
+      "name": "Filter Tabs",
+      "kind": "nav",
+      "refersTo": "filter-tab",
+      "description": "Underline tabs over a list (sections, categories, discussion types); not chips.",
+      "html": "<nav class=\"ds-tabs\"><a href=\"#\" aria-current=\"page\">All</a><a href=\"#\">Stories</a><a href=\"#\">Events</a><a href=\"#\">Community</a></nav>",
+      "css": ".ds-tabs { font-family: var(--scan, 'Archivo', 'Arial Narrow', sans-serif); display: flex; gap: 0 1.4rem; border-bottom: 1px solid var(--line, #c5d3d5); } .ds-tabs a { padding: .55rem 0 .5rem; margin-bottom: -1px; border-bottom: 3px solid transparent; color: var(--slate, #56696e); font-weight: 600; font-stretch: 90%; text-decoration: none; white-space: nowrap; } .ds-tabs a:hover { color: var(--deep, #173d4a); border-bottom-color: var(--line, #c5d3d5); } .ds-tabs a[aria-current] { color: var(--deep, #173d4a); border-bottom-color: var(--deep, #173d4a); } .ds-tabs a:focus-visible { outline: 3px solid var(--deep, #173d4a); outline-offset: 2px; box-shadow: 0 0 0 2px #fff; }"
+    },
+    {
+      "name": "Story List Item",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "How news is listed: kicker, condensed headline, meta line, hairline between items; rules, not boxes.",
+      "html": "<section class=\"ds-list\"><h2>Schools</h2><article><p class=\"ds-kicker\">Vermilion <span>Schools</span></p><h3><a href=\"#\">Vermilion teachers' association receives Five-Star Local Award</a></h3><p class=\"ds-meta\">Nov. 14, 2026</p></article><article><p class=\"ds-kicker\">Port Clinton <span>Schools</span></p><h3><a href=\"#\">Port Clinton schools honor Hittepole, Vensel with Flagship Awards</a></h3><p class=\"ds-meta\">Nov. 13, 2026</p></article></section>",
+      "css": ".ds-list { font-family: var(--scan, 'Archivo', 'Arial Narrow', sans-serif); max-width: 360px; border-top: 3px solid var(--deep, #173d4a); padding-top: .6rem; } .ds-list h2 { margin: 0 0 .4rem; font-size: 1.75rem; font-weight: 700; font-stretch: 72%; line-height: 1.05; color: var(--deep, #173d4a); } .ds-list article { padding: .9rem 0; border-bottom: 1px solid var(--line-soft, #dde6e7); } .ds-list article:last-child { border-bottom: 0; } .ds-kicker { margin: 0; color: var(--channel, #1c6880); font-weight: 650; font-size: .95rem; font-stretch: 92%; } .ds-kicker span { color: var(--slate, #56696e); font-weight: 500; margin-left: .45rem; padding-left: .55rem; border-left: 1px solid var(--line, #c5d3d5); } .ds-list h3 { margin: .25rem 0 .3rem; font-size: 1.3rem; font-weight: 700; font-stretch: 72%; line-height: 1.12; letter-spacing: -.01em; } .ds-list h3 a { color: var(--deep, #173d4a); text-decoration: none; } .ds-list h3 a:hover { color: var(--channel, #1c6880); } .ds-list h3 a:focus-visible { outline: 3px solid var(--deep, #173d4a); outline-offset: 2px; box-shadow: 0 0 0 2px #fff; } .ds-meta { margin: 0; color: var(--slate, #56696e); font-size: .9rem; font-stretch: 95%; }"
+    },
+    {
+      "name": "Event Date Block",
+      "kind": "custom",
+      "refersTo": "date-numeral",
+      "description": "Signature: a ruled date block leading each event; today's rule turns Warm Amber.",
+      "html": "<div class=\"ds-events\"><article class=\"ds-today\"><p class=\"ds-date\"><span class=\"n\">15</span><span>Today<br>Nov</span></p><div><h3><a href=\"#\">Sandusky winter clothing donation drive</a></h3><p class=\"ds-meta\">Hours vary, Sandusky Police Department lobby</p></div></article><article><p class=\"ds-date\"><span class=\"n\">18</span><span>Wed<br>Nov</span></p><div><h3><a href=\"#\">Huron schools community conversation</a></h3><p class=\"ds-meta\">7:30–8:30 a.m., Gathering Grounds</p></div></article></div>",
+      "css": ".ds-events { font-family: var(--scan, 'Archivo', 'Arial Narrow', sans-serif); display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem 2rem; padding: 1.5rem; background: var(--shoal, #dceaec); } .ds-events article { display: grid; grid-template-columns: 4.2rem minmax(0, 1fr); gap: .9rem; } .ds-date { margin: 0; display: grid; align-content: start; padding-top: .15rem; border-top: 3px solid var(--deep, #173d4a); color: var(--deep, #173d4a); font-size: .85rem; font-weight: 600; line-height: 1.2; } .ds-today .ds-date { border-top-color: var(--sunset, #e9a53a); } .ds-date .n { font-weight: 800; font-stretch: 62%; font-size: 3rem; line-height: .95; font-variant-numeric: tabular-nums; } .ds-events h3 { margin: .2rem 0 .35rem; font-size: 1.3rem; font-weight: 700; font-stretch: 72%; line-height: 1.12; } .ds-events h3 a { color: var(--deep, #173d4a); text-decoration: none; } .ds-events h3 a:hover { color: var(--channel, #1c6880); } .ds-events h3 a:focus-visible { outline: 3px solid var(--deep, #173d4a); outline-offset: 2px; box-shadow: 0 0 0 2px #fff; } .ds-events .ds-meta { margin: 0; color: var(--slate, #56696e); font-size: .9rem; }"
+    },
+    {
+      "name": "Status Pill",
+      "kind": "chip",
+      "refersTo": "status-pill",
+      "description": "Admin-only status label (Draft, Published, Hidden); fully rounded, small bold text.",
+      "html": "<span class=\"ds-pill\">Draft</span> <span class=\"ds-pill ds-pill-ok\">Published</span> <span class=\"ds-pill ds-pill-alert\">Hidden</span>",
+      "css": ".ds-pill { font-family: var(--scan, 'Archivo', 'Arial Narrow', sans-serif); display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap; background: var(--shoal-2, #eaf2f3); color: var(--slate, #56696e); } .ds-pill-ok { background: var(--ok-bg, #e6f2ea); color: var(--ok, #1f5a41); } .ds-pill-alert { background: var(--alert-bg, #fdf1e8); color: var(--alert, #8a3a1d); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Lake Erie Ledger",
+    "overview": "Firelands Current looks like a town's paper of record that happens to live on the screen: calm, factual, and easy to check. The palette is drawn from the bay itself, deep water for the masthead and headlines, a harbor blue for anything a reader can follow, pale aqua for the few tinted bands, and one warm amber that only ever marks what is current. Nothing on the page competes with the news; the system's job is to make headlines quick to scan and stories pleasant to read through.\n\nTwo typefaces split that job. Archivo, narrowed hard through its width axis, carries everything a reader scans: the masthead, headlines, navigation, kickers, dates, and metadata. Newsreader, a text serif, carries everything a reader reads: story bodies, ledes, and the short descriptive paragraphs. The layout is a printed paper's: a dateline masthead, ruled columns, heavy rules over sections and light hairlines between items, flat surfaces, nearly square corners. Structure comes from rules and type, not from boxes, shadows, or color fills.\n\nThe newsroom's admin tools use the same palette and type set tighter, as a place for scanning and acting rather than reading.",
+    "keyCharacteristics": [
+      "Deep-water masthead with the day's dateline, as a printed paper carries",
+      "Condensed Archivo for scanning, Newsreader serif for reading",
+      "Flat surfaces: no shadows, depth by tinted bands and rules",
+      "Heavy 3px rules head sections; 1px hairlines separate items",
+      "2px corners on everything interactive",
+      "One warm accent, reserved for \"now\": today, the current page, a linked comment",
+      "Light theme only"
+    ],
+    "rules": [
+      {
+        "name": "The Sunset Means Now Rule",
+        "body": "Warm Amber marks only what is current: today, the page you are on, the comment you were linked to. It is a rule or bar, never a fill, button, or text color. If it isn't happening now or here, it isn't amber.",
+        "section": "colors"
+      },
+      {
+        "name": "The Follow the Blue Rule",
+        "body": "Harbor Blue is for things a reader can follow (links, kickers that link, active votes). Headings and buttons are Deep Teal-Navy, never Harbor Blue, so blue stays a reliable signal.",
+        "section": "colors"
+      },
+      {
+        "name": "The Scan and Read Rule",
+        "body": "Archivo for what readers scan, Newsreader for what they read. A headline, label, date, or button is never in Newsreader; a story paragraph or lede is never in Archivo. Captions are Archivo because they are scanned.",
+        "section": "typography"
+      },
+      {
+        "name": "The Narrow Headline Rule",
+        "body": "Headings run Archivo at 62–72% width with tight leading (0.95–1.1), slight negative tracking, and `text-wrap: balance`. Normal-width Archivo is for body and controls, not headlines.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Paper Rule",
+        "body": "Surfaces never float. If something needs to stand apart, give it a tinted band, a White card with a Soft Rule border, or a heavy rule above it; never a shadow, blur, or glow.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Rule Over Box Rule",
+        "body": "Group content with a rule above it before reaching for a bordered box. Cards are for forms, account panels, and admin content, not for news lists.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do use the CSS custom properties in `src/styles/tokens.css` (`var(--deep)`, `var(--channel)`, …) rather than raw hex values.",
+      "Do set headings in Archivo at 62–72% width, weight 700, tight leading, Deep Teal-Navy, with `text-wrap: balance`.",
+      "Do set story text and ledes in Newsreader, capped at 36em.",
+      "Do head a section with a 3px Deep Teal-Navy rule and separate list items with 1px Soft Rule hairlines.",
+      "Do reserve Warm Amber for what is current: today, the current page, a linked comment.",
+      "Do keep every interactive corner at 2px and every focus state a 3px outline with a white ring.",
+      "Do keep tap targets at least 24px tall (the footer pads its links for WCAG 2.5.8).",
+      "Do give images a Pale Aqua Mist placeholder and a fixed aspect ratio."
+    ],
+    "donts": [
+      "Don't add drop shadows, glows, blurs, or gradients.",
+      "Don't use Warm Amber for text, fills, or buttons; it fails contrast on light backgrounds and dilutes its meaning.",
+      "Don't color headings or buttons Harbor Blue; blue means \"you can follow this.\"",
+      "Don't put news lists in cards or bordered boxes; use rules.",
+      "Don't use Newsreader for labels, navigation, buttons, or dates, or Archivo for story paragraphs.",
+      "Don't round corners beyond 4px except status pills.",
+      "Don't add `<style>` elements, inline event handlers, or third-party font, script, or style origins outside the Content Security Policy.",
+      "Don't let ads, sponsored listings, or house notices borrow headline styling or appear on forms, account pages, dashboards, or admin pages."
+    ]
+  }
+}
