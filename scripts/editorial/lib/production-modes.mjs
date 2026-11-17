@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { checkImages, checkPages } from './http.mjs';
-import { checkWindow, checkLocalState } from './local-modes.mjs';
+import { checkWindow, checkLocalState, retainedLeadImages } from './local-modes.mjs';
 import { assertUnchanged, baselineHash } from './manifest.mjs';
 import { hash, idList, insertSql, normalizeText, q, updateSql, valueList } from './util.mjs';
 
@@ -16,7 +16,8 @@ function scope(data) {
   const changedNews = data.changed.filter(change => change.table === 'news_articles').map(change => change.after);
   const changedEvents = data.changed.filter(change => change.table === 'events').map(change => change.after);
   const reused = data.images.filter(image => image.action === 'reuse'), uploaded = data.images.filter(image => image.action === 'upload');
-  return { changedNews, changedEvents, reused, uploaded, news: [...data.articles, ...changedNews], events: [...data.events, ...changedEvents] };
+  const existing = data.images.filter(image => image.action !== 'upload');
+  return { changedNews, changedEvents, reused, uploaded, existing, news: [...data.articles, ...changedNews], events: [...data.events, ...changedEvents] };
 }
 
 /** One round trip of read-only queries that every production mode starts from. */
@@ -52,7 +53,7 @@ function checkBefore(current, data, prepared) {
   for (const row of data.audits) assert(!current.audits.some(item => item.id === row.id), 'Audit entry already exists');
   assert(current.users.some(row => row.id === data.actor.id && row.name === data.actor.name), 'The author account differs on the target');
   assert(current.users.some(row => row.id === 'newsroom'), 'The discussion author is missing on the target');
-  assert.deepEqual(current.media, sortById(s.reused.map(image => image.record)), 'Library photo rows on the target differ from the reviewed local rows (or an uploaded photo already exists)');
+  assert.deepEqual(current.media, sortById(s.existing.map(image => image.record)), 'Library photo rows on the target differ from the reviewed local rows (or an uploaded photo already exists)');
   for (const change of prepared.updates) assert.deepEqual(current[change.table === 'events' ? 'events' : 'articles'].find(row => row.id === change.before.id), change.before, 'Update target changed after preparation');
   for (const feature of prepared.features) assert.equal(current.articles.find(row => row.id === feature.id)?.featured, feature.before_featured, 'Feature selection changed after preparation');
 }
@@ -103,6 +104,9 @@ export async function prepare({ loaded, journal, local, target }) {
   assert(journal.exists('evidence/local-http-verification.json'), 'Run --verify-http against the local site before preparing');
   const data = journal.read('local-import.json');
   assertUnchanged(data, loaded);
+  const retained = await retainedLeadImages(data, journal.read('local-before.json'), local);
+  assert.deepEqual(retained, journal.read('evidence/local-http-verification.json').retained_images ?? [], 'Retained lead photos changed since local HTTP verification');
+  data.images.push(...retained);
   const s = scope(data);
   const current = inspect(target, data);
   // The local database must still hold exactly what was reviewed.
@@ -110,7 +114,7 @@ export async function prepare({ loaded, journal, local, target }) {
   const migrations = (await local.db.prepare('SELECT name FROM d1_migrations ORDER BY id').all()).results;
   assert.deepEqual(migrations.map(row => row.name).sort(), current.migrations.map(row => row.name).sort(), 'The target schema differs from the local one; apply migrations first');
   const localSections = (await local.db.prepare("SELECT section,COUNT(*) AS n FROM news_articles WHERE status='published' GROUP BY section ORDER BY section").all()).results;
-  const prepared = { actor: data.actor, target: { name: target.name, origin: target.origin }, local_sections: localSections, updates: [], features: [] };
+  const prepared = { actor: data.actor, target: { name: target.name, origin: target.origin }, local_sections: localSections, retained_images: retained, updates: [], features: [] };
   for (const update of loaded.manifest.updates) {
     const table = update.table, local_ = data.changed.find(change => change.table === table && change.after.slug === update.slug);
     const row = current[table === 'events' ? 'events' : 'articles'].find(item => item.slug === update.slug);
@@ -127,7 +131,7 @@ export async function prepare({ loaded, journal, local, target }) {
     prepared.features.push({ slug: feature.slug, id: row.id, featured: feature.featured, before_featured: row.featured });
   }
   checkBefore(current, data, prepared);
-  const precheck = await checkImages(target.origin, s.reused);
+  const precheck = await checkImages(target.origin, s.existing);
   for (const image of s.uploaded) {
     assert.equal(hash(journal.readBytes(image.validated_file)), image.stored_sha256, 'The validated upload changed: ' + image.key);
   }
@@ -144,6 +148,7 @@ function loadStage({ loaded, journal, target }) {
   assertUnchanged(data, loaded);
   assert.equal(hash(journal.readBytes('local-import.json')), prepared.local_import_sha256, 'The local import changed after preparation');
   assert.deepEqual(prepared.target, { name: target.name, origin: target.origin }, 'Prepared target differs; never reuse rehearsal journals for production');
+  data.images.push(...(prepared.retained_images ?? []));
   return { data, prepared, baseline: journal.read('production-before.json') };
 }
 
@@ -155,7 +160,7 @@ export async function publish({ loaded, journal, target, options }) {
   let current = inspect(target, data);
   if (!journal.exists('production-write-intent.json')) {
     checkBefore(current, data, prepared);
-    await checkImages(target.origin, s.reused);
+    await checkImages(target.origin, s.existing);
     if (s.uploaded.length) {
       assert(!journal.exists('production-upload-intent.json'), 'An upload was started before; inspect the bucket rather than retrying');
       for (const image of s.uploaded) assert.equal(hash(journal.readBytes(image.validated_file)), image.stored_sha256);
@@ -221,7 +226,7 @@ export async function verify({ loaded, journal, target }) {
   assert.deepEqual(current.sections, prepared.local_sections, 'Local and target section counts differ');
   const choice = loaded.manifest.facebook?.queue ?? 'new-stories';
   const queued = data.articles.filter(row => choice === 'new-stories' || loaded.manifest.stories.some(story => story.slug === row.slug && choice.includes(story.key)));
-  assert.equal(current.audits.filter(row => row.action === 'facebook_queue').length, queued.length);
+  assert.equal(current.audits.filter(row => row.action === 'facebook_queue' && queued.some(article => article.id === row.target_id)).length, queued.length, 'Queue audit count for this packet');
   assert(current.facebook.every(row => queued.some(article => article.id === row.article_id) ? ['pending', 'posting', 'posted'].includes(row.status) && !row.last_error : row.status === 'review'), 'A delivery needs attention');
   const live = await checkPages(target.origin, liveContext(loaded, data, current, baseline.threads));
   const report = { checked_at: new Date().toISOString(), target: target.name, counts: current.counts[0], sections_match_local: true, features_as_planned: true, facebook: current.facebook, publisher_health: current.health, live };

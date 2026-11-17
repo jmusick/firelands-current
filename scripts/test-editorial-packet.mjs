@@ -77,8 +77,17 @@ test('exclusive journal claims, baseline hashes, changed copy and expired window
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('local import and publication rehearsal preserve review holds, verify pages, and queue once', async () => {
+test('publication verifies retained lead photos without adding them to the frozen manifest or import', async () => {
   const local = database(true), remote = database(true), dir = mkdtempSync(join(tmpdir(), 'packet-flow-'));
+  const photoBytes = Buffer.from('existing library photo');
+  for (const fixture of [local, remote]) {
+    fixture.sqlite.prepare(`INSERT INTO media (id,object_key,content_type,width,height,bytes,filename,alt,caption,credit,created_at,updated_at)
+      VALUES ('retained','library/retained.jpg','image/jpeg',1200,800,?,'retained.jpg','Existing alt','Existing caption','Existing credit',1,1)`).run(photoBytes.length);
+    fixture.sqlite.prepare("UPDATE news_articles SET lead_media_id='retained' WHERE id='existing-update'").run();
+    fixture.sqlite.prepare(`INSERT INTO admin_audit_log (id,actor_id,actor_name,target_type,target_id,target_label,action,detail,created_at)
+      VALUES ('old-queue','editor','Editor','story','existing-update','Existing story','facebook_queue','Earlier delivery',1)`).run();
+  }
+  local.env = { MEDIA: { get: async key => key === 'library/retained.jpg' ? { arrayBuffer: async () => photoBytes } : null } };
   const journal = openJournal('2026-10-24', dir);
   const m = manifest(), loaded = { manifest: m, manifestSha256: hash(JSON.stringify(m)), inputs: {} };
   m.updates = [{ table: 'news_articles', slug: 'existing-update', fields: { summary: 'Updated summary' }, baseline_sha256: baselineHash({ summary: 'Old summary' }, ['summary']) }];
@@ -88,12 +97,14 @@ test('local import and publication rehearsal preserve review holds, verify pages
     query(sql) { return sql.split(';').map(s => s.trim()).filter(Boolean).map(s => remote.sqlite.prepare(s).all().map(row => ({ ...row }))); },
     executeFile(file) { this.writes++; remote.sqlite.exec(readFileSync(file, 'utf8')); return 'ok'; } };
   const originalFetch = globalThis.fetch;
+  let omitPhoto = false, corruptPhoto = false;
   globalThis.fetch = async url => {
     const u = new URL(url), sql = u.port === '4414' ? remote.sqlite : local.sqlite;
+    if (u.pathname === '/media/library/retained.jpg') return new Response(corruptPhoto ? 'changed photo' : photoBytes);
     const stories = sql.prepare('SELECT * FROM news_articles').all(), events = sql.prepare('SELECT * FROM events').all(), threads = sql.prepare('SELECT * FROM forum_threads').all();
     const event = events.find(e => u.pathname.endsWith(e.slug + '.ics'));
     if (event) return new Response('BEGIN:VEVENT\nDTSTART:' + easternToIcsUtc(event.starts_on, event.start_time));
-    return new Response(stories.map(s => `${s.slug} ${s.headline} ${s.summary} /profile/${s.author_id} property="og:image" /social-logo.png?v=2`).join(' ') +
+    return new Response(stories.map(s => `${s.slug} ${s.headline} ${s.summary} /profile/${s.author_id} property="og:image" /social-logo.png?v=2 ${s.lead_media_id && !omitPhoto ? '/media/library/retained.jpg Existing alt Existing caption Existing credit' : ''}`).join(' ') +
       events.map(e => `${e.title} ${e.summary} ${e.link}`).join(' ') + threads.map(t => '/talk/' + t.id).join(' '));
   };
   try {
@@ -104,6 +115,17 @@ test('local import and publication rehearsal preserve review holds, verify pages
     await verifyLocal(args);
     await assert.rejects(prepare(args), /verify-http/);
     await verifyHttp({ ...args, origin: 'http://127.0.0.1:4415' });
+    assert.equal(journal.read('local-import.json').images.length, 0);
+    assert.equal(m.media.length, 0);
+    assert.equal(journal.read('evidence/local-http-verification.json').retained_images[0].stored_sha256, hash(photoBytes));
+    omitPhoto = true;
+    await assert.rejects(verifyHttp({ ...args, origin: 'http://127.0.0.1:4415' }), /Lead photo missing/);
+    omitPhoto = false;
+    corruptPhoto = true;
+    await assert.rejects(verifyHttp({ ...args, origin: 'http://127.0.0.1:4415' }), /Image differs/);
+    await assert.rejects(prepare(args), /Image differs/);
+    assert.equal(target.writes, 0);
+    corruptPhoto = false;
     await prepare(args);
     await assert.rejects(publish({ ...args, target: { ...target, name: 'production', origin: 'https://firelandscurrent.com' } }), /Prepared target differs/);
     await assert.rejects(queue(args), /publication/);
@@ -114,14 +136,21 @@ test('local import and publication rehearsal preserve review holds, verify pages
     journal.saveBytes('sync-production.sql', sql);
     await publish(args);
     assert.equal(remote.sqlite.prepare("SELECT status FROM facebook_posts WHERE article_id NOT LIKE 'existing-%'").get().status, 'review');
+    corruptPhoto = true;
+    await assert.rejects(queue(args), /Image differs/);
+    assert.equal(remote.sqlite.prepare("SELECT status FROM facebook_posts WHERE article_id NOT LIKE 'existing-%'").get().status, 'review');
+    corruptPhoto = false;
     await queue(args);
     await queue(args);
     assert.equal(remote.sqlite.prepare("SELECT status FROM facebook_posts WHERE article_id NOT LIKE 'existing-%'").get().status, 'pending');
     assert.equal(remote.sqlite.prepare("SELECT summary FROM news_articles WHERE id='existing-update'").get().summary, 'Updated summary');
     assert.equal(remote.sqlite.prepare("SELECT status FROM facebook_posts WHERE article_id='existing-update'").get().status, 'posted');
     assert.equal(remote.sqlite.prepare("SELECT featured FROM news_articles WHERE id='existing-feature'").get().featured, 0);
-    assert.equal(remote.sqlite.prepare("SELECT count(*) AS n FROM admin_audit_log WHERE action='facebook_queue'").get().n, 1);
+    assert.equal(remote.sqlite.prepare("SELECT count(*) AS n FROM admin_audit_log WHERE action='facebook_queue' AND target_id NOT LIKE 'existing-%'").get().n, 1);
+    assert.equal(remote.sqlite.prepare("SELECT detail FROM admin_audit_log WHERE id='old-queue'").get().detail, 'Earlier delivery');
     await verify(args);
+    remote.sqlite.prepare("DELETE FROM admin_audit_log WHERE action='facebook_queue' AND target_id NOT LIKE 'existing-%'").run();
+    await assert.rejects(verify(args), /Queue audit count for this packet/);
   } finally { globalThis.fetch = originalFetch; local.close(); remote.close(); rmSync(dir, { recursive: true, force: true }); }
 });
 

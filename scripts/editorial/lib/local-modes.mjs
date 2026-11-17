@@ -210,16 +210,32 @@ export async function verifyLocal({ loaded, journal, local }) {
   return report;
 }
 
+/** Existing story photos are not new packet media, but still need page and file verification. */
+export async function retainedLeadImages(data, before, local) {
+  const ids = new Set(data.changed.filter(change => change.table === 'news_articles').map(change => change.after.lead_media_id).filter(Boolean));
+  const retained = [];
+  for (const id of ids) {
+    if (data.images.some(image => image.record.id === id)) continue;
+    const record = before.media.find(row => row.id === id);
+    assert(record, 'Retained lead photo is missing from the baseline: ' + id);
+    const object = await local.env.MEDIA.get(record.object_key);
+    assert(object, 'Retained lead photo is missing from the local bucket: ' + record.object_key);
+    retained.push({ action: 'retain', record, stored_sha256: hash(new Uint8Array(await object.arrayBuffer())) });
+  }
+  return retained;
+}
+
 export async function verifyHttp({ loaded, journal, local, origin }) {
   const data = journal.read('local-import.json'), before = journal.read('local-before.json');
   assertUnchanged(data, loaded);
   const after = await local.snapshot();
   const state = await checkLocalState({ manifest: loaded.manifest, data, before, after });
+  const retained = await retainedLeadImages(data, before, local);
   const http = await checkPages(origin, { manifest: loaded.manifest, articles: data.articles, events: data.events,
     updatedArticles: data.changed.filter(change => change.table === 'news_articles').map(change => change.after),
     updatedEvents: data.changed.filter(change => change.table === 'events').map(change => change.after),
-    threads: after.forum_threads, images: data.images }, { lists: true });
-  const report = { checked_at: new Date().toISOString(), author: data.actor, ...state, http };
+    threads: after.forum_threads, images: [...data.images, ...retained] }, { lists: true });
+  const report = { checked_at: new Date().toISOString(), author: data.actor, ...state, retained_images: retained, http };
   journal.save('evidence/local-http-verification.json', report);
   return report;
 }
