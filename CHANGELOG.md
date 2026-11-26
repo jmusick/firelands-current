@@ -2,6 +2,13 @@
 
 All notable changes to Firelands Current are recorded here. The site follows [Semantic Versioning](https://semver.org/): the version lives in `package.json` and is shown in the site footer.
 
+## [1.38.1] - 2026-11-26
+
+### Fixed
+
+- Unattended editorial publication now verifies calendar exports for evening events whose Eastern start falls after midnight UTC.
+- Editorial packet verification now checks lead photos retained on updated stories and counts only Facebook queue audit entries created by that packet.
+
 ## [1.38.0] - 2026-11-15
 
 ### Added
