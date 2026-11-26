@@ -50,9 +50,13 @@ export async function checkPages(origin, ctx, { lists = false } = {}) {
         assert(has(html, row.link), 'Organizer source link missing: ' + url);
         const calendar = await get(url + '.ics');
         assert.equal(calendar.status, 200, 'Calendar export: ' + url);
-        const ics = await calendar.text();
-        assert(ics.includes('BEGIN:VEVENT') && ics.includes(row.starts_on.replaceAll('-', '')), 'Calendar data: ' + url);
-        if (row.start_time && !row.hours_note) assert(ics.includes('DTSTART:' + easternToIcsUtc(row.starts_on, row.start_time)), 'Calendar start time: ' + url);
+        const lines = (await calendar.text()).split(/\r?\n/);
+        assert(lines.includes('BEGIN:VEVENT'), 'Calendar data: ' + url);
+        // A late Eastern start can fall on the next UTC date in a timed export.
+        const expectedStart = row.start_time
+          ? 'DTSTART:' + easternToIcsUtc(row.starts_on, row.start_time)
+          : 'DTSTART;VALUE=DATE:' + row.starts_on.replaceAll('-', '');
+        assert(lines.includes(expectedStart), 'Calendar start time: ' + url);
       }
       checked.push({ url, status: 200 });
     }

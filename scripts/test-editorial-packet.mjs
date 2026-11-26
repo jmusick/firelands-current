@@ -10,7 +10,7 @@ import { assertUnchanged, baselineHash, packetPath, validateManifest } from './e
 import { applyLocal, checkWindow, verifyHttp, verifyLocal } from './editorial/lib/local-modes.mjs';
 import { prepare, publish, queue, verify } from './editorial/lib/production-modes.mjs';
 import { TABLES } from './editorial/lib/local.mjs';
-import { easternToIcsUtc, hash } from './editorial/lib/util.mjs';
+import { hash } from './editorial/lib/util.mjs';
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const manifest = () => ({ schema: 1, date: '2026-10-24', author: { email: 'editor@example.test', name: 'Editor' }, inputs: [],
@@ -90,6 +90,7 @@ test('publication verifies retained lead photos without adding them to the froze
   local.env = { MEDIA: { get: async key => key === 'library/retained.jpg' ? { arrayBuffer: async () => photoBytes } : null } };
   const journal = openJournal('2026-10-24', dir);
   const m = manifest(), loaded = { manifest: m, manifestSha256: hash(JSON.stringify(m)), inputs: {} };
+  m.events[0].start_time = '20:00';
   m.updates = [{ table: 'news_articles', slug: 'existing-update', fields: { summary: 'Updated summary' }, baseline_sha256: baselineHash({ summary: 'Old summary' }, ['summary']) }];
   m.features = [{ slug: 'existing-feature', featured: false }];
   loaded.manifestSha256 = hash(JSON.stringify(m));
@@ -103,7 +104,7 @@ test('publication verifies retained lead photos without adding them to the froze
     if (u.pathname === '/media/library/retained.jpg') return new Response(corruptPhoto ? 'changed photo' : photoBytes);
     const stories = sql.prepare('SELECT * FROM news_articles').all(), events = sql.prepare('SELECT * FROM events').all(), threads = sql.prepare('SELECT * FROM forum_threads').all();
     const event = events.find(e => u.pathname.endsWith(e.slug + '.ics'));
-    if (event) return new Response('BEGIN:VEVENT\nDTSTART:' + easternToIcsUtc(event.starts_on, event.start_time));
+    if (event) return new Response('BEGIN:VEVENT\r\nDTSTART:20261026T000000Z\r\nEND:VEVENT\r\n');
     return new Response(stories.map(s => `${s.slug} ${s.headline} ${s.summary} /profile/${s.author_id} property="og:image" /social-logo.png?v=2 ${s.lead_media_id && !omitPhoto ? '/media/library/retained.jpg Existing alt Existing caption Existing credit' : ''}`).join(' ') +
       events.map(e => `${e.title} ${e.summary} ${e.link}`).join(' ') + threads.map(t => '/talk/' + t.id).join(' '));
   };
